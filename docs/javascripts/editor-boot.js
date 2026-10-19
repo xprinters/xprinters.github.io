@@ -22,6 +22,7 @@
         .then(function () { return load("script", { src: base + "vendor/jspdf.umd.min.js" }); })
         .then(function () { return load("script", { src: base + "vendor/JsBarcode.all.min.js" }); })
         .then(function () { return load("script", { src: base + "vendor/qrcode.js" }); })
+        .then(function () { return load("script", { src: base + "signs-list.js" }); })
         .then(function () { return load("script", { src: base + "editor.js" }); });
     }
     loading.then(function () { return window.XPEditor.mount(root, base); })

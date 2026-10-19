@@ -225,3 +225,92 @@
   .xpe-tools button { padding: .4rem .5rem; }
   .xpe-stage { height: 18rem; order: -1; }
 }
+
+/* ===== окно выбора знака ===== */
+.xpe-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 15, 26, .55);
+  font-size: .72rem;
+}
+.xpe-mbox {
+  display: flex;
+  flex-direction: column;
+  width: min(54rem, 100%);
+  max-height: min(40rem, 100%);
+  background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color);
+  border: 1px solid var(--xp-card-border);
+  border-radius: .7rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+  overflow: hidden;
+}
+.xpe-mhead { display: flex; align-items: center; gap: .6rem; padding: .7rem .8rem; border-bottom: 1px solid var(--xp-card-border); }
+.xpe-mhead b { font-family: var(--md-code-font-family); white-space: nowrap; }
+.xpe-msearch {
+  flex: 1;
+  min-width: 0;
+  height: 2.1rem;
+  padding: 0 .6rem;
+  font: inherit;
+  color: inherit;
+  background: var(--xp-card-bg);
+  border: 1px solid var(--xp-card-border);
+  border-radius: .4rem;
+}
+.xpe-msearch:focus { outline: 2px solid var(--xp-accent-soft); border-color: var(--xp-accent); }
+.xpe-mclose { height: 2.1rem; font-size: .8rem; }
+.xpe-mtabs { display: flex; flex-wrap: wrap; gap: .3rem; padding: .6rem .8rem 0; }
+.xpe-mtabs button {
+  padding: .35rem .7rem;
+  border: 1px solid var(--xp-card-border);
+  border-radius: 1rem;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.xpe-mtabs button:hover { border-color: var(--xp-accent); }
+.xpe-mtabs button.xpe-on { background: var(--xp-accent-soft); border-color: var(--xp-accent); color: var(--xp-tag-fg); }
+.xpe-mgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: .5rem;
+  padding: .8rem;
+  overflow: auto;
+}
+.xpe-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .35rem;
+  padding: .5rem .3rem;
+  border: 1px solid var(--xp-card-border);
+  border-radius: .5rem;
+  background: var(--xp-card-bg);
+  color: inherit;
+  font: inherit;
+  font-size: .6rem;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.xpe-sign:hover, .xpe-sign:focus-visible { border-color: var(--xp-accent); outline: none; }
+/* знаки чёрные — показываем на белой плашке и в тёмной теме */
+.xpe-sign img, .xpe-signcur img { width: 3.2rem; height: 3.2rem; object-fit: contain; padding: .3rem; background: #fff; border-radius: .3rem; box-sizing: border-box; }
+.xpe-signcur { display: flex; align-items: center; gap: .5rem; }
+.xpe-signcur img { flex: 0 0 auto; border: 1px solid var(--xp-card-border); }
+.md-typeset .xpe-credits { margin-top: .8rem; font-size: .62rem; color: var(--md-default-fg-color--light); }
+.md-typeset .xpe-credits summary { cursor: pointer; }
+
+/* ===== множественное выделение ===== */
+.xpe-marquee { fill: rgba(37, 99, 235, .1); stroke: #2563eb; stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-groupitem { fill: none; stroke: #2563eb; stroke-width: 1px; vector-effect: non-scaling-stroke; pointer-events: none; opacity: .9; }
+.xpe-groupbox { stroke-dasharray: 6 3; }
+.xpe-aligns { display: flex; gap: .3rem; flex-wrap: wrap; }
+.xpe-aligns .xpe-btn { width: 2rem; height: 2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.xpe-stage { cursor: default; }

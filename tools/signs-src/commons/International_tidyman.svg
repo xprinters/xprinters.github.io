@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg" version="1.0" width="524px" height="672px" viewBox="-1 -1 262 336">
+	<defs />
+	<g style="stroke:#000000;stroke-linecap:round;stroke-linejoin:round;">
+		<g id="basket" style="fill:none;stroke:#000000;stroke-width:8;">
+			<path style="stroke-width:14;" d="M 7.25,167 H 133 z" />
+			<path d="M 129,168 114,326 H 39.9 L 11.2,168" />
+			<path d="M 16.5,196 H 126 L 124,222 H 21 L 25.7,248 H 121.2 L 119,274 H 30.6 L 35.2,300 H 116 M 95.4,326 101,167 H 70.9 L 76,326 H 59.9 L 40.2,167" />
+		</g>
+		<path   id="body" style="fill:#000000; stroke:#000000;stroke-width:4;" d="M 59.3,64.5 219,64.9 C 233,80.5 256,133 257,146 L 177,150 C 175,123 163,98.9 161,95.1 z M 177,155 150,330 212,215 240,331 256,157 z" />
+		<circle id="head" style="fill:#000000; stroke:none;" cx="187" cy="31" r="30" />
+		<path id="waste" style="fill:#ffffff;stroke-width:6;" d="M 28.6,138 C 56,124 55.8,103 58,103 84,114 109,117 125,113 78.4,149 102,150 95.6,148 75.9,141 47.3,162 28.6,138 M 77.5,110 C 103,110 103,102 108,99.7 108,99.7 111,110 117,115" />
+	</g>
+</svg>

@@ -10,3 +10,9 @@ hide:
 # Редактор этикеток
 
 <div id="xp-editor" data-base="./"><p>Загрузка редактора…</p></div>
+
+<details class="xpe-credits"><summary>Источники знаков</summary>
+<p>Знаки соответствия, манипуляционные знаки, знаки утилизации и пищевого контакта — Wikimedia Commons (общественное достояние / CC0).
+Знаки ухода за изделием — <a href="https://tabler.io/icons">Tabler Icons</a>, лицензия MIT, © Paweł Kuna (<a href="signs/LICENSE-tabler-icons.txt">текст лицензии</a>).
+Надписи — шрифт Arimo (Apache 2.0).</p>
+</details>

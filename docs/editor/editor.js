@@ -200,6 +200,20 @@
     return { ms: ms, x0: it.x + (it.w - size) / 2, y0: it.y + (it.h - size) / 2, size: size };
   }
 
+  /* ---------- знаки: список из signs-list.js, сами знаки — файлы signs/<id>.svg ---------- */
+  var SIGN_BASE = '';
+  var SIGNS = (function () {
+    var cats = window.XPSignList || [], by = {};
+    cats.forEach(function (c) { c.items.forEach(function (sg) { by[sg.id] = sg; }); });
+    return {
+      categories: cats,
+      get: function (id) { return by[id] || null; },
+      ratio: function (sg) { return sg ? sg.ratio : 1; },
+      url: function (sg) { return SIGN_BASE + 'signs/' + sg.id + '.svg'; },
+      img: function (sg) { return '<img src="' + SIGN_BASE + 'signs/' + sg.id + '.svg" alt="" loading="lazy">'; }
+    };
+  })();
+
   /* ---------- иконки панели (контурные, 24×24) ---------- */
   function icon(d) {
     return '<svg class="xpe-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" ' +
@@ -246,7 +260,9 @@
   function Editor(root, base) {
     this.root = root;
     this.base = base;
-    this.sel = null;
+    this.sel = null;      // один выбранный элемент
+    this.multi = [];      // несколько выбранных элементов (id), если их больше одного
+    this.marquee = null;  // рамка выделения мышью
     this.guides = [];
     this.undoStack = [];
     this.redoStack = [];
@@ -290,6 +306,9 @@
     this.doc = JSON.parse(json);
     this.saved = json;
     if (this.sel && !this.item(this.sel)) this.sel = null;
+    var self = this;
+    this.multi = this.multi.filter(function (id) { return self.item(id); });
+    if (this.multi.length < 2) this.multi = [];
     this.persist();
     this.syncLabelInputs();
     this.fit();
@@ -377,6 +396,7 @@
             '<button type="button" data-add="line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg> Линия</button>' +
             '<button type="button" data-add="rect"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg> Рамка</button>' +
             '<button type="button" data-add="image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg> Картинка</button>' +
+            '<button type="button" data-add="sign"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg> Знаки</button>' +
             '<input type="file" accept="image/png,image/jpeg,image/svg+xml" class="xpe-file" hidden>' +
           '</div>' +
           '<div class="xpe-stagewrap"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg></div>' +
@@ -452,6 +472,7 @@
       b.addEventListener('click', function () {
         var t = b.getAttribute('data-add');
         if (t === 'image') { self.$file.click(); return; }
+        if (t === 'sign') { self.openSigns(null); return; }
         self.addItem(newItem(t, self.cv()));
       });
     });
@@ -519,6 +540,7 @@
     it.id = this.nextId++;
     this.doc.items.push(it);
     this.sel = it.id;
+    this.multi = [];
     this.render();
     this.renderProps();
     this.commit();
@@ -544,6 +566,69 @@
       img.src = rd.result;
     };
     rd.readAsDataURL(file);
+  };
+
+  /* ---------- выбор знака (EAC, РСТ, уход, переработка…) ---------- */
+  var signTab = 'conf';
+  Editor.prototype.openSigns = function (target) {
+    var self = this, S = SIGNS;
+    if (this.$signs) this.$signs.remove();
+    var dlg = h('<div class="xpe-modal" role="dialog" aria-modal="true" aria-label="Выбор знака">' +
+      '<div class="xpe-mbox"><div class="xpe-mhead"><b>' + (target ? 'Заменить знак' : 'Добавить знак') + '</b>' +
+      '<input type="search" class="xpe-msearch" placeholder="Поиск: стирка, EAC, хрупкое…" aria-label="Поиск знака">' +
+      '<button type="button" class="xpe-btn xpe-ico-btn xpe-mclose" aria-label="Закрыть">✕</button></div>' +
+      '<div class="xpe-mtabs" role="tablist">' + S.categories.map(function (c) {
+        return '<button type="button" role="tab" data-cat="' + c.id + '">' + esc(c.name) + '</button>';
+      }).join('') + '</div><div class="xpe-mgrid"></div></div></div>');
+    document.body.appendChild(dlg);
+    this.$signs = dlg;
+    var grid = dlg.querySelector('.xpe-mgrid'), search = dlg.querySelector('.xpe-msearch');
+
+    var show = function () {
+      var q = search.value.trim().toLowerCase(), list = [];
+      S.categories.forEach(function (c) {
+        c.items.forEach(function (sg) {
+          if (q ? sg.name.toLowerCase().indexOf(q) >= 0 : c.id === signTab) list.push(sg);
+        });
+      });
+      dlg.querySelectorAll('[data-cat]').forEach(function (b) {
+        var on = !q && b.getAttribute('data-cat') === signTab;
+        b.classList.toggle('xpe-on', on);
+        b.setAttribute('aria-selected', on);
+      });
+      grid.innerHTML = list.length ? list.map(function (sg) {
+        return '<button type="button" class="xpe-sign" data-sign="' + sg.id + '" title="' + esc(sg.name) + '">' +
+          S.img(sg) + '<span>' + esc(sg.name) + '</span></button>';
+      }).join('') : '<p class="xpe-note">Ничего не найдено.</p>';
+    };
+    var close = function () {
+      dlg.remove();
+      self.$signs = null;
+      document.removeEventListener('keydown', onEsc, true);
+    };
+    var onEsc = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); close(); } };
+    document.addEventListener('keydown', onEsc, true);
+
+    dlg.addEventListener('click', function (ev) {
+      if (ev.target === dlg || ev.target.closest('.xpe-mclose')) return close();
+      var tab = ev.target.closest('[data-cat]');
+      if (tab) { signTab = tab.getAttribute('data-cat'); search.value = ''; show(); return; }
+      var b = ev.target.closest('[data-sign]');
+      if (!b) return;
+      var sg = S.get(b.getAttribute('data-sign')), ratio = S.ratio(sg);
+      close();
+      if (target) {
+        target.key = sg.id;
+        target.h = r2(target.w * ratio);
+        self.render(); self.renderProps(); self.commit();
+        return;
+      }
+      var L = self.cv(), hh = Math.min(12, L.h * 0.4), w = hh / ratio;
+      self.addItem({ type: 'sign', key: sg.id, x: r2((L.w - w) / 2), y: r2((L.h - hh) / 2), w: r2(w), h: r2(hh) });
+    });
+    search.addEventListener('input', show);
+    show();
+    search.focus();
   };
 
   /* ---------- файл макета (.xplabel) ---------- */
@@ -728,6 +813,11 @@
     } else if (it.type === 'image') {
       hit();
       svgEl('image', { x: it.x, y: it.y, width: it.w, height: it.h, href: it.src, preserveAspectRatio: 'xMidYMid meet' }, g);
+    } else if (it.type === 'sign') {
+      hit();
+      var sg = SIGNS.get(it.key);
+      if (!sg) return this.drawError(g, it, 'Нет знака');
+      svgEl('image', { x: it.x, y: it.y, width: it.w, height: it.h, href: SIGNS.url(sg), preserveAspectRatio: 'xMidYMid meet' }, g);
     }
   };
   function lineRect(it) {
@@ -756,8 +846,13 @@
   Editor.prototype.drawOverlay = function (svg) {
     var s = this.scale, L = this.cv(), g = svgEl('g', { class: 'xpe-overlay' }, svg);
     this.drawGuides(g);
-    var hov = this.hover && this.hover !== this.sel && this.item(this.hover);
+    var hov = this.hover && this.hover !== this.sel && this.multi.indexOf(this.hover) < 0 && this.item(this.hover);
     if (hov) svgEl('rect', { x: hov.x, y: hov.y, width: hov.w, height: hov.h, class: 'xpe-hoverbox' }, g);
+    if (this.marquee) {
+      var m = this.marquee;
+      svgEl('rect', { x: m.x, y: m.y, width: m.w, height: m.h, class: 'xpe-marquee' }, g);
+    }
+    if (this.multi.length) return this.drawGroupOverlay(g);
     var it = this.sel && this.item(this.sel);
     if (!it) return;
     // рамка выделения: белая подложка + синяя линия — видна и на белом, и на чёрном
@@ -774,12 +869,29 @@
     });
   };
 
+  /* Несколько выбранных: тонкая рамка у каждого и общая рамка с угловыми маркерами */
+  Editor.prototype.drawGroupOverlay = function (g) {
+    var s = this.scale, items = this.selItems(), pad = 2 / s;
+    items.forEach(function (it) {
+      svgEl('rect', { x: it.x, y: it.y, width: it.w, height: it.h, class: 'xpe-groupitem' }, g);
+    });
+    var b = boxOf(items), box = { x: b.x - pad, y: b.y - pad, width: b.w + 2 * pad, height: b.h + 2 * pad };
+    svgEl('rect', Object.assign({ class: 'xpe-selfill' }, box), g);
+    svgEl('rect', Object.assign({ class: 'xpe-selhalo' }, box), g);
+    svgEl('rect', Object.assign({ class: 'xpe-selbox xpe-groupbox' }, box), g);
+    var hs = 11 / s, gb = { x: box.x, y: box.y, w: box.width, h: box.height };
+    ['nw', 'ne', 'se', 'sw'].forEach(function (k) {
+      var p = handlePos(gb, k);
+      svgEl('rect', { x: p[0] - hs / 2, y: p[1] - hs / 2, width: hs, height: hs, rx: 2 / s, class: 'xpe-handle xpe-h-' + k, 'data-handle': k }, g);
+    });
+  };
+
   /* Направляющие.
      К этикетке — розовая сплошная линия через всю этикетку и подпись «Центр/Край этикетки».
      К другому элементу — оранжевая пунктирная линия только между двумя элементами,
      элемент-цель обведён, подпись «Центр · Штрихкод». */
   Editor.prototype.drawGuides = function (g) {
-    var self = this, s = this.scale, L = this.cv(), it = this.sel && this.item(this.sel);
+    var self = this, s = this.scale, L = this.cv(), it = this.activeBox();
     var ext = 14 / s, gap = 6 / s;
     this.guides.forEach(function (gd) {
       var vert = gd.axis === 'x', a, cls = gd.kind === 'label' ? 'xpe-guide-label' : 'xpe-guide-item', text;
@@ -828,27 +940,52 @@
     return [(ev.clientX - r.left) / this.scale, (ev.clientY - r.top) / this.scale];
   };
 
-  Editor.prototype.bindPointer = function () {
-    var self = this, svg = this.$svg, drag = null;
+  function snapshotOf(items) {
+    return items.map(function (it) {
+      return { it: it, x: it.x, y: it.y, w: it.w, h: it.h, size: it.size, textSize: it.textSize };
+    });
+  }
 
-    svg.addEventListener('pointerdown', function (ev) {
+  Editor.prototype.bindPointer = function () {
+    var self = this, svg = this.$svg, stage = this.$stage, drag = null;
+
+    // события слушаем на всей области холста: рамку выделения можно начать и за краем этикетки
+    stage.addEventListener('pointerdown', function (ev) {
       if (ev.button !== 0) return;
-      var p = self.toMm(ev), handle = ev.target.getAttribute('data-handle');
+      if (ev.target === stage && (ev.offsetX > stage.clientWidth || ev.offsetY > stage.clientHeight)) return; // полоса прокрутки
+      var p = self.toMm(ev), handle = ev.target.getAttribute && ev.target.getAttribute('data-handle');
+      var add = ev.shiftKey || ev.ctrlKey || ev.metaKey;
+      var group = self.multi.length ? self.selItems() : null;
       var it = self.sel && self.item(self.sel);
-      if (handle && it) {
+      var g = ev.target.closest && ev.target.closest('.xpe-item');
+      var hit = g && self.item(+g.getAttribute('data-id'));
+
+      if (handle && group) {
+        drag = { mode: 'gscale', handle: handle, start: p, box: boxOf(group), snapshot: snapshotOf(group) };
+      } else if (handle && it) {
         drag = { mode: 'resize', handle: handle, it: it, start: p, box: { x: it.x, y: it.y, w: it.w, h: it.h } };
+      } else if (hit && add) {
+        // Shift/Ctrl+клик — добавить или убрать элемент из выделения
+        var ids = self.selIds(), i = ids.indexOf(hit.id);
+        if (i >= 0) ids.splice(i, 1); else ids.push(hit.id);
+        self.setSelection(ids);
+        return;
+      } else if (hit && self.multi.indexOf(hit.id) >= 0) {
+        drag = { mode: 'gmove', start: p, box: boxOf(group), snapshot: snapshotOf(group) };
+      } else if (hit) {
+        if (self.sel !== hit.id || self.multi.length) self.select(hit.id);
+        drag = { mode: 'move', it: hit, start: p, box: { x: hit.x, y: hit.y, w: hit.w, h: hit.h } };
       } else {
-        var g = ev.target.closest('.xpe-item');
-        if (!g) { self.select(null); return; }
-        it = self.item(+g.getAttribute('data-id'));
-        if (self.sel !== it.id) self.select(it.id);
-        drag = { mode: 'move', it: it, start: p, box: { x: it.x, y: it.y, w: it.w, h: it.h } };
+        // пустое место — рамка выделения (с Shift/Ctrl — добавить к текущему)
+        drag = { mode: 'marquee', start: p, base: add ? self.selIds() : [] };
+        self.marquee = { x: p[0], y: p[1], w: 0, h: 0 };
+        if (!add) { self.sel = null; self.multi = []; self.renderProps(); }
       }
-      svg.setPointerCapture(ev.pointerId);
+      stage.setPointerCapture(ev.pointerId);
       ev.preventDefault();
     });
 
-    svg.addEventListener('pointermove', function (ev) {
+    stage.addEventListener('pointermove', function (ev) {
       if (!drag) {
         // подсветка элемента под курсором
         var g = ev.pointerType === 'mouse' && ev.target.closest && ev.target.closest('.xpe-item');
@@ -857,7 +994,14 @@
         return;
       }
       var p = self.toMm(ev), dx = p[0] - drag.start[0], dy = p[1] - drag.start[1];
+      if (drag.mode === 'marquee') {
+        self.marquee = { x: Math.min(p[0], drag.start[0]), y: Math.min(p[1], drag.start[1]), w: Math.abs(dx), h: Math.abs(dy) };
+        self.render();
+        return;
+      }
       if (drag.mode === 'move') self.moveTo(drag.it, drag.box.x + dx, drag.box.y + dy, !ev.altKey);
+      else if (drag.mode === 'gmove') self.moveGroup(drag.snapshot, drag.box, dx, dy, !ev.altKey);
+      else if (drag.mode === 'gscale') self.scaleGroup(drag, dx, dy);
       else self.resize(drag, dx, dy, ev.shiftKey);
       self.render();
       self.updateGeomInputs();
@@ -865,14 +1009,25 @@
 
     var end = function () {
       if (!drag) return;
+      var d = drag;
       drag = null;
       self.guides = [];
+      if (d.mode === 'marquee') {
+        var m = self.marquee;
+        self.marquee = null;
+        // выделяются элементы, которые рамка задевает
+        var hits = m.w + m.h < 0.6 ? [] : self.doc.items.filter(function (o) {
+          return o.x < m.x + m.w && o.x + o.w > m.x && o.y < m.y + m.h && o.y + o.h > m.y;
+        }).map(function (o) { return o.id; });
+        self.setSelection(d.base.concat(hits));
+        return;
+      }
       self.render();
       self.renderProps();
       self.commit();
     };
-    svg.addEventListener('pointerup', end);
-    svg.addEventListener('pointercancel', end);
+    stage.addEventListener('pointerup', end);
+    stage.addEventListener('pointercancel', end);
     svg.addEventListener('pointerleave', function () {
       if (!drag && self.hover) { self.hover = null; self.render(); }
     });
@@ -884,8 +1039,40 @@
 
   Editor.prototype.select = function (id) {
     this.sel = id;
+    this.multi = [];
     this.render();
     this.renderProps();
+  };
+
+  /* Выделение: один элемент — this.sel, несколько — this.multi */
+  Editor.prototype.selIds = function () {
+    return this.multi.length ? this.multi.slice() : this.sel ? [this.sel] : [];
+  };
+  Editor.prototype.selItems = function () {
+    var self = this;
+    return this.selIds().map(function (id) { return self.item(id); }).filter(Boolean);
+  };
+  Editor.prototype.setSelection = function (ids) {
+    var self = this, seen = {};
+    // порядок — как в макете, без повторов
+    ids = this.doc.items.filter(function (o) { return ids.indexOf(o.id) >= 0 && !seen[o.id] && (seen[o.id] = 1); })
+      .map(function (o) { return o.id; });
+    this.sel = ids.length === 1 ? ids[0] : null;
+    this.multi = ids.length > 1 ? ids : [];
+    this.render();
+    this.renderProps();
+  };
+  function boxOf(items) {
+    var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    items.forEach(function (o) {
+      x0 = Math.min(x0, o.x); y0 = Math.min(y0, o.y); x1 = Math.max(x1, o.x + o.w); y1 = Math.max(y1, o.y + o.h);
+    });
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+  }
+  /* Рамка, которую сейчас двигают: один элемент или вся группа */
+  Editor.prototype.activeBox = function () {
+    var items = this.selItems();
+    return items.length ? boxOf(items) : null;
   };
 
   /* Перемещение с прилипанием к краям/центру этикетки и других элементов */
@@ -896,24 +1083,51 @@
     ];
     items.forEach(function (o) {
       if (o === it) return;
-      var a = axis === 'x' ? o.x : o.y, s = axis === 'x' ? o.w : o.h;
+      var a = axis === 'x' ? o.x : o.y, s = axis === 'x' ? o.w : o.h;  // it === null — цели уже отфильтрованы
       out.push({ v: a, kind: 'item', what: 'edge', item: o },
         { v: a + s / 2, kind: 'item', what: 'center', item: o },
         { v: a + s, kind: 'item', what: 'edge', item: o });
     });
     return out;
   }
+  /* Прилипание рамки (x, y, w, h) к этикетке и элементам, кроме exclude. Возвращает сдвиг [dx, dy] */
+  Editor.prototype.snapBox = function (x, y, w, h, exclude) {
+    var L = this.cv(), th = SNAP_PX / this.scale, others = this.doc.items.filter(function (o) { return exclude.indexOf(o) < 0; });
+    var dx = 0, dy = 0;
+    var sx = snapAxis([x, x + w / 2, x + w], snapTargets(L, others, null, 'x'), th);
+    if (sx) { dx = sx.d; this.guides.push({ axis: 'x', at: sx.t.v, kind: sx.t.kind, what: sx.t.what, item: sx.t.item }); }
+    var sy = snapAxis([y, y + h / 2, y + h], snapTargets(L, others, null, 'y'), th);
+    if (sy) { dy = sy.d; this.guides.push({ axis: 'y', at: sy.t.v, kind: sy.t.kind, what: sy.t.what, item: sy.t.item }); }
+    return [dx, dy];
+  };
   Editor.prototype.moveTo = function (it, x, y, snap) {
     this.guides = [];
-    if (snap) {
-      var L = this.cv(), th = SNAP_PX / this.scale;
-      var sx = snapAxis([x, x + it.w / 2, x + it.w], snapTargets(L, this.doc.items, it, 'x'), th);
-      if (sx) { x += sx.d; this.guides.push({ axis: 'x', at: sx.t.v, kind: sx.t.kind, what: sx.t.what, item: sx.t.item }); }
-      var sy = snapAxis([y, y + it.h / 2, y + it.h], snapTargets(L, this.doc.items, it, 'y'), th);
-      if (sy) { y += sy.d; this.guides.push({ axis: 'y', at: sy.t.v, kind: sy.t.kind, what: sy.t.what, item: sy.t.item }); }
-    }
+    if (snap) { var d = this.snapBox(x, y, it.w, it.h, [it]); x += d[0]; y += d[1]; }
     it.x = r2(x);
     it.y = r2(y);
+  };
+  /* Перемещение группы: snap — исходные координаты элементов, сдвиг (dx, dy) */
+  Editor.prototype.moveGroup = function (snapshot, box0, dx, dy, snap) {
+    this.guides = [];
+    var items = snapshot.map(function (s) { return s.it; });
+    if (snap) { var d = this.snapBox(box0.x + dx, box0.y + dy, box0.w, box0.h, items); dx += d[0]; dy += d[1]; }
+    snapshot.forEach(function (s) { s.it.x = r2(s.x + dx); s.it.y = r2(s.y + dy); });
+  };
+  /* Пропорциональное масштабирование группы за угол рамки; шрифты масштабируются вместе с элементами */
+  Editor.prototype.scaleGroup = function (drag, dx, dy) {
+    var b = drag.box, k = drag.handle;
+    var ax = k.indexOf('w') >= 0 ? b.x + b.w : b.x, ay = k.indexOf('n') >= 0 ? b.y + b.h : b.y;
+    var sw = (k.indexOf('w') >= 0 ? b.w - dx : b.w + dx) / b.w, sh = (k.indexOf('n') >= 0 ? b.h - dy : b.h + dy) / b.h;
+    var f = Math.max(sw, sh, 2 / Math.max(b.w, b.h));
+    drag.snapshot.forEach(function (s) {
+      var it = s.it;
+      it.x = r2(ax + (s.x - ax) * f);
+      it.y = r2(ay + (s.y - ay) * f);
+      it.w = r2(Math.max(1, s.w * f));
+      if (it.type !== 'text') it.h = r2(Math.max(1, s.h * f));
+      if (it.type === 'text') it.size = Math.max(4, Math.round(s.size * f * 2) / 2);
+      if (it.type === 'barcode') it.textSize = Math.max(4, Math.round(s.textSize * f * 2) / 2);
+    });
   };
   /* Ближайшая цель; при равном расстоянии этикетка важнее другого элемента */
   function snapAxis(mine, targets, th) {
@@ -933,6 +1147,7 @@
       var t = String(o.text).split('\n')[0].trim();
       return 'Текст «' + (t.length > 14 ? t.slice(0, 14) + '…' : t) + '»';
     }
+    if (o.type === 'sign') { var sg = SIGNS.get(o.key); if (sg) return sg.name.split(' — ')[0]; }
     return NAMES[o.type];
   }
 
@@ -943,7 +1158,7 @@
     if (k.indexOf('w') >= 0) { w = b.w - dx; x = b.x + dx; }
     if (k.indexOf('s') >= 0) hh = b.h + dy;
     if (k.indexOf('n') >= 0) { hh = b.h - dy; y = b.y + dy; }
-    if (it.type === 'qr' || (keep || it.type === 'image') && k.length === 2) {
+    if (it.type === 'qr' || (keep || it.type === 'image' || it.type === 'sign') && k.length === 2) {
       var ratio = it.type === 'qr' ? 1 : b.h / b.w, size = Math.max(w, hh / ratio);
       w = size; hh = size * ratio;
       if (k.indexOf('w') >= 0) x = b.x + b.w - w;
@@ -973,6 +1188,13 @@
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (mod && (k === 'z' || k === 'я')) { ev.preventDefault(); ev.shiftKey ? this.redo() : this.undo(); return; }
     if (mod && (k === 'y' || k === 'н')) { ev.preventDefault(); this.redo(); return; }
+    if (mod && (k === 'a' || k === 'ф')) {
+      ev.preventDefault();
+      this.setSelection(this.doc.items.map(function (o) { return o.id; }));
+      return;
+    }
+    if (k === 'Escape' && (this.sel || this.multi.length)) { this.setSelection([]); return; }
+    if (this.multi.length) return this.onGroupKey(ev, mod, k);
     var it = this.sel && this.item(this.sel);
     if (!it) return;
     if (mod && (k === 'd' || k === 'в')) { ev.preventDefault(); this.duplicate(it); return; }
@@ -988,6 +1210,53 @@
     }
   };
 
+  Editor.prototype.onGroupKey = function (ev, mod, k) {
+    var items = this.selItems();
+    if (mod && (k === 'd' || k === 'в')) { ev.preventDefault(); this.duplicateGroup(); return; }
+    if (k === 'Delete' || k === 'Backspace') { ev.preventDefault(); this.removeGroup(); return; }
+    var step = ev.shiftKey ? 2 : 0.5, moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (moves[k]) {
+      ev.preventDefault();
+      items.forEach(function (it) { it.x = r2(it.x + moves[k][0]); it.y = r2(it.y + moves[k][1]); });
+      this.render();
+      this.commit();
+    }
+  };
+  Editor.prototype.duplicateGroup = function () {
+    var self = this, ids = [];
+    this.selItems().forEach(function (it) {
+      var c = clone(it);
+      c.x = r2(c.x + 2); c.y = r2(c.y + 2); c.id = self.nextId++;
+      self.doc.items.push(c);
+      ids.push(c.id);
+    });
+    this.setSelection(ids);
+    this.commit();
+  };
+  Editor.prototype.removeGroup = function () {
+    var ids = this.selIds();
+    this.doc.items = this.doc.items.filter(function (o) { return ids.indexOf(o.id) < 0; });
+    this.setSelection([]);
+    this.commit();
+  };
+  /* Выравнивание группы: друг относительно друга или по этикетке */
+  Editor.prototype.alignGroup = function (a) {
+    var items = this.selItems(), b = boxOf(items), L = this.cv();
+    items.forEach(function (it) {
+      if (a === 'left') it.x = b.x;
+      if (a === 'right') it.x = b.x + b.w - it.w;
+      if (a === 'hcenter') it.x = b.x + (b.w - it.w) / 2;
+      if (a === 'top') it.y = b.y;
+      if (a === 'bottom') it.y = b.y + b.h - it.h;
+      if (a === 'vcenter') it.y = b.y + (b.h - it.h) / 2;
+      if (a === 'cx') it.x += (L.w - b.w) / 2 - b.x;
+      if (a === 'cy') it.y += (L.h - b.h) / 2 - b.y;
+      it.x = r2(it.x); it.y = r2(it.y);
+    });
+    this.render();
+    this.commit();
+  };
+
   Editor.prototype.duplicate = function (it) {
     var c = clone(it);
     c.x = r2(c.x + 2); c.y = r2(c.y + 2);
@@ -996,13 +1265,14 @@
   Editor.prototype.remove = function (it) {
     this.doc.items = this.doc.items.filter(function (o) { return o !== it; });
     this.sel = null;
+    this.multi = [];
     this.render();
     this.renderProps();
     this.commit();
   };
 
   /* ---------- панель свойств ---------- */
-  var NAMES = { text: 'Текст', barcode: 'Штрихкод', qr: 'QR-код', line: 'Линия', rect: 'Рамка', image: 'Картинка' };
+  var NAMES = { text: 'Текст', barcode: 'Штрихкод', qr: 'QR-код', line: 'Линия', rect: 'Рамка', image: 'Картинка', sign: 'Знак' };
 
   function num(k, label, v, step, attrs) {
     return '<label class="xpe-f"><span>' + label + '</span><input type="number" data-k="' + k + '" value="' + r2(v) +
@@ -1019,10 +1289,12 @@
 
   Editor.prototype.renderProps = function () {
     var self = this, it = this.sel && this.item(this.sel), P = this.$props;
+    if (this.multi.length) return this.renderGroupProps();
     if (!it) {
       P.innerHTML = '<div class="xpe-empty"><b>Ничего не выбрано</b><p>Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.</p>' +
         '<p class="xpe-keys">Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
-        'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.</p></div>';
+        'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.<br>' +
+        'Несколько элементов: рамкой по пустому месту, Shift+клик или Ctrl+A.</p></div>';
       return;
     }
     var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
@@ -1056,6 +1328,10 @@
       f += num('thickness', 'Толщина, мм', it.thickness, 0.1, ' min="0.1" max="5"');
       f += num('radius', 'Скругление, мм', it.radius, 0.5, ' min="0" max="20"');
       f += check('fill', 'Залить чёрным', it.fill);
+    } else if (it.type === 'sign') {
+      var sgn = SIGNS.get(it.key);
+      f += '<div class="xpe-signcur">' + (sgn ? SIGNS.img(sgn) + '<span>' + esc(sgn.name) + '</span>' : '') + '</div>';
+      f += '<button type="button" class="xpe-btn xpe-resign">Выбрать другой знак</button>';
     } else if (it.type === 'image') {
       f += '<button type="button" class="xpe-btn xpe-replace">Заменить картинку</button>';
       f += '<div class="xpe-note">Лучше всего печатаются чёрные PNG на прозрачном фоне.</div>';
@@ -1093,8 +1369,8 @@
         if (inp.type === 'number' && isNaN(v)) return;
         if (k === 'h' && it.type === 'qr') it.w = v;
         if (k === 'w' && it.type === 'qr') it.h = v;
-        if (it.type === 'image' && (k === 'w' || k === 'h') && it.nw) {
-          var ratio = it.nh / it.nw;
+        if ((it.type === 'image' && it.nw || it.type === 'sign') && (k === 'w' || k === 'h')) {
+          var ratio = it.type === 'sign' ? SIGNS.ratio(SIGNS.get(it.key)) : it.nh / it.nw;
           if (k === 'w') it.h = r2(v * ratio); else it.w = r2(v / ratio);
         }
         if (k === 'orient' && v !== it.orient) { var t = it.w; it.w = it.h; it.h = t; }
@@ -1113,6 +1389,8 @@
     P.querySelectorAll('[data-act]').forEach(function (b) {
       b.addEventListener('click', function () { self.action(it, b.getAttribute('data-act')); });
     });
+    var resign = P.querySelector('.xpe-resign');
+    if (resign) resign.addEventListener('click', function () { self.openSigns(it); });
     var rep = P.querySelector('.xpe-replace');
     if (rep) rep.addEventListener('click', function () {
       var inp = document.createElement('input');
@@ -1120,6 +1398,37 @@
       inp.onchange = function () { if (inp.files[0]) self.readImage(inp.files[0], it); };
       inp.click();
     });
+  };
+
+  Editor.prototype.renderGroupProps = function () {
+    var self = this, P = this.$props, n = this.multi.length;
+    var al = function (a, title, d) {
+      return '<button type="button" class="xpe-btn xpe-ico-btn" data-align="' + a + '" title="' + title + '" aria-label="' + title + '">' +
+        '<svg class="xpe-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="' + d + '"/></svg></button>';
+    };
+    P.innerHTML = '<div class="xpe-ptitle">Выбрано элементов: ' + n + '</div>' +
+      '<div class="xpe-f"><span>Выровнять между собой</span><div class="xpe-aligns">' +
+        al('left', 'По левому краю', 'M4 3v18M8 7h12M8 17h7') +
+        al('hcenter', 'По центру', 'M12 3v18M6 7h12M8 17h8') +
+        al('right', 'По правому краю', 'M20 3v18M4 7h12M9 17h7') +
+        al('top', 'По верху', 'M3 4h18M7 8v12M17 8v7') +
+        al('vcenter', 'По середине', 'M3 12h18M7 6v12M17 8v8') +
+        al('bottom', 'По низу', 'M3 20h18M7 4v12M17 9v7') +
+      '</div></div>' +
+      '<div class="xpe-actions">' +
+        '<button type="button" class="xpe-btn" data-align="cx" title="Группу по центру этикетки по горизонтали">↔ Центр</button>' +
+        '<button type="button" class="xpe-btn" data-align="cy" title="Группу по центру этикетки по вертикали">↕ Центр</button>' +
+        '<button type="button" class="xpe-btn" data-gact="dup">Копия</button>' +
+        '<button type="button" class="xpe-btn xpe-danger" data-gact="del">Удалить</button>' +
+      '</div>' +
+      '<p class="xpe-keys">Тяните за любой выбранный элемент — двигается вся группа.<br>' +
+      'Уголки общей рамки — пропорционально меняют размер, вместе со шрифтом.<br>' +
+      'Shift+клик — добавить или убрать элемент, Esc — снять выделение.</p>';
+    P.querySelectorAll('[data-align]').forEach(function (b) {
+      b.addEventListener('click', function () { self.alignGroup(b.getAttribute('data-align')); });
+    });
+    P.querySelector('[data-gact=dup]').addEventListener('click', function () { self.duplicateGroup(); });
+    P.querySelector('[data-gact=del]').addEventListener('click', function () { self.removeGroup(); });
   };
 
   Editor.prototype.fontSelect = function (cur) {
@@ -1309,16 +1618,14 @@
         var style = it.fill ? 'FD' : 'S';
         if (it.radius > 0) rrect(x, y, w, hh, it.radius, style);
         else rect(x, y, w, hh, style);
-      } else if (it.type === 'image') {
-        var iw = it.w, ih = it.h;
-        if (it.nw) {
-          var ratio = it.nh / it.nw;
-          if (ih / iw > ratio) ih = iw * ratio; else iw = ih / ratio;
-        }
-        var src = rot ? rotImages[it.src] : it.src;
+      } else if (it.type === 'image' || it.type === 'sign') {
+        var iw = it.w, ih = it.h, ratio = imgRatio(it);
+        if (ratio) { if (ih / iw > ratio) ih = iw * ratio; else iw = ih / ratio; }
+        var src = rotImages[imgKey(it)];
+        if (!src) return;
         var fmt = /^data:image\/jpe?g/.test(src) ? 'JPEG' : 'PNG';
         var ir = R(it.x + (it.w - iw) / 2, it.y + (it.h - ih) / 2, iw, ih);
-        try { if (src) pdf.addImage(src, fmt, ir[0], ir[1], ir[2], ir[3]); } catch (e) { /* SVG и пр. */ }
+        try { pdf.addImage(src, fmt, ir[0], ir[1], ir[2], ir[3]); } catch (e) { /* повреждённая картинка */ }
       }
     });
     return pdf;
@@ -1340,12 +1647,49 @@
       img.src = src;
     });
   }
+  var PX_MM = 16;   // растр знаков и SVG-картинок для PDF: 16 точек на мм ≈ 400 dpi
+  function imgRatio(it) {
+    if (it.type === 'sign') { var sg = SIGNS.get(it.key); return sg ? SIGNS.ratio(sg) : 0; }
+    return it.nw ? it.nh / it.nw : 0;
+  }
+  function imgKey(it) {
+    return it.type === 'sign' ? 'sign:' + it.key + ':' + Math.round(it.w) + 'x' + Math.round(it.h) : it.src;
+  }
+  function rasterize(src, wpx, hpx) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement('canvas');
+        c.width = wpx; c.height = hpx;
+        c.getContext('2d').drawImage(img, 0, 0, wpx, hpx);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.onerror = function () { resolve(null); };
+      img.src = src;
+    });
+  }
+  /* Готовит картинки для PDF: знаки и SVG — в PNG, при повёрнутом макете — поворот на 90° */
   Editor.prototype.rotatedImages = function () {
-    var out = {}, list = [];
-    if (!this.doc.label.rot) return Promise.resolve(out);
-    this.doc.items.forEach(function (it) { if (it.type === 'image' && list.indexOf(it.src) < 0) list.push(it.src); });
-    return Promise.all(list.map(function (src) { return rotateImage(src).then(function (r) { out[src] = r; }); }))
-      .then(function () { return out; });
+    var out = {}, jobs = {}, rot = !!this.doc.label.rot;
+    this.doc.items.forEach(function (it) {
+      if (it.type !== 'image' && it.type !== 'sign') return;
+      var key = imgKey(it);
+      if (jobs[key]) return;
+      var ratio = imgRatio(it) || it.h / it.w, wpx = Math.max(64, Math.round(Math.min(it.w, it.h / ratio) * PX_MM));
+      var hpx = Math.round(wpx * ratio), p;
+      if (it.type === 'sign') {
+        var sg = SIGNS.get(it.key);
+        p = sg ? rasterize(SIGNS.url(sg), wpx, hpx) : Promise.resolve(null);
+      } else if (/^data:image\/svg/.test(it.src)) {
+        p = rasterize(it.src, wpx, hpx);
+      } else {
+        p = Promise.resolve(it.src);
+      }
+      jobs[key] = p.then(function (src) { return src && rot ? rotateImage(src) : src; })
+        .then(function (src) { out[key] = src; });
+    });
+    var all = Object.keys(jobs).map(function (k) { return jobs[k]; });
+    return Promise.all(all).then(function () { return out; });
   };
 
   // На телефонах и планшетах встроенной печати PDF из страницы нет — открываем PDF в новой вкладке
@@ -1403,6 +1747,7 @@
       var fontReady = document.fonts && document.fonts.load ? Promise.all([
         document.fonts.load('400 10px Arimo'), document.fonts.load('700 10px Arimo')
       ]).catch(function () {}) : Promise.resolve();
+      SIGN_BASE = base;
       return fontReady.then(function () { el.__xpe = new Editor(el, base); return el.__xpe; });
     }
   };

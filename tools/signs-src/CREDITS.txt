@@ -1,0 +1,20 @@
+Источники знаков редактора этикеток
+===================================
+
+Wikimedia Commons (https://commons.wikimedia.org):
+  EAC-black-on-white.svg ............... CC0 (BoBrandt)
+  Знак_соответствия.svg (РСТ) .......... общественное достояние (Госстандарт России)
+  Conformité_Européenne_(logo).svg ..... общественное достояние (MatthiasDD)
+  EU_food_contact_material_symbol.svg .. общественное достояние (Европейский союз)
+  ISO_7000_-_Ref-No_0621/0624/0626.svg . общественное достояние (векторизация: Mrmw)
+  ISO_7000_-_Ref-No_0622/0623.svg ...... CC0 (Clemenspool)
+  Recycling_symbol.svg ................. общественное достояние (Krdan)
+  WEEE_symbol_vectors.svg .............. общественное достояние (Европейский союз; Mateozlatar)
+  International_tidyman.svg ............ общественное достояние (NielsF)
+  Plastic-recyc-06.svg (стрелки кодов) . общественное достояние
+
+Tabler Icons (https://tabler.io/icons) — знаки ухода за изделием, лицензия MIT,
+  © 2020-2024 Paweł Kuna; текст лицензии — tabler/LICENSE
+  (на сайте: docs/editor/signs/LICENSE-tabler-icons.txt).
+
+Надписи (температура, коды переработки, возраст) — шрифт Arimo (Apache 2.0), переведены в контуры.
