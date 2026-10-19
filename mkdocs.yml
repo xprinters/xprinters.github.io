@@ -51,6 +51,10 @@ extra_css:
 extra_javascript:
   - javascripts/hero-search.js
 
+validation:
+  links:
+    anchors: warn
+
 hooks:
   - hooks/models.py
 
@@ -107,5 +111,16 @@ nav:
       - guides/index.md
       - Как узнать модель: guides/model.md
       - Печать с телефона: guides/phone.md
-      - Частые проблемы: guides/faq.md
+  - Частые проблемы:
+      - faq/index.md
+      - Установка драйвера: faq/install.md
+      - Размер и печать PDF: faq/size.md
+      - Бумага, калибровка, режимы: faq/paper.md
+      - Качество печати: faq/quality.md
+      - Телефон и Bluetooth: faq/phone.md
+      - macOS: faq/mac.md
+      - BarTender: faq/bartender.md
+      - Чеки, 1С и программы: faq/pos.md
+      - Неисправности и гарантия: faq/hardware.md
+      - A4PRO и тату-принтеры: faq/tattoo.md
   - Поддержка: support.md

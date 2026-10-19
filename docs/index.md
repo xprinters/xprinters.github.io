@@ -32,7 +32,7 @@ hide:
 
     Приложение 4BarCode для Android и iPhone: подключение по Bluetooth
 
--   <span class="xp-num">03</span> **[Частые проблемы](guides/faq.md)**
+-   <span class="xp-num">03</span> **[Частые проблемы](faq/index.md)**
 
     Пустые этикетки, сдвиг печати, принтер не виден в системе
 

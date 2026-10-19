@@ -19,7 +19,7 @@ PAGES = {
     "02-printery": "/models/",
     "03-model-xp-365b": "/xp-365b/",
     "04-model-pocket": "/pocket/",
-    "05-faq": "/guides/faq/",
+    "05-faq": "/faq/paper/",
     "06-podderzhka": "/support/",
 }
 DEVICES = {

@@ -15,7 +15,7 @@ description: Общие инструкции для термопринтеров
 
     Приложение 4BarCode для Android и iPhone
 
--   <span class="xp-num">03</span> **[Частые проблемы](faq.md)**
+-   <span class="xp-num">03</span> **[Частые проблемы](../faq/index.md)**
 
     Пустые этикетки, сдвиг печати, принтер не виден
 
