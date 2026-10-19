@@ -24,13 +24,13 @@ hide:
 
 <div class="grid cards xp-steps" markdown>
 
--   <span class="xp-num">01</span> **[Как узнать модель](guides/model.md)**
+-   <span class="xp-num">01</span> **[Первый запуск](guides/start.md)**
+
+    Рулон, калибровка, драйвер и первая этикетка — по шагам
+
+-   <span class="xp-num">02</span> **[Как узнать модель](guides/model.md)**
 
     Где посмотреть название принтера, если коробка уже выброшена
-
--   <span class="xp-num">02</span> **[Печать с телефона](guides/phone.md)**
-
-    Приложение 4BarCode для Android и iPhone: подключение по Bluetooth
 
 -   <span class="xp-num">03</span> **[Частые проблемы](faq/index.md)**
 

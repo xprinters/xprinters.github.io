@@ -6,6 +6,7 @@ model:
   name: Xprinter V1BT
   image: assets/models/v1bt.png
   interfaces: [USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/6DGP/GPuLocQW7
 cloud: https://cloud.mail.ru/public/eCVf/Urekg4o5E
 ---
 

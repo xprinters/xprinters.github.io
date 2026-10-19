@@ -110,6 +110,7 @@ nav:
       - Xprinter Pocket: pocket/index.md
   - Гайды:
       - guides/index.md
+      - Первый запуск: guides/start.md
       - Как узнать модель: guides/model.md
       - Печать с телефона: guides/phone.md
   - Редактор этикеток: editor/index.md

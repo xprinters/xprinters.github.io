@@ -83,6 +83,10 @@ def _model_header(page):
             f'<a class="md-button md-button--primary" href="{page.meta["cloud"]}">'
             f"Все файлы одной папкой</a>"
         )
+    if model.get("manual"):
+        button += f' <a class="md-button" href="{model["manual"]}">Инструкция (PDF)</a>'
+    if model.get("youtube"):
+        button += f' <a class="md-button" href="{model["youtube"]}">Видео на YouTube</a>'
     return (
         '<div class="xp-hero-model">'
         f'<div class="xp-hero-model__img"><img src="{_prefix(page)}{model["image"]}" alt="{name}"></div>'

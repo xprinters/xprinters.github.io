@@ -6,6 +6,8 @@ model:
   name: Xprinter Mini
   image: assets/models/mini.png
   interfaces: [USB, USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/135K/d6CT588vF
+  youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8JUC6tTpWws-XvsOFbmp41H
 cloud: https://cloud.mail.ru/public/BEjx/hMrCkaHEW
 ---
 

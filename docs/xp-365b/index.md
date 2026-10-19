@@ -6,6 +6,8 @@ model:
   name: Xprinter XP-365B
   image: assets/models/xp-365b.png
   interfaces: [USB, USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/ukkg/zpnQCNTPQ
+  youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8LVkdSpreDoZ3kwD4FGU61j
 cloud: https://cloud.mail.ru/public/Kfzk/HHA7de4t3
 ---
 

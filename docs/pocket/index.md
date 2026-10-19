@@ -6,6 +6,7 @@ model:
   name: Xprinter Pocket
   image: assets/models/pocket.png
   interfaces: [USB + Bluetooth]
+  youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8Ki9dT6KQnsYezTJNfbub_k
   note: Модель XP-P322B
 cloud: https://cloud.mail.ru/public/ETsc/PhcPGEsKT
 ---

@@ -6,6 +6,8 @@ model:
   name: Xprinter V3
   image: assets/models/v3.png
   interfaces: [USB, USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/Cymx/mvFb3L6Xe
+  youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8I-krpUTmojeau45RVA270r
 cloud: https://cloud.mail.ru/public/uw49/fVe11mmQd
 ---
 

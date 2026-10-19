@@ -6,6 +6,7 @@ model:
   name: Xprinter V4
   image: assets/models/v4.png
   interfaces: [USB, USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/K6wH/T1WL5Jd44
 cloud: https://cloud.mail.ru/public/biAt/tnWUDxjwK
 ---
 

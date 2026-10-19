@@ -6,6 +6,8 @@ model:
   name: Xprinter V2 / XP-Q371U
   image: assets/models/v2.png
   interfaces: [USB, USB + Bluetooth]
+  manual: https://cloud.mail.ru/public/G976/5rdfeGf7H
+  youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8I-krpUTmojeau45RVA270r
 cloud: https://cloud.mail.ru/public/nkxc/7vAPgsGwh
 ---
 
