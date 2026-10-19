@@ -1,0 +1,227 @@
+/* Редактор этикеток */
+@font-face { font-family: "Arimo"; src: url("fonts/Arimo-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Arimo"; src: url("fonts/Arimo-Bold.ttf") format("truetype"); font-weight: 700; }
+@font-face { font-family: "Roboto Condensed"; src: url("fonts/RobotoCondensed-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Roboto Condensed"; src: url("fonts/RobotoCondensed-Bold.ttf") format("truetype"); font-weight: 700; }
+@font-face { font-family: "Tinos"; src: url("fonts/Tinos-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Tinos"; src: url("fonts/Tinos-Bold.ttf") format("truetype"); font-weight: 700; }
+@font-face { font-family: "Cousine"; src: url("fonts/Cousine-Regular.ttf") format("truetype"); font-weight: 400; }
+@font-face { font-family: "Cousine"; src: url("fonts/Cousine-Bold.ttf") format("truetype"); font-weight: 700; }
+
+/* страница редактора — на всю ширину */
+.md-main:has(#xp-editor) .md-grid { max-width: 100rem; }
+.md-main:has(#xp-editor) .md-content__inner { margin-bottom: 1rem; }
+
+.xpe {
+  --xpe-gap: .6rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--xpe-gap);
+  font-size: .72rem;
+  user-select: none;
+}
+.xpe button, .xpe input, .xpe select, .xpe textarea { font: inherit; color: inherit; }
+
+/* ===== верхняя панель: группы слева направо — файл · история · этикетка · масштаб … результат ===== */
+.xpe-top {
+  --h: 2.1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem .9rem;
+  padding: .5rem .6rem;
+  background: var(--xp-card-bg);
+  border: 1px solid var(--xp-card-border);
+  border-radius: .6rem;
+}
+.xpe-grp { display: flex; align-items: center; gap: .4rem; }
+/* разделитель между группами */
+.xpe-grp + .xpe-grp:not(.xpe-g-out) { position: relative; }
+.xpe-grp + .xpe-grp:not(.xpe-g-out)::before {
+  content: "";
+  position: absolute;
+  left: -.45rem;
+  top: 15%;
+  height: 70%;
+  border-left: 1px solid var(--xp-card-border);
+}
+.xpe-g-out { margin-left: auto; }
+
+/* одинаковая высота всех элементов панели */
+.xpe-top .xpe-btn, .xpe-top select, .xpe-top input { height: var(--h); min-height: var(--h); box-sizing: border-box; }
+.xpe-top .xpe-btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: 0 .75rem; }
+.xpe-ico { width: 1rem; height: 1rem; flex: 0 0 auto; }
+.xpe-ico-btn { width: var(--h); padding: 0 !important; }
+
+/* сегментированные группы: кнопки вплотную, общая рамка */
+.xpe-seg { gap: 0; }
+.xpe-seg .xpe-btn { border-radius: 0; margin-left: -1px; }
+.xpe-seg .xpe-btn:first-child { border-radius: .4rem 0 0 .4rem; margin-left: 0; }
+.xpe-seg .xpe-btn:last-child { border-radius: 0 .4rem .4rem 0; }
+.xpe-seg .xpe-btn:hover:not(:disabled) { position: relative; z-index: 1; }
+.xpe-zval { min-width: 4.4em; font-variant-numeric: tabular-nums; }
+.xpe-orient { display: inline-flex; margin-left: .2rem; }
+.xpe-top .xpe-btn.xpe-on { background: var(--xp-accent-soft); color: var(--xp-tag-fg); border-color: var(--xp-accent); position: relative; z-index: 1; }
+
+/* размер этикетки */
+.xpe-lbl { color: var(--md-default-fg-color--light); white-space: nowrap; }
+.xpe-size { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; color: var(--md-default-fg-color--light); }
+.xpe-top input[type=number] { width: 4em; text-align: center; color: var(--md-default-fg-color); }
+
+/* имя файла — в углу холста */
+.xpe-stagewrap { position: relative; min-width: 0; }
+.xpe-fname {
+  position: absolute;
+  left: .6rem;
+  top: .5rem;
+  max-width: calc(100% - 1.2rem);
+  padding: .15rem .5rem;
+  border-radius: .3rem;
+  background: var(--xp-card-bg);
+  border: 1px solid var(--xp-card-border);
+  color: var(--md-default-fg-color--light);
+  font-size: .62rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.xpe-fname:empty { display: none; }
+.xpe-fname.xpe-flash { color: var(--xp-success); border-color: var(--xp-success); }
+
+/* узкие экраны: у кнопок файла остаются только иконки, результат — отдельной строкой */
+@media (max-width: 100em) {
+  .xpe-lbl { display: none; }
+}
+@media (max-width: 90em) {
+  .xpe-g-file .xpe-btn span { display: none; }
+  .xpe-g-file .xpe-btn { width: var(--h); padding: 0; }
+}
+@media (max-width: 60em) {
+  .xpe-g-out { margin-left: 0; flex: 1 1 100%; }
+  .xpe-g-out .xpe-btn { flex: 1; }
+  .xpe-grp + .xpe-grp:not(.xpe-g-out)::before { display: none; }
+}
+@media (max-width: 30em) {
+  .xpe-g-label { flex: 1 1 100%; min-width: 0; }
+  .xpe-lbl { display: none; }
+  .xpe-g-label select { flex: 1 1 auto; min-width: 0; }
+  .xpe-top input[type=number] { width: 3.4em; }
+}
+.xpe select, .xpe input[type=number], .xpe input[type=text], .xpe textarea {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--xp-card-border);
+  border-radius: .35rem;
+  padding: .3rem .45rem;
+  min-height: 2rem;
+}
+.xpe select:focus, .xpe input:focus, .xpe textarea:focus { outline: 2px solid var(--xp-accent-soft); border-color: var(--xp-accent); }
+
+.xpe-btn {
+  min-height: 2rem;
+  padding: .3rem .8rem;
+  border: 1px solid var(--xp-card-border);
+  border-radius: .4rem;
+  background: var(--md-default-bg-color);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.xpe-btn:hover:not(:disabled) { border-color: var(--xp-accent); color: var(--xp-accent); }
+.xpe-btn:disabled { opacity: .4; cursor: default; }
+.xpe-btn.xpe-primary { background: var(--xp-accent-strong); border-color: var(--xp-accent-strong); color: #fff; font-weight: 600; }
+.xpe-btn.xpe-primary:hover { color: #fff; filter: brightness(1.1); }
+.xpe-btn.xpe-danger:hover { border-color: #e5484d; color: #e5484d; }
+
+/* основная область */
+.xpe-body {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) 15rem;
+  gap: var(--xpe-gap);
+  min-height: 30rem;
+}
+.xpe-tools, .xpe-props {
+  background: var(--xp-card-bg);
+  border: 1px solid var(--xp-card-border);
+  border-radius: .6rem;
+  padding: .5rem;
+}
+.xpe-tools { display: flex; flex-direction: column; gap: .3rem; }
+.xpe-tools button {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem .6rem;
+  border: 1px solid transparent;
+  border-radius: .4rem;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.xpe-tools button:hover { background: var(--xp-accent-soft); color: var(--xp-tag-fg); }
+.xpe-tools svg { width: 1.1rem; height: 1.1rem; fill: currentColor; flex: 0 0 auto; }
+
+.xpe-stage {
+  position: relative;
+  display: flex;
+  height: clamp(28rem, 68vh, 52rem);
+  overflow: auto;
+  border-radius: .6rem;
+  border: 1px solid var(--xp-card-border);
+  background:
+    radial-gradient(circle, var(--xp-card-border) 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--md-default-bg-color);
+}
+/* margin: auto центрирует холст и не обрезает его край при прокрутке, когда он крупнее окна */
+.xpe-svg { display: block; flex: 0 0 auto; margin: auto; max-width: none !important; max-height: none !important; touch-action: none; overflow: visible; }
+.xpe-paper { filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .25)); }
+.xpe-item { cursor: move; }
+/* выделение: заливка + белый ореол + синяя линия — заметно и на белом фоне, и поверх штрихкода */
+.xpe-selfill { fill: rgba(37, 99, 235, .08); pointer-events: none; }
+.xpe-selhalo { fill: none; stroke: #fff; stroke-width: 5px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-selbox { fill: none; stroke: #2563eb; stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-hoverbox { fill: none; stroke: #2563eb; stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; opacity: .8; }
+.xpe-handle { fill: #2563eb; stroke: #fff; stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.xpe-handle:hover { fill: #1d4ed8; }
+.xpe-printframe { position: fixed; right: 0; bottom: 0; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
+.xpe-h-nw, .xpe-h-se { cursor: nwse-resize; }
+.xpe-h-ne, .xpe-h-sw { cursor: nesw-resize; }
+.xpe-h-n, .xpe-h-s { cursor: ns-resize; }
+.xpe-h-e, .xpe-h-w { cursor: ew-resize; }
+/* направляющие: розовые — к этикетке, оранжевые пунктирные — к другому элементу */
+.xpe-guide-halo { stroke: #fff; stroke-width: 5px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-guide { stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-guide-label { stroke: #ff1f6b; }
+.xpe-guide-item { stroke: #f76b00; stroke-dasharray: 6 4; }
+.xpe-guide-target { fill: rgba(247, 107, 0, .07); stroke: #f76b00; stroke-width: 1.5px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
+.xpe-tag { pointer-events: none; }
+.xpe-tag rect { stroke: #fff; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.xpe-tag text { fill: #fff; }
+.xpe-tag-label rect { fill: #ff1f6b; }
+.xpe-tag-item rect { fill: #f76b00; }
+
+/* свойства */
+.xpe-props { display: flex; flex-direction: column; gap: .5rem; user-select: text; overflow: auto; }
+.xpe-ptitle { font-family: var(--md-code-font-family); font-weight: 700; text-transform: uppercase; font-size: .7rem; color: var(--md-default-fg-color--light); }
+.xpe-f { display: flex; flex-direction: column; gap: .2rem; }
+.xpe-f > span { color: var(--md-default-fg-color--light); font-size: .65rem; }
+.xpe-f input, .xpe-f select, .xpe-f textarea { width: 100%; box-sizing: border-box; }
+.xpe-f textarea { resize: vertical; }
+.xpe-check { flex-direction: row; align-items: center; gap: .4rem; cursor: pointer; }
+.xpe-check input { width: auto; }
+.xpe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.xpe-actions { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .2rem; }
+.xpe-actions .xpe-btn { padding: .25rem .5rem; font-size: .65rem; }
+.xpe-warn { color: #e5484d; font-size: .65rem; }
+.xpe-note { color: var(--md-default-fg-color--light); font-size: .65rem; }
+.xpe-empty p { color: var(--md-default-fg-color--light); margin: .4rem 0 0; }
+.xpe-keys { font-size: .62rem; line-height: 1.6; }
+
+.xpe-hint { color: var(--md-default-fg-color--light); font-size: .65rem; }
+
+/* планшет и телефон */
+@media (max-width: 60em) {
+  .xpe-body { grid-template-columns: 1fr; min-height: 0; }
+  .xpe-tools { flex-direction: row; flex-wrap: wrap; }
+  .xpe-tools button { padding: .4rem .5rem; }
+  .xpe-stage { height: 18rem; order: -1; }
+}

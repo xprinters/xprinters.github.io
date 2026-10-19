@@ -50,6 +50,7 @@ extra_css:
 
 extra_javascript:
   - javascripts/hero-search.js
+  - javascripts/editor-boot.js
 
 validation:
   links:
@@ -111,6 +112,7 @@ nav:
       - guides/index.md
       - Как узнать модель: guides/model.md
       - Печать с телефона: guides/phone.md
+  - Редактор этикеток: editor/index.md
   - Частые проблемы:
       - faq/index.md
       - Установка драйвера: faq/install.md
