@@ -1,0 +1,186 @@
+/* ===== Цвета ===== */
+:root {
+  --xp-accent: #2f6fe0;
+  --xp-accent-soft: rgba(47, 111, 224, .12);
+  --xp-card-bg: #ffffff;
+  --xp-card-border: #e3e6ec;
+  --xp-img-bg: #ffffff;
+  --md-primary-fg-color: #1d2230;
+  --md-primary-fg-color--light: #2b3245;
+  --md-primary-fg-color--dark: #141823;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: var(--xp-accent);
+  --md-typeset-a-color: var(--xp-accent);
+}
+
+[data-md-color-scheme="slate"] {
+  --xp-accent: #5b8cff;
+  --xp-accent-soft: rgba(91, 140, 255, .14);
+  --xp-card-bg: #232733;
+  --xp-card-border: #313646;
+  --xp-img-bg: #ffffff;
+  --md-hue: 225;
+  --md-default-bg-color: #1a1d25;
+  --md-default-bg-color--light: #1e2129;
+  --md-code-bg-color: #232733;
+  --md-footer-bg-color: #14161c;
+  --md-footer-bg-color--dark: #101217;
+  --md-primary-fg-color: #14161c;
+  --md-primary-fg-color--light: #1e2129;
+  --md-primary-fg-color--dark: #101217;
+  --md-accent-fg-color: var(--xp-accent);
+  --md-typeset-a-color: var(--xp-accent);
+}
+
+/* ===== Типографика: заголовки моноширинным, как на k3d ===== */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-header__topic,
+.md-tabs__link,
+.xp-num {
+  font-family: var(--md-code-font-family), monospace;
+  letter-spacing: -.01em;
+}
+.md-typeset h1 { font-weight: 700; color: var(--md-default-fg-color); }
+.md-typeset h2 {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1.15em;
+  margin-top: 2.2em;
+  padding-bottom: .4em;
+  border-bottom: 1px solid var(--xp-card-border);
+}
+.md-tabs__link { font-size: .72rem; text-transform: uppercase; }
+
+/* ===== Главная: шапка ===== */
+.xp-hero {
+  text-align: center;
+  padding: 2.5rem 1rem 1.5rem;
+}
+.xp-hero h1 {
+  font-size: clamp(1.8rem, 5vw, 3rem);
+  margin: 0 0 .4em;
+  line-height: 1.1;
+}
+.xp-hero h1 .xp-brand { color: var(--xp-accent); }
+.xp-hero p { color: var(--md-default-fg-color--light); margin: 0 auto; max-width: 36rem; }
+.xp-hero .xp-search-hint { margin-top: 1rem; font-size: .75rem; }
+.xp-hero .xp-search-hint kbd,
+.md-typeset kbd {
+  font-family: var(--md-code-font-family);
+}
+
+/* ===== Сетка моделей ===== */
+.xp-models {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: .9rem;
+  margin: 1.2em 0 2em;
+}
+.md-typeset a.xp-model {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: .7rem;
+  border: 1px solid var(--xp-card-border);
+  border-radius: .6rem;
+  background: var(--xp-card-bg);
+  color: var(--md-default-fg-color);
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+.md-typeset a.xp-model:hover {
+  border-color: var(--xp-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+}
+.xp-model__img {
+  border: 1px solid var(--xp-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  background: var(--xp-img-bg);
+  border-radius: .4rem;
+  overflow: hidden;
+}
+.xp-model__img img { max-width: 85%; max-height: 85%; object-fit: contain; }
+.xp-model__name {
+  font-family: var(--md-code-font-family);
+  font-weight: 700;
+  font-size: .8rem;
+  line-height: 1.3;
+}
+.xp-model__tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+.xp-tag {
+  font-size: .62rem;
+  padding: .1em .5em;
+  border-radius: 1em;
+  background: var(--xp-accent-soft);
+  color: var(--xp-accent);
+  white-space: nowrap;
+}
+
+/* ===== Нумерованные карточки 01–04 ===== */
+.md-typeset .grid.cards.xp-numbered > ul > li,
+.md-typeset .grid.cards > ul > li {
+  border-color: var(--xp-card-border);
+  background: var(--xp-card-bg);
+  border-radius: .6rem;
+}
+.md-typeset .grid.cards > ul > li:hover { border-color: var(--xp-accent); box-shadow: none; }
+.xp-num { color: var(--xp-accent); font-weight: 700; font-size: 1.1em; display: block; }
+
+/* Четыре карточки в ряд на широком экране */
+.md-typeset .grid.cards.xp-steps > ul { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+
+/* ===== Шапка страницы модели ===== */
+.xp-hero-model {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.xp-hero-model__img {
+  flex: 0 0 13rem;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xp-img-bg);
+  border-radius: .6rem;
+}
+.xp-hero-model__img img { max-width: 85%; max-height: 85%; object-fit: contain; }
+.md-typeset .xp-hero-model h1 { margin: 0 0 .5rem; }
+.xp-hero-model__note { color: var(--md-default-fg-color--light); margin: .6rem 0 0; }
+.xp-hero-model .md-button { margin-top: 1rem; }
+@media (max-width: 40em) {
+  .xp-hero-model { flex-direction: column; align-items: stretch; }
+  .xp-hero-model__img { flex-basis: auto; width: 100%; max-width: 15rem; }
+  .xp-models { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+  .xp-hero { padding-top: 1rem; }
+}
+
+/* ===== Карточки видео ===== */
+.md-typeset .xp-videos > ul > li { padding: .8rem 1rem; }
+.md-typeset .xp-videos .twemoji { color: var(--xp-accent); }
+
+/* Кнопки: всегда в акцентном цвете (primary в тёмной теме почти чёрный) */
+.md-typeset .md-button {
+  font-size: .72rem;
+  padding: .45em 1.2em;
+  border-radius: .4rem;
+  color: var(--xp-accent);
+  border-color: var(--xp-accent);
+}
+.md-typeset .md-button--primary,
+.md-typeset .md-button:hover,
+.md-typeset .md-button:focus {
+  color: #fff;
+  background-color: var(--xp-accent);
+  border-color: var(--xp-accent);
+}
+.md-typeset .md-button--primary:hover { filter: brightness(1.12); }
+
+/* Скрыть заголовок H1 на главной (свой в .xp-hero) */
+.xp-home .md-content__inner > h1:first-child { display: none; }

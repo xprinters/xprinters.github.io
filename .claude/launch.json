@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "mkdocs", "serve", "-a", "127.0.0.1:8000", "--livereload"],
+      "port": 8000
+    }
+  ]
+}

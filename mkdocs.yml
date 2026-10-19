@@ -1,0 +1,108 @@
+site_name: Xprinter · Поддержка
+site_description: Драйверы, программы и видеоинструкции для термопринтеров Xprinter и 4BARCODE
+site_author: xprinter.shop
+# Когда будет домен — впишите сюда полный адрес, например https://xprinter.help/
+# site_url: https://example.github.io/
+
+copyright: >
+  © Xprinter.shop — драйверы и инструкции для термопринтеров ·
+  <a href="https://t.me/xprintershop">Telegram-поддержка</a>
+
+theme:
+  name: material
+  language: ru
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Светлая тема
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Тёмная тема
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.tooltips
+
+extra_css:
+  - stylesheets/extra.css
+
+hooks:
+  - hooks/models.py
+
+plugins:
+  - search:
+      lang: ru
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: "#"
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.snippets:
+      base_path: [snippets]
+      check_paths: true
+  - pymdownx.keys
+
+extra:
+  generator: false
+  social:
+    - icon: fontawesome/brands/telegram
+      link: https://t.me/xprintershop
+      name: Техподдержка в Telegram
+    - icon: material/email-outline
+      link: mailto:support@xprinter.shop
+      name: support@xprinter.shop
+
+nav:
+  - Главная: index.md
+  - Принтеры:
+      - models/index.md
+      - Xprinter XP-365B: xp-365b/index.md
+      - Xprinter V2 / XP-Q371U: v2/index.md
+      - Xprinter V3: v3/index.md
+      - Xprinter V4: v4/index.md
+      - Xprinter Mini: mini/index.md
+      - Xprinter V1BT: v1bt/index.md
+      - A4PRO / A4 Tattoo: a4pro/index.md
+      - Xprinter Pocket: pocket/index.md
+  - Гайды:
+      - guides/index.md
+      - Как узнать модель: guides/model.md
+      - Печать с телефона: guides/phone.md
+      - Частые проблемы: guides/faq.md
+  - Поддержка: support.md
