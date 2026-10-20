@@ -32,6 +32,8 @@
     0x431E: "v3", 0xA489: "v3", 0x7519: "v4", 0xB028: "mini", 0xDDC7: "mini",
     0x5BB5: "pocket"
   };
+  // PID от Hardware ID прошивки Xprinter (остальные в PIDS — прошивка 4BARCODE)
+  var XPRINTER_PIDS = [0x6494, 0x99C4, 0x6414, 0x64D8, 0xA489, 0xDDC7, 0x5BB5];
   // A4PRO / A4 Tattoo (Xlife) по USB не называет модель: чип Jieli, «USB Composite
   // Device», PID 0xD033. Принтер на Jieli у нас один, поэтому VID + класс 07 = A4PRO.
   var JIELI_VID = 0x2D84;
@@ -80,7 +82,33 @@
     return null;
   }
 
-  function showResult(slug, how) {
+  // Пак драйверов: по прошивке (производитель в USB, Bluetooth-имя XP-…), иначе по модели.
+  // Прошивка 4BARCODE требует пак 4BARCODE, Xprinter — пак Xprinter, A4PRO (чип Jieli) — Xlife.
+  var DEFAULT_PACK = { "xp-365b": "xprinter", "pocket": "xprinter", "a4pro": "xlife" };
+  var PACK_TITLES = { xprinter: "Xprinter", "4barcode": "4BARCODE", xlife: "Xlife" };
+
+  function packFor(slug, hint) {
+    hint = hint || "";
+    if (slug === "a4pro" || /xlife|jieli/i.test(hint)) return "xlife";
+    if (/4barcode/i.test(hint)) return "4barcode";
+    if (/xprinter|(^|\s)XP-/i.test(hint)) return "xprinter";
+    return DEFAULT_PACK[slug] || "4barcode";
+  }
+
+  function driverSteps(pack) {
+    var ol = el("ol");
+    ol.appendChild(el("li", null, "Кнопка откроет файл в Облаке Mail.ru — нажмите там «Скачать»."));
+    if (pack === "xlife") {
+      ol.appendChild(el("li", null, "Запустите скачанный файл и пройдите установку до конца. Принтер должен быть подключён по USB и включён."));
+    } else {
+      ol.appendChild(el("li", null, "Запустите файл: он распакует драйвер и откроет мастер установки."));
+      ol.appendChild(el("li", null, "Выберите «Установить драйверы принтера» и подключение USB — мастер сам найдёт включённый принтер. Нажимайте «Далее» до конца."));
+    }
+    ol.appendChild(el("li", null, "Задайте размер этикетки: «Принтеры и сканеры» → принтер → «Настройки печати» → «Параметры страницы»."));
+    return ol;
+  }
+
+  function showResult(slug, how, hint) {
     var box = root.querySelector(".xpd-result");
     box.innerHTML = "";
     if (!slug) {
@@ -91,10 +119,23 @@
     }
     box.className = "xpd-result admonition success";
     box.appendChild(el("p", { "class": "admonition-title" }, "Ваш принтер: " + MODELS[slug]));
-    var p = el("p", null, "Определено " + how + ". ");
-    var a = el("a", { href: siteRoot + slug + "/", "class": "md-button md-button--primary" }, "Драйверы и программы");
-    box.appendChild(p);
-    box.appendChild(a);
+    box.appendChild(el("p", null, "Определено " + how + "."));
+
+    var pack = packFor(slug, hint);
+    var link = document.querySelector('.xpd-packs a[data-pack="' + pack + '"]');
+    var buttons = el("p", { "class": "xpd-buttons" });
+    if (link && /Windows/i.test(navigator.userAgent)) {
+      write("Драйвер: " + PACK_TITLES[pack] + " — " + decodeURIComponent(link.href.split("/").pop()));
+      buttons.appendChild(el("a", { href: link.href, target: "_blank", rel: "noopener", "class": "md-button md-button--primary" },
+        "Скачать драйвер " + PACK_TITLES[pack]));
+      buttons.appendChild(document.createTextNode(" "));
+      buttons.appendChild(el("a", { href: siteRoot + slug + "/", "class": "md-button" }, "Страница модели"));
+      box.appendChild(buttons);
+      box.appendChild(driverSteps(pack));
+    } else {
+      buttons.appendChild(el("a", { href: siteRoot + slug + "/", "class": "md-button md-button--primary" }, "Драйверы и программы"));
+      box.appendChild(buttons);
+    }
   }
 
   async function readDeviceId(dev) {
@@ -153,11 +194,12 @@
       });
     });
 
-    var slug = null, how = "";
+    var slug = null, how = "", mfg = "";
     try {
       var id = await readDeviceId(dev);
       write("IEEE-1284: " + id);
       var p = parse1284(id);
+      mfg = p.mfg;
       slug = byIds(p.mfg, p.mdl) || byName(p.mdl);
       how = "по ответу принтера (" + p.mfg + " " + p.mdl + ")";
     } catch (e) {
@@ -170,13 +212,14 @@
     if (!slug && dev.vendorId === XPRINTER_VID && PIDS[dev.productId]) {
       slug = PIDS[dev.productId];
       how = "по коду USB-устройства";
+      mfg = XPRINTER_PIDS.indexOf(dev.productId) >= 0 ? "Xprinter" : "4BARCODE";
     }
     if (!slug && dev.vendorId === JIELI_VID && hasPrinterInterface(dev)) {
       slug = "a4pro";
       how = "по USB-чипу принтера";
     }
     write("Итог: " + (slug ? MODELS[slug] : "не определено"));
-    showResult(slug, how);
+    showResult(slug, how, [mfg, dev.manufacturerName, dev.productName].join(" "));
   }
 
   async function onUsb() {
@@ -201,7 +244,7 @@
       write("ID: " + dev.id);
       var slug = byName(dev.name);
       write("Итог: " + (slug ? MODELS[slug] : "не определено"));
-      showResult(slug, "по имени Bluetooth (" + dev.name + ")");
+      showResult(slug, "по имени Bluetooth (" + dev.name + ")", dev.name);
     } catch (e) {
       if (e.name !== "NotFoundError") write("Ошибка Bluetooth: " + e.name + ": " + e.message);
     }
