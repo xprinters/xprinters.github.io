@@ -16,12 +16,12 @@
 
     [App Store :material-open-in-new:](https://apps.apple.com/ru/app/4barcode/id6443980426){ .md-button }
 
--   :material-web:{ .lg } **Веб-редактор этикеток**
+-   :material-barcode:{ .lg } **Редактор этикеток на сайте**
 
     ---
 
-    Дизайн своих этикеток прямо в браузере, без установки.
+    Свои этикетки прямо в браузере, без установки и регистрации: штрихкоды, QR-коды, знаки EAC. Готовый PDF в размер этикетки.
 
-    [4barcode.top :material-open-in-new:](https://www.4barcode.top){ .md-button }
+    [Открыть редактор](../editor/index.md){ .md-button }
 
 </div>
