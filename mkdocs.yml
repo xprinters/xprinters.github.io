@@ -110,11 +110,11 @@ nav:
       - Xprinter V1BT: v1bt/index.md
       - A4PRO / A4 Tattoo: a4pro/index.md
       - Xprinter Pocket: pocket/index.md
+  - Определить принтер: detect/index.md
   - Гайды:
       - guides/index.md
       - Первый запуск: guides/start.md
       - Как узнать модель: guides/model.md
-      - Определить принтер: detect/index.md
       - Печать с телефона: guides/phone.md
   - Редактор этикеток: editor/index.md
   - Частые проблемы:

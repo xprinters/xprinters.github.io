@@ -2,6 +2,7 @@
 title: Определить принтер
 description: Определение модели термопринтера Xprinter и 4BARCODE прямо в браузере — по USB или Bluetooth — и скачивание нужного драйвера
 hide:
+  - navigation
   - toc
 ---
 
