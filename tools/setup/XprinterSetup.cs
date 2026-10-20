@@ -57,7 +57,7 @@ namespace XprinterSetup
     static class Catalog
     {
         // Адрес сайта поддержки: ссылки «Страница модели» и «Поддержка».
-        public const string Site = "https://xprinter.shop/";
+        public const string Site = "https://xprinters.github.io/";
         public const string Telegram = "https://t.me/xprintershop";
 
         // Папки облака и шаблон имени установщика: берётся самый свежий подходящий файл,
