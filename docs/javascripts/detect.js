@@ -182,7 +182,10 @@
   async function onUsb() {
     log = [];
     try {
-      var dev = await navigator.usb.requestDevice({ filters: [] });
+      // В окне выбора только принтеры: класс 07 у устройства или интерфейса.
+      var dev = await navigator.usb.requestDevice({ filters: [
+        { classCode: 7 }, { vendorId: XPRINTER_VID }, { vendorId: JIELI_VID, classCode: 7 }
+      ] });
       await describeUsb(dev);
     } catch (e) {
       if (e.name !== "NotFoundError") write("Ошибка USB: " + e.name + ": " + e.message);
@@ -204,7 +207,30 @@
     }
   }
 
+  // Принтеры, к которым пользователь уже давал доступ, определяем без окна выбора:
+  // при открытии страницы и при подключении кабеля.
+  async function autoUsb() {
+    var devs = await navigator.usb.getDevices();
+    var printers = devs.filter(hasPrinterInterface);
+    if (!printers.length) return;
+    log = [];
+    await describeUsb(printers[printers.length - 1]);
+  }
+
+  var connectHooked = false;
+  function hookConnect() {
+    if (connectHooked || !navigator.usb) return;
+    connectHooked = true;
+    navigator.usb.addEventListener("connect", function (e) {
+      if (document.getElementById("xp-detect") && hasPrinterInterface(e.device)) {
+        log = [];
+        describeUsb(e.device);
+      }
+    });
+  }
+
   function mount(r) {
+    hookConnect();
     root = r;
     siteRoot = new URL(r.getAttribute("data-root") || "../", location.href).href;
     r.innerHTML = "";
@@ -220,6 +246,10 @@
     bar.appendChild(document.createTextNode(" "));
     bar.appendChild(bBt);
     r.appendChild(bar);
+    if (hasUsb) {
+      r.appendChild(el("p", { "class": "xpd-hint" },
+        "В окне выбора будут только принтеры. A4PRO и A4 Tattoo там называются «USB Composite Device»."));
+    }
     if (!hasUsb && !hasBt) {
       r.appendChild(el("p", null, "Ваш браузер не умеет искать устройства. Откройте страницу в Google Chrome или Microsoft Edge на компьютере."));
     }
@@ -238,6 +268,7 @@
     r.appendChild(det);
     write(navigator.userAgent);
     write("WebUSB: " + (hasUsb ? "есть" : "нет") + ", Web Bluetooth: " + (hasBt ? "есть" : "нет"));
+    if (hasUsb) autoUsb();
   }
 
   document$.subscribe(function () {
