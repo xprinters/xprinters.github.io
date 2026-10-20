@@ -1,8 +1,9 @@
 site_name: Xprinter · Поддержка
 site_description: Драйверы, программы и видеоинструкции для термопринтеров Xprinter и 4BARCODE
 site_author: xprinter.shop
-# Когда будет домен — впишите сюда полный адрес, например https://xprinter.help/
-# site_url: https://example.github.io/
+# Временный адрес GitHub Pages. Когда будет свой домен — впишите его сюда
+# и в Settings → Pages → Custom domain репозитория xprinters/xprinters.github.io.
+site_url: https://xprinters.github.io/
 
 copyright: >
   © Xprinter.shop — драйверы и инструкции для термопринтеров ·
