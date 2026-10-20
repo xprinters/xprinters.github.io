@@ -74,7 +74,7 @@ description: Где скачать драйвер Xprinter и 4BARCODE, уста
 | Принтер | Модель в списке драйвера |
 |---|---|
 | Xprinter XP-365B | Xprinter XP-365B |
-| V2 / XP-Q371U | 4BARCODE 3B-T371U |
+| V2 / XP-Q371U | 4BARCODE 3B-T371U (или 3B-Q371U, буква не важна) |
 | V3 | 4BARCODE 3B-Q361U (или 3B-T361U, буква не важна) |
 | V1BT | 4BARCODE 4B-2083B |
 | V4 | 4BARCODE 4B-2064C |

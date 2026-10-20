@@ -17,7 +17,7 @@ description: Где посмотреть модель термопринтера
 | В магазине | На наклейке, в драйвере |
 |---|---|
 | Xprinter XP-365B | XP-365B |
-| Xprinter V2 | XP-Q371U, 4BARCODE 3B-T371U |
+| Xprinter V2 | XP-Q371U, 4BARCODE 3B-T371U / 3B-Q371U |
 | Xprinter V3 | XP-Q361U, 4BARCODE 3B-Q361U / 3B-T361U |
 | Xprinter V1BT | 4BARCODE 4B-2083B |
 | Xprinter V4 | 4BARCODE 4B-2064C |

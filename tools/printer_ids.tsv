@@ -1,0 +1,22 @@
+# Hardware ID (USBPRINT\<MFG><MDL><4 hex>) -> модель сайта и пак драйвера.
+# Собрано из INF паков: 4BARCODE Seagull 11.5, Xprinter Seagull 2024.3, Xlife 2025.06.18.1.
+# VID/PID в драйверах нет: модель берётся из строки IEEE-1284, которую принтер отдаёт по USB.
+# Буква Q/T у V2/V3 — региональная (Китай / остальной мир), принимаются обе.
+hardware_id	site_model	driver_pack	inf_model_name	dpi	max_width_mm
+USBPRINT\XprinterXP-365B6494	xp-365b	xprinter	Xprinter XP-365B	203	82
+USBPRINT\4BARCODE3B-365BD2E6	xp-365b	4barcode	4BARCODE 3B-365B	203	82
+USBPRINT\4BARCODE4B-2083B44BB	v1bt	4barcode	4BARCODE 4B-2083B	203	85
+USBPRINT\XprinterXP-D362B99C4	v1bt	xprinter	Xprinter XP-D362B	203	85
+USBPRINT\4BARCODE3B-T371U8381	v2	4barcode	4BARCODE 3B-T371U	203	82
+USBPRINT\4BARCODE3B-Q371U834F	v2	4barcode	4BARCODE 3B-Q371U	203	82
+USBPRINT\XprinterXP-T371U6414	v2	xprinter	Xprinter XP-T371U	203	82
+USBPRINT\XprinterXP-Q371U64D8	v2	xprinter	Xprinter XP-Q371U	203	82
+USBPRINT\4BARCODE3B-Q361U431E	v3	4barcode	4BARCODE 3B-Q361U	203	82
+USBPRINT\XprinterXP-Q361UA489	v3	xprinter	Xprinter XP-Q361U	203	82
+USBPRINT\4BARCODE4B-2064C7519	v4	4barcode	4BARCODE 4B-2064C	203	118
+USBPRINT\4BARCODE4B-2054NB028	mini	4barcode	4BARCODE 4B-2054N	203	118
+USBPRINT\XprinterXP-D465BDDC7	mini	xprinter	Xprinter XP-D465B	203	118
+USBPRINT\XprinterXP-P322B5BB5	pocket	xprinter	Xprinter XP-P322B	203	78
+USBPRINT\XlifeP83A5E4	a4pro	xlife	Xlife P83	300	219
+USBPRINT\XlifeP83CBAE4	a4pro	xlife	Xlife P83(203DPI)	203	216
+USBPRINT\XlifeP8467A5	a4pro	xlife	Xlife P84	203	216
