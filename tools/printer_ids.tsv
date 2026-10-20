@@ -1,6 +1,13 @@
 # Hardware ID (USBPRINT\<MFG><MDL><4 hex>) -> модель сайта и пак драйвера.
 # Собрано из INF паков: 4BARCODE Seagull 11.5, Xprinter Seagull 2024.3, Xlife 2025.06.18.1.
 # VID/PID в драйверах нет: модель берётся из строки IEEE-1284, которую принтер отдаёт по USB.
+# Проверено на живых принтерах через страницу /detect/ (WebUSB, Web Bluetooth):
+#   Pocket: USB VID 0x2D37 (Xprinter), PID 0x5BB5 = хвост Hardware ID, строки «Xprinter» / «XP-P322B»;
+#           Bluetooth-имя «XP-P322B-1F14».
+#   A4PRO:  USB VID 0x2D84 (Jieli Technology), PID 0xD033, «USB Composite Device» — модели в USB нет;
+#           Bluetooth-имя «P83».
+#   На Windows WebUSB не открывает принтер (Access denied, интерфейс занят usbprint.sys),
+#   поэтому строку IEEE-1284 браузер не читает.
 # Буква Q/T у V2/V3 — региональная (Китай / остальной мир), принимаются обе.
 hardware_id	site_model	driver_pack	inf_model_name	dpi	max_width_mm
 USBPRINT\XprinterXP-365B6494	xp-365b	xprinter	Xprinter XP-365B	203	82

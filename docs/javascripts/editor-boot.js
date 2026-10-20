@@ -13,19 +13,28 @@
     });
   }
 
+  // Мгновенная навигация Material при переходе убирает из <head> чужие стили,
+  // поэтому editor.css проверяем при каждом показе редактора, а не один раз.
+  function ensureCss(href) {
+    var links = document.querySelectorAll('link[rel="stylesheet"]');
+    for (var i = 0; i < links.length; i++) if (links[i].href === href) return Promise.resolve();
+    return load("link", { rel: "stylesheet", href: href });
+  }
+
   document$.subscribe(function () {
     var root = document.getElementById("xp-editor");
     if (!root) return;
     var base = new URL(root.getAttribute("data-base") || "./", location.href).href;
+    var css = ensureCss(base + "editor.css");
     if (!loading) {
-      loading = load("link", { rel: "stylesheet", href: base + "editor.css" })
+      loading = css
         .then(function () { return load("script", { src: base + "vendor/jspdf.umd.min.js" }); })
         .then(function () { return load("script", { src: base + "vendor/JsBarcode.all.min.js" }); })
         .then(function () { return load("script", { src: base + "vendor/qrcode.js" }); })
         .then(function () { return load("script", { src: base + "signs-list.js" }); })
         .then(function () { return load("script", { src: base + "editor.js" }); });
     }
-    loading.then(function () { return window.XPEditor.mount(root, base); })
+    Promise.all([loading, css]).then(function () { return window.XPEditor.mount(root, base); })
       .catch(function (e) {
         root.textContent = "Не удалось загрузить редактор (" + e.message + "). Обновите страницу.";
       });

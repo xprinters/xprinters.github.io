@@ -51,6 +51,7 @@ extra_css:
 extra_javascript:
   - javascripts/hero-search.js
   - javascripts/editor-boot.js
+  - javascripts/detect.js
 
 validation:
   links:
@@ -112,6 +113,7 @@ nav:
       - guides/index.md
       - Первый запуск: guides/start.md
       - Как узнать модель: guides/model.md
+      - Определить принтер: detect/index.md
       - Печать с телефона: guides/phone.md
   - Редактор этикеток: editor/index.md
   - Частые проблемы:
