@@ -270,10 +270,11 @@
 }
 /* видна у текущей этикетки и при наведении на строку; место занято всегда — миниатюры не прыгают */
 .xpe-thumbdel {
-  flex: 0 0 auto; visibility: hidden; width: 1.3rem; height: 1.3rem; padding: 0;
-  border: 0; border-radius: 50%; background: none; color: var(--md-default-fg-color--light);
-  font-size: .95rem; line-height: 1.3rem; text-align: center; cursor: pointer;
+  flex: 0 0 auto; visibility: hidden; display: inline-flex; align-items: center; justify-content: center;
+  width: 1.3rem; height: 1.3rem; padding: 0;
+  border: 0; border-radius: 50%; background: none; color: var(--md-default-fg-color--light); cursor: pointer;
 }
+.xpe-thumbdel svg { width: .85rem; height: .85rem; fill: currentColor; }
 .xpe-tw:hover .xpe-thumbdel, .xpe-tw.xpe-on .xpe-thumbdel { visibility: visible; }
 .xpe-thumbdel:hover { background: #e5484d; color: #fff; }
 @media (prefers-reduced-motion: reduce) {
