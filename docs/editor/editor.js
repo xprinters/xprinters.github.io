@@ -453,6 +453,80 @@
     if (i === this.page) this.slide(i < n - 1 ? 1 : -1, drop); else drop();
   };
 
+  /* Порядок этикеток: миниатюру тянут мышью (после сдвига на 6 px) или пальцем после
+     удержания 350 мс — обычный свайп пальцем по-прежнему прокручивает ленту. Перетаскиваемая
+     строка едет за указателем, соседи раздвигаются; при отпускании меняется порядок pages. */
+  Editor.prototype.bindThumbDrag = function (thumb, row, from) {
+    var self = this, strip = this.$strip;
+    thumb.addEventListener('pointerdown', function (ev) {
+      if (ev.button !== 0 || self.sliding) return;
+      var touch = ev.pointerType === 'touch', vertical = getComputedStyle(strip).flexDirection === 'column';
+      var x0 = ev.clientX, y0 = ev.clientY, pos = vertical ? y0 : x0, grab = 0, active = false, timer = null;
+      var A = vertical ? 'top' : 'left', B = vertical ? 'bottom' : 'right', SC = vertical ? 'scrollTop' : 'scrollLeft';
+      var coord = function (e) { return vertical ? e.clientY : e.clientX; };
+
+      var place = function () {
+        row.style.transform = 'none';
+        var r = row.getBoundingClientRect();
+        // соседи: перескакиваем через того, чью середину пересёк указатель
+        var prev = row.previousElementSibling, next = row.nextElementSibling;
+        if (prev) { var pr = prev.getBoundingClientRect(); if (pos < (pr[A] + pr[B]) / 2) { strip.insertBefore(row, prev); r = row.getBoundingClientRect(); } }
+        if (next) { var nr = next.getBoundingClientRect(); if (pos > (nr[A] + nr[B]) / 2) { strip.insertBefore(row, next.nextElementSibling); r = row.getBoundingClientRect(); } }
+        var d = pos - grab - r[A];
+        row.style.transform = vertical ? 'translateY(' + d + 'px)' : 'translateX(' + d + 'px)';
+        // у края ленты — прокрутка
+        var sr = strip.getBoundingClientRect();
+        if (pos < sr[A] + 24) strip[SC] -= 8; else if (pos > sr[B] - 24) strip[SC] += 8;
+      };
+      var start = function () {
+        active = true;
+        var r = row.getBoundingClientRect();
+        grab = pos - r[A];
+        row.classList.add('xpe-dragging');
+        strip.classList.add('xpe-reordering');
+        try { thumb.setPointerCapture(ev.pointerId); } catch (e) { /* палец уже отпущен */ }
+        if (touch && navigator.vibrate) navigator.vibrate(15);
+        place();
+      };
+      var finish = function (drop) {
+        clearTimeout(timer);
+        thumb.removeEventListener('pointermove', move);
+        thumb.removeEventListener('pointerup', up);
+        thumb.removeEventListener('pointercancel', cancel);
+        strip.removeEventListener('touchmove', block);
+        if (!active) return;
+        self.stripDragged = true;
+        setTimeout(function () { self.stripDragged = false; }, 0);
+        var to = [].indexOf.call(strip.children, row);
+        if (drop && to !== from) {
+          var pages = self.doc.pages, cur = pages[self.page];
+          pages.splice(to, 0, pages.splice(from, 1)[0]);
+          self.page = pages.indexOf(cur);   // текущая этикетка остаётся текущей
+          self.renderProps();
+          self.commit();                    // перерисует ленту в новом порядке
+        } else {
+          self.renderStrip();
+        }
+      };
+      var move = function (e) {
+        pos = coord(e);
+        if (active) { e.preventDefault(); place(); return; }
+        var moved = Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0);
+        if (touch) { if (moved > 8) finish(false); }   // палец поехал до удержания — это прокрутка ленты
+        else if (moved > 6) start();
+      };
+      var up = function () { finish(true); };
+      var cancel = function () { finish(false); };
+      // пока тащим пальцем, лента и страница не прокручиваются
+      var block = function (e) { if (active) e.preventDefault(); };
+      thumb.addEventListener('pointermove', move);
+      thumb.addEventListener('pointerup', up);
+      thumb.addEventListener('pointercancel', cancel);
+      strip.addEventListener('touchmove', block, { passive: false });
+      if (touch) timer = setTimeout(start, 350);
+    });
+  };
+
   // «1/3» в углу холста и лента миниатюр справа — только если этикеток больше одной
   Editor.prototype.renderStrip = function () {
     if (!this.$strip) return;
@@ -473,7 +547,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'xpe-thumb' + (i === self.page ? ' xpe-on' : '');
-      b.title = 'Этикетка ' + (i + 1);
+      b.title = 'Этикетка ' + (i + 1) + ' — перетащите, чтобы поменять порядок';
       var svg = svgEl('svg', { viewBox: '0 0 ' + L.w + ' ' + L.h, class: 'xpe-thumbsvg' }, b);
       svgEl('rect', { x: 0, y: 0, width: L.w, height: L.h, fill: '#fff' }, svg);
       items.forEach(function (it) { self.drawItem(svg, it); });
@@ -481,7 +555,11 @@
       num.className = 'xpe-thumbn';
       num.textContent = i + 1;
       b.appendChild(num);
-      b.addEventListener('click', function () { self.gotoPage(i); });
+      b.addEventListener('click', function () {
+        if (self.stripDragged) { self.stripDragged = false; return; } // клик после перетаскивания — не переход
+        self.gotoPage(i);
+      });
+      self.bindThumbDrag(b, row, i);
       // удаление — отдельной кнопкой справа от миниатюры, чтобы не попасть в неё при переключении
       var del = document.createElement('button');
       del.type = 'button';
@@ -1675,7 +1753,8 @@
         '<p class="xpe-keys">Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
         'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.<br>' +
         'Несколько элементов: рамкой по пустому месту, Shift+клик или Ctrl+A.<br>' +
-        'Ещё этикетка — «+» под этикеткой: в PDF каждая станет отдельной страницей. PgUp, PgDn — листать.</p></div>';
+        'Ещё этикетка — «+» под этикеткой: в PDF каждая станет отдельной страницей. PgUp, PgDn — листать, ' +
+        'порядок — перетащите миниатюру (на телефоне — удержите её).</p></div>';
       return;
     }
     var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
