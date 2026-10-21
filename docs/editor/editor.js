@@ -468,6 +468,8 @@
     strip.style.setProperty('--xpe-ar', (L.w / L.h).toFixed(4));
     if (n < 2) return;
     this.doc.pages.forEach(function (items, i) {
+      var row = document.createElement('div');
+      row.className = 'xpe-tw' + (i === self.page ? ' xpe-on' : '');
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'xpe-thumb' + (i === self.page ? ' xpe-on' : '');
@@ -478,15 +480,19 @@
       var num = document.createElement('span');
       num.className = 'xpe-thumbn';
       num.textContent = i + 1;
-      var del = document.createElement('span');
+      b.appendChild(num);
+      b.addEventListener('click', function () { self.gotoPage(i); });
+      // удаление — отдельной кнопкой справа от миниатюры, чтобы не попасть в неё при переключении
+      var del = document.createElement('button');
+      del.type = 'button';
       del.className = 'xpe-thumbdel';
       del.title = 'Удалить этикетку ' + (i + 1);
+      del.setAttribute('aria-label', del.title);
       del.textContent = '×';
-      del.addEventListener('click', function (ev) { ev.stopPropagation(); self.deletePage(i); });
-      b.appendChild(num);
-      b.appendChild(del);
-      b.addEventListener('click', function () { self.gotoPage(i); });
-      strip.appendChild(b);
+      del.addEventListener('click', function () { self.deletePage(i); });
+      row.appendChild(b);
+      row.appendChild(del);
+      strip.appendChild(row);
     });
     // активная миниатюра — в видимой части ленты (без прокрутки самой страницы)
     // активная миниатюра — в видимой части ленты; лента вертикальная (компьютер) или горизонтальная (телефон)
