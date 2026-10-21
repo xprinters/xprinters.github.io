@@ -3,7 +3,10 @@
 // и ссылку удобнее отправить себе в мессенджер или на почту, чем качать на телефон.
 // Системное окно «Поделиться» (Web Share API), без него — копирование ссылки.
 (function () {
-  var ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1 8 5h3v9h2V5h3zm6 22H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3v2H6v12h12V9h-3V7h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2"/></svg>';
+  // «Поделиться»: открытая рамка и выходящая из неё изогнутая стрелка
+  var ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<path d="M10 4H7a4 4 0 0 0-4 4v9a4 4 0 0 0 4 4h9a4 4 0 0 0 4-4v-1"/>' +
+    '<path d="M14 3l7 5.5-7 5.5v-3c-3.6 0-5.9 1.3-7.5 4 .3-4.6 3-8 7.5-8.5z"/></svg>';
 
   // Телефон или планшет: Client Hints, строка браузера; iPad маскируется под Mac,
   // но у него сенсорный экран
