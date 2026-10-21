@@ -102,10 +102,24 @@
   .xpe-g-out .xpe-btn { flex: 1; }
   .xpe-grp + .xpe-grp:not(.xpe-g-out)::before { display: none; }
 }
+/* телефон: панель в три строки —
+   [файл · история · ориентация] / [шаблон · ширина × высота] / [масштаб · печать · PDF] */
 @media (max-width: 30em) {
-  .xpe-g-label { flex: 1 1 100%; min-width: 0; }
-  .xpe-lbl { display: none; }
-  .xpe-g-label select { flex: 1 1 auto; min-width: 0; }
+  .xpe-top { gap: .45rem .4rem; padding: .45rem; }
+  .xpe-grp + .xpe-grp:not(.xpe-g-out)::before { display: none; }
+  .xpe-g-label { display: contents; }
+  .xpe-lbl, .xpe-size > span:last-child { display: none; }
+  .xpe-g-file { order: 1; }
+  .xpe-g-hist { order: 2; }
+  .xpe-orient { order: 3; margin-left: auto; }
+  .xpe-g-label select { order: 4; flex: 1 1 6rem; min-width: 6rem; }
+  .xpe-size { order: 5; }
+  .xpe-g-zoom { order: 6; }
+  .xpe-g-out { order: 7; flex: 1 1 0; min-width: 0; }
+  .xpe-g-out .xpe-print { flex: 0 0 var(--h); padding: 0; }
+  .xpe-g-out .xpe-print span { display: none; }
+  .xpe-long { display: none; }
+  .xpe-zval { min-width: 3.6em; }
   .xpe-top input[type=number] { width: 3.4em; }
 }
 .xpe select, .xpe input[type=number], .xpe input[type=text], .xpe textarea {
@@ -172,7 +186,9 @@
     var(--md-default-bg-color);
 }
 /* margin: auto центрирует холст и не обрезает его край при прокрутке, когда он крупнее окна */
-.xpe-svg { display: block; flex: 0 0 auto; margin: auto; max-width: none !important; max-height: none !important; touch-action: none; overflow: visible; }
+/* touch-action: пальцем по холсту листается страница; выделенное тянется (см. touchstart в editor.js).
+   color-scheme: only light — браузер в режиме «тёмные сайты» не перекрашивает этикетку */
+.xpe-svg { display: block; flex: 0 0 auto; margin: auto; max-width: none !important; max-height: none !important; touch-action: pan-x pan-y pinch-zoom; overflow: visible; color-scheme: only light; }
 .xpe-paper { filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .25)); }
 .xpe-item { cursor: move; }
 /* выделение: заливка + белый ореол + синяя линия — заметно и на белом фоне, и поверх штрихкода */
@@ -221,9 +237,15 @@
 /* планшет и телефон */
 @media (max-width: 60em) {
   .xpe-body { grid-template-columns: 1fr; min-height: 0; }
-  .xpe-tools { flex-direction: row; flex-wrap: wrap; }
-  .xpe-tools button { padding: .4rem .5rem; }
-  .xpe-stage { height: 18rem; order: -1; }
+  /* элементы — одной строкой с прокруткой вбок, сразу над холстом */
+  .xpe-tools { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: .35rem; gap: .35rem; }
+  .xpe-tools::-webkit-scrollbar { display: none; }
+  .xpe-tools button { flex: 0 0 auto; white-space: nowrap; padding: .45rem .65rem; border-color: var(--xp-card-border); background: var(--md-default-bg-color); }
+  .xpe-stage { height: min(22rem, 58vh); }
+}
+/* на странице редактора на телефоне заголовок компактнее — больше места холсту */
+@media (max-width: 30em) {
+  .md-typeset:has(.xpe) h1 { font-size: 1.35rem; margin: 0 0 .7rem; }
 }
 
 /* ===== окно выбора знака ===== */

@@ -385,7 +385,7 @@
           // результат
           '<div class="xpe-grp xpe-g-out">' +
             '<button type="button" class="xpe-btn xpe-print" title="Печать (Ctrl+P)">' + ICON.print + '<span>Печать</span></button>' +
-            '<button type="button" class="xpe-btn xpe-primary xpe-pdf" title="Скачать PDF">' + ICON.download + '<span>Скачать PDF</span></button>' +
+            '<button type="button" class="xpe-btn xpe-primary xpe-pdf" title="Скачать PDF">' + ICON.download + '<span><span class="xpe-long">Скачать </span>PDF</span></button>' +
           '</div>' +
         '</div>' +
         '<div class="xpe-body">' +
@@ -765,7 +765,10 @@
   };
 
   Editor.prototype.drawItem = function (svg, it) {
-    var g = svgEl('g', { 'data-id': it.id, class: 'xpe-item' }, svg);
+    // xpe-picked: выделенный элемент можно тащить пальцем (touch-action: none в CSS),
+    // остальные на телефоне пропускают жест — страница прокручивается
+    var picked = this.sel === it.id || this.multi.indexOf(it.id) >= 0;
+    var g = svgEl('g', { 'data-id': it.id, class: picked ? 'xpe-item xpe-picked' : 'xpe-item' }, svg);
     var hit = function () { svgEl('rect', { x: it.x, y: it.y, width: it.w, height: it.h, fill: 'transparent' }, g); };
     if (it.type === 'text') {
       var lay = textLayout(it);
@@ -947,7 +950,7 @@
   }
 
   Editor.prototype.bindPointer = function () {
-    var self = this, svg = this.$svg, stage = this.$stage, drag = null;
+    var self = this, svg = this.$svg, stage = this.$stage, drag = null, tap = null;
 
     // события слушаем на всей области холста: рамку выделения можно начать и за краем этикетки
     stage.addEventListener('pointerdown', function (ev) {
@@ -959,6 +962,15 @@
       var it = self.sel && self.item(self.sel);
       var g = ev.target.closest && ev.target.closest('.xpe-item');
       var hit = g && self.item(+g.getAttribute('data-id'));
+
+      // Палец: тащим только выделенное и ручки. Касание по другому элементу или пустому
+      // месту — это либо прокрутка страницы (браузер пришлёт pointercancel), либо тап,
+      // который выделяет элемент или снимает выделение.
+      var picked = hit && (self.sel === hit.id || self.multi.indexOf(hit.id) >= 0);
+      if (ev.pointerType === 'touch' && !handle && !picked) {
+        tap = { id: hit ? hit.id : null, x: ev.clientX, y: ev.clientY };
+        return;
+      }
 
       if (handle && group) {
         drag = { mode: 'gscale', handle: handle, start: p, box: boxOf(group), snapshot: snapshotOf(group) };
@@ -1007,7 +1019,17 @@
       self.updateGeomInputs();
     });
 
-    var end = function () {
+    var end = function (ev) {
+      if (tap) {
+        var t = tap;
+        tap = null;
+        // тап без сдвига пальца (прокрутку браузер завершает pointercancel)
+        if (ev.type === 'pointerup' && Math.abs(ev.clientX - t.x) + Math.abs(ev.clientY - t.y) < 12) {
+          if (t.id) self.select(t.id);
+          else if (self.sel || self.multi.length) { self.sel = null; self.multi = []; self.render(); self.renderProps(); }
+        }
+        return;
+      }
       if (!drag) return;
       var d = drag;
       drag = null;
@@ -1026,6 +1048,12 @@
       self.renderProps();
       self.commit();
     };
+    // Выделенный элемент и ручки двигаются пальцем: отменяем прокрутку страницы для этого
+    // касания (touch-action внутри SVG браузеры учитывают по-разному, а это работает везде)
+    stage.addEventListener('touchstart', function (ev) {
+      var t = ev.target;
+      if (t.closest && (t.closest('.xpe-picked') || (t.getAttribute && t.getAttribute('data-handle')))) ev.preventDefault();
+    }, { passive: false });
     stage.addEventListener('pointerup', end);
     stage.addEventListener('pointercancel', end);
     svg.addEventListener('pointerleave', function () {

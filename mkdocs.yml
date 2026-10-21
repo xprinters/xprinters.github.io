@@ -11,6 +11,7 @@ copyright: >
 
 theme:
   name: material
+  custom_dir: overrides
   language: ru
   logo: assets/logo.svg
   favicon: assets/logo.svg
