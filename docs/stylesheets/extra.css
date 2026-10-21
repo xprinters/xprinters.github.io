@@ -398,3 +398,34 @@
   font-size: .7rem;
   box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
 }
+
+/* ===== Закладка в шапке (bookmark.js) ===== */
+.md-header__topic .xp-bm {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-left: .35rem;
+  padding: 0;
+  border: 0;
+  border-radius: .3rem;
+  background: none;
+  color: var(--md-primary-bg-color--light);
+  cursor: pointer;
+}
+.md-header__topic .xp-bm:hover, .md-header__topic .xp-bm:focus-visible { color: var(--xp-accent); background: var(--xp-accent-soft); }
+.md-header__topic .xp-bm svg { width: 1.05rem; height: 1.05rem; fill: currentColor; }
+.xp-bm-tip {
+  position: fixed;
+  z-index: 10;
+  max-width: 18rem;
+  padding: .55rem .75rem;
+  border-radius: .5rem;
+  background: var(--md-default-fg-color);
+  color: var(--md-default-bg-color);
+  font-size: .68rem;
+  line-height: 1.45;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+}

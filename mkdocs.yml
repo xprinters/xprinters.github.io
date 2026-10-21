@@ -54,6 +54,7 @@ extra_javascript:
   - javascripts/hero-search.js
   - javascripts/editor-boot.js
   - javascripts/share.js
+  - javascripts/bookmark.js
   - javascripts/detect.js
 
 validation:
