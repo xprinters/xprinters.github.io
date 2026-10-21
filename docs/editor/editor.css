@@ -177,6 +177,7 @@
 .xpe-stage {
   position: relative;
   display: flex;
+  flex-direction: column;
   height: clamp(28rem, 68vh, 52rem);
   overflow: auto;
   border-radius: .6rem;
@@ -188,7 +189,7 @@
 /* margin: auto центрирует холст и не обрезает его край при прокрутке, когда он крупнее окна */
 /* touch-action: пальцем по холсту листается страница; выделенное тянется (см. touchstart в editor.js).
    color-scheme: only light — браузер в режиме «тёмные сайты» не перекрашивает этикетку */
-.xpe-svg { display: block; flex: 0 0 auto; margin: auto; max-width: none !important; max-height: none !important; touch-action: pan-x pan-y pinch-zoom; overflow: visible; color-scheme: only light; }
+.xpe-svg { display: block; flex: 0 0 auto; margin: auto auto 0; max-width: none !important; max-height: none !important; touch-action: pan-x pan-y pinch-zoom; overflow: visible; color-scheme: only light; }
 .xpe-paper { filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .25)); }
 .xpe-item { cursor: move; }
 /* выделение: заливка + белый ореол + синяя линия — заметно и на белом фоне, и поверх штрихкода */
@@ -214,6 +215,65 @@
 .xpe-tag text { fill: #fff; }
 .xpe-tag-label rect { fill: #ff1f6b; }
 .xpe-tag-item rect { fill: #f76b00; }
+
+/* ===== несколько этикеток ===== */
+/* «+» под этикеткой: раскрывается в «Копия» / «Пустая» */
+.xpe-addpage { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: .4rem; margin: .75rem auto auto; }
+.xpe-addbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.2rem; height: 2.2rem; padding: 0;
+  border: 1px dashed var(--md-default-fg-color--lighter); border-radius: 50%;
+  background: var(--xp-card-bg); color: var(--md-default-fg-color--light);
+  cursor: pointer; transition: transform .2s, color .15s, border-color .15s;
+}
+.xpe-addbtn svg { width: 1.2rem; height: 1.2rem; fill: currentColor; }
+.xpe-addbtn:hover, .xpe-open .xpe-addbtn { border-style: solid; border-color: var(--xp-accent); color: var(--xp-accent); }
+.xpe-open .xpe-addbtn { transform: rotate(45deg); }
+.xpe-addopt {
+  display: none; padding: .4rem .9rem; border-radius: 1rem;
+  border: 1px solid var(--xp-accent); background: var(--xp-accent-soft); color: var(--xp-tag-fg);
+  font-weight: 600; cursor: pointer;
+}
+.xpe-addopt:hover { background: var(--xp-accent-strong); color: #fff; }
+.xpe-open .xpe-addopt { display: inline-flex; animation: xpe-pop .16s ease-out; }
+@keyframes xpe-pop { from { opacity: 0; transform: translateY(4px) scale(.94); } }
+
+/* «2 / 5» в углу холста и лента миниатюр справа */
+.xpe-pager {
+  position: absolute; right: .6rem; top: .5rem;
+  padding: .15rem .55rem; border-radius: .3rem;
+  background: var(--xp-accent-strong); color: #fff;
+  font-size: .65rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.xpe-pager:empty { display: none; }
+.xpe-strip {
+  display: none; position: absolute; right: .5rem; top: 2.1rem; bottom: .5rem; width: 3.4rem;
+  flex-direction: column; gap: .4rem; padding: .35rem; overflow-y: auto;
+  border-radius: .5rem; border: 1px solid var(--xp-card-border); background: var(--xp-card-bg);
+  scrollbar-width: thin;
+}
+.xpe-multi .xpe-strip { display: flex; }
+.xpe-multi .xpe-stage { padding-right: 4.4rem; }
+.xpe-thumb {
+  position: relative; flex: 0 0 auto; padding: 0; line-height: 0;
+  border: 2px solid transparent; border-radius: .3rem; background: none; cursor: pointer;
+}
+.xpe-thumb:hover { border-color: var(--md-default-fg-color--lighter); }
+.xpe-thumb.xpe-on { border-color: var(--xp-accent); }
+.xpe-thumbsvg { display: block; width: 100%; height: auto; border-radius: .15rem; color-scheme: only light; pointer-events: none; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.xpe-thumbn {
+  position: absolute; left: .15rem; bottom: .15rem; padding: .1rem .25rem; border-radius: .2rem;
+  background: rgba(15, 23, 42, .75); color: #fff; font-size: .5rem; line-height: 1;
+}
+.xpe-thumbdel {
+  display: none; position: absolute; right: .15rem; top: .15rem; width: 1rem; height: 1rem;
+  border-radius: 50%; background: #e5484d; color: #fff; font-size: .75rem; line-height: 1rem; text-align: center;
+}
+.xpe-thumb:hover .xpe-thumbdel, .xpe-thumb.xpe-on .xpe-thumbdel { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .xpe-addbtn, .xpe-open .xpe-addopt { transition: none; animation: none; }
+}
 
 /* свойства */
 .xpe-props { display: flex; flex-direction: column; gap: .5rem; user-select: text; overflow: auto; }

@@ -245,6 +245,16 @@
       ]
     };
   }
+  /* Документ: общий размер этикетки (одна лента) и список этикеток pages — у каждой свои
+     элементы. Старый формат { label, items } — это одна этикетка. */
+  function normDoc(d) {
+    var pages = Array.isArray(d.pages) ? d.pages : [Array.isArray(d.items) ? d.items : []];
+    pages = pages.map(function (p) {
+      return (Array.isArray(p) ? p : (p && p.items) || []).filter(function (it) { return it && NAMES[it.type]; });
+    });
+    return { label: d.label, pages: pages.length ? pages : [[]] };
+  }
+
   function newItem(type, L) {
     var W = L.w, H = L.h;
     switch (type) {
@@ -267,24 +277,26 @@
     this.undoStack = [];
     this.redoStack = [];
     this.nextId = 1;
-    this.doc = this.load() || defaultDoc();
-    this.doc.items.forEach(function (it) { it.id = this.nextId++; }, this);
+    this.page = 0;        // текущая этикетка (индекс в doc.pages)
+    this.bindDoc(this.load() || defaultDoc());
+    this.allItems().forEach(function (it) { it.id = this.nextId++; }, this);
     this.build();
     this.saved = JSON.stringify(this.doc);
     this.fit();
     this.render();
     this.renderProps();
+    this.renderStrip();
     this.loadDocFonts();
   }
 
   Editor.prototype.loadDocFonts = function () {
     var self = this, fams = {};
-    this.doc.items.forEach(function (it) { if (it.type === 'text' || it.type === 'barcode') fams[it.font || 'Arimo'] = 1; });
+    this.allItems().forEach(function (it) { if (it.type === 'text' || it.type === 'barcode') fams[it.font || 'Arimo'] = 1; });
     Promise.all(Object.keys(fams).map(ensureFont)).then(function () { self.render(); });
   };
 
   Editor.prototype.load = function () {
-    try { var d = JSON.parse(localStorage.getItem(STORE)); return d && d.label && d.items ? d : null; }
+    try { var d = JSON.parse(localStorage.getItem(STORE)); return d && d.label && (d.items || d.pages) ? d : null; }
     catch (e) { return null; }
   };
   Editor.prototype.persist = function () {
@@ -301,9 +313,10 @@
     this.saved = now;
     this.persist();
     this.updateHistoryButtons();
+    this.renderStrip();
   };
   Editor.prototype.restore = function (json) {
-    this.doc = JSON.parse(json);
+    this.bindDoc(JSON.parse(json));
     this.saved = json;
     if (this.sel && !this.item(this.sel)) this.sel = null;
     var self = this;
@@ -315,6 +328,7 @@
     this.render();
     this.renderProps();
     this.updateHistoryButtons();
+    this.renderStrip();
     this.loadDocFonts();
   };
   Editor.prototype.undo = function () {
@@ -341,6 +355,131 @@
   Editor.prototype.item = function (id) {
     for (var i = 0; i < this.doc.items.length; i++) if (this.doc.items[i].id === id) return this.doc.items[i];
     return null;
+  };
+
+  /* ---------- несколько этикеток ---------- */
+  // doc.items — элементы текущей этикетки: весь остальной код работает с ними как раньше.
+  // Свойство не перечисляемое, поэтому в JSON (история, автосохранение) попадают только pages.
+  Editor.prototype.bindDoc = function (d) {
+    var self = this, doc = normDoc(d);
+    Object.defineProperty(doc, 'items', {
+      get: function () { return doc.pages[self.page]; },
+      set: function (v) { doc.pages[self.page] = v; },
+      enumerable: false, configurable: true
+    });
+    this.page = Math.max(0, Math.min(this.page, doc.pages.length - 1));
+    this.doc = doc;
+  };
+
+  Editor.prototype.allItems = function () {
+    return [].concat.apply([], this.doc.pages);
+  };
+
+  // Смена этикетки с анимацией: текущая уезжает вверх (dir = 1) или вниз, новая выезжает навстречу
+  Editor.prototype.slide = function (dir, swap) {
+    var svg = this.$svg, self = this;
+    var still = !svg.animate || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    if (still || this.sliding) { swap(); return; }
+    this.sliding = true;
+    var out = svg.animate([
+      { transform: 'none', opacity: 1 },
+      { transform: 'translateY(' + (-dir * 30) + '%)', opacity: 0 }
+    ], { duration: 160, easing: 'ease-in', fill: 'forwards' });
+    out.onfinish = function () {
+      swap();
+      var inn = svg.animate([
+        { transform: 'translateY(' + (dir * 30) + '%)', opacity: 0 },
+        { transform: 'none', opacity: 1 }
+      ], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
+      out.cancel();
+      inn.onfinish = inn.oncancel = function () { self.sliding = false; };
+    };
+  };
+
+  Editor.prototype.showPage = function (i) {
+    this.page = i;
+    this.pageTarget = null;
+    this.sel = null;
+    this.multi = [];
+    this.fit();
+    this.render();
+    this.renderProps();
+    this.renderStrip();
+  };
+
+  // Во время анимации переход запоминается (pageTarget): анимация покажет последнюю выбранную этикетку
+  Editor.prototype.gotoPage = function (i) {
+    if (i < 0 || i >= this.doc.pages.length) return;
+    var self = this;
+    this.pageTarget = i;
+    if (this.sliding) return;
+    if (i === this.page) { this.pageTarget = null; return; }
+    this.slide(i > this.page ? 1 : -1, function () { self.showPage(self.pageTarget); });
+  };
+
+  // Новая этикетка сразу после текущей: копия её элементов или пустая
+  Editor.prototype.addPage = function (copy) {
+    if (this.sliding) return;
+    var self = this, at = this.page + 1;
+    var items = copy ? this.doc.items.map(function (it) { var c = clone(it); c.id = self.nextId++; return c; }) : [];
+    this.slide(1, function () {
+      self.doc.pages.splice(at, 0, items);
+      self.showPage(at);
+      self.commit();
+    });
+  };
+
+  Editor.prototype.deletePage = function (i) {
+    var n = this.doc.pages.length, self = this;
+    if (n < 2 || this.sliding) return;
+    var drop = function () {
+      var cur = self.page;
+      self.doc.pages.splice(i, 1);
+      // удалили раньше текущей — индекс сдвигается; удалили текущую — встаёт следующая (или предыдущая, если была последней)
+      self.showPage(i < cur ? cur - 1 : Math.min(cur, n - 2));
+      self.commit();
+    };
+    if (i === this.page) this.slide(i < n - 1 ? 1 : -1, drop); else drop();
+  };
+
+  // «1/3» в углу холста и лента миниатюр справа — только если этикеток больше одной
+  Editor.prototype.renderStrip = function () {
+    if (!this.$strip) return;
+    var self = this, n = this.doc.pages.length, strip = this.$strip, L = this.cv();
+    this.$pager.textContent = n > 1 ? (this.page + 1) + ' / ' + n : '';
+    // лента появилась или пропала — у холста другой отступ справа, пересчитываем масштаб
+    if (this.$stagewrap.classList.contains('xpe-multi') !== n > 1) {
+      this.$stagewrap.classList.toggle('xpe-multi', n > 1);
+      this.fit();
+      this.render();
+    }
+    strip.innerHTML = '';
+    if (n < 2) return;
+    this.doc.pages.forEach(function (items, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'xpe-thumb' + (i === self.page ? ' xpe-on' : '');
+      b.title = 'Этикетка ' + (i + 1);
+      var svg = svgEl('svg', { viewBox: '0 0 ' + L.w + ' ' + L.h, class: 'xpe-thumbsvg' }, b);
+      svgEl('rect', { x: 0, y: 0, width: L.w, height: L.h, fill: '#fff' }, svg);
+      items.forEach(function (it) { self.drawItem(svg, it); });
+      var num = document.createElement('span');
+      num.className = 'xpe-thumbn';
+      num.textContent = i + 1;
+      var del = document.createElement('span');
+      del.className = 'xpe-thumbdel';
+      del.title = 'Удалить этикетку ' + (i + 1);
+      del.textContent = '×';
+      del.addEventListener('click', function (ev) { ev.stopPropagation(); self.deletePage(i); });
+      b.appendChild(num);
+      b.appendChild(del);
+      b.addEventListener('click', function () { self.gotoPage(i); });
+      strip.appendChild(b);
+    });
+    // активная миниатюра — в видимой части ленты (без прокрутки самой страницы)
+    var on = strip.querySelector('.xpe-on');
+    if (on.offsetTop < strip.scrollTop) strip.scrollTop = on.offsetTop - 6;
+    else if (on.offsetTop + on.offsetHeight > strip.scrollTop + strip.clientHeight) strip.scrollTop = on.offsetTop + on.offsetHeight - strip.clientHeight + 6;
   };
 
   /* ---------- разметка интерфейса ---------- */
@@ -399,8 +538,16 @@
             '<button type="button" data-add="sign"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg> Знаки</button>' +
             '<input type="file" accept="image/png,image/jpeg,image/svg+xml" class="xpe-file" hidden>' +
           '</div>' +
-          '<div class="xpe-stagewrap"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg></div>' +
-          '<span class="xpe-fname" title="Файл макета"></span></div>' +
+          '<div class="xpe-stagewrap"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
+            '<div class="xpe-addpage">' +
+              '<button type="button" class="xpe-addbtn" title="Добавить этикетку" aria-label="Добавить этикетку" aria-expanded="false">' +
+                '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>' +
+              '<button type="button" class="xpe-addopt" data-copy="1" title="Новая этикетка с тем же содержимым">Копия</button>' +
+              '<button type="button" class="xpe-addopt" data-copy="" title="Новая пустая этикетка">Пустая</button>' +
+            '</div></div>' +
+          '<span class="xpe-fname" title="Файл макета"></span>' +
+          '<span class="xpe-pager" title="Этикетка / всего этикеток (PgUp, PgDn — листать)"></span>' +
+          '<div class="xpe-strip" aria-label="Этикетки"></div></div>' +
           '<div class="xpe-props"></div>' +
         '</div>' +
         '<div class="xpe-hint">«Печать»: выберите термопринтер, размер бумаги как у этикетки и масштаб «По размеру бумаги». ' +
@@ -422,6 +569,21 @@
     this.$file = q('.xpe-file');
     this.$zval = q('.xpe-zval');
     this.$fname = q('.xpe-fname');
+    this.$stagewrap = q('.xpe-stagewrap');
+    this.$pager = q('.xpe-pager');
+    this.$strip = q('.xpe-strip');
+    this.$addpage = q('.xpe-addpage');
+    // «+» раскрывает выбор «Копия» / «Пустая»
+    var addBtn = q('.xpe-addbtn'), addBox = this.$addpage;
+    var setAddOpen = function (open) {
+      addBox.classList.toggle('xpe-open', open);
+      addBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      addBtn.title = open ? 'Отмена' : 'Добавить этикетку';
+    };
+    addBtn.addEventListener('click', function () { setAddOpen(!addBox.classList.contains('xpe-open')); });
+    [].forEach.call(ui.querySelectorAll('.xpe-addopt'), function (b) {
+      b.addEventListener('click', function () { setAddOpen(false); self.addPage(!!b.getAttribute('data-copy')); });
+    });
     this.zoom = 1;
     this.syncLabelInputs();
     this.updateHistoryButtons();
@@ -513,15 +675,16 @@
     var rot = o === 'h' ? L.w < L.h : L.w > L.h;
     if (!!L.rot === rot) return;
     L.rot = rot;
-    var after = this.cv(), items = this.doc.items;
-    if (items.length) {
+    var after = this.cv();
+    this.doc.pages.forEach(function (items) {   // ориентация общая — центрируем каждую этикетку
+      if (!items.length) return;
       var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
       items.forEach(function (it) {
         x0 = Math.min(x0, it.x); y0 = Math.min(y0, it.y); x1 = Math.max(x1, it.x + it.w); y1 = Math.max(y1, it.y + it.h);
       });
       var dx = (after.w - (x1 - x0)) / 2 - x0, dy = (after.h - (y1 - y0)) / 2 - y0;
       items.forEach(function (it) { it.x = r2(it.x + dx); it.y = r2(it.y + dy); });
-    }
+    });
     this.syncLabelInputs();
     this.fit();
     this.render();
@@ -784,14 +947,20 @@
 
   Editor.prototype.suggestName = function () {
     var L = this.doc.label, first = null;
-    this.doc.items.some(function (it) { if (it.type === 'text' && it.text.trim()) { first = it.text; return true; } });
+    this.allItems().some(function (it) { if (it.type === 'text' && it.text.trim()) { first = it.text; return true; } });
     var base = first ? first.split('\n')[0].replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40) : 'Макет';
     return base + ' ' + L.w + 'x' + L.h + '.xplabel';
   };
 
+  // Одна этикетка — прежний формат (version 1, items). Несколько — version 2 с pages;
+  // items дублирует первую этикетку, чтобы старая версия редактора открыла хотя бы её.
   Editor.prototype.serialize = function () {
-    var items = this.doc.items.map(function (it) { var c = clone(it); delete c.id; return c; });
-    return JSON.stringify({ app: 'xprinter-label', version: 1, label: this.doc.label, items: items }, null, 1);
+    var pages = this.doc.pages.map(function (items) {
+      return items.map(function (it) { var c = clone(it); delete c.id; return c; });
+    });
+    var out = { app: 'xprinter-label', version: pages.length > 1 ? 2 : 1, label: this.doc.label, items: pages[0] };
+    if (pages.length > 1) out.pages = pages;
+    return JSON.stringify(out, null, 1);
   };
 
   /* Сохранить: в Chrome/Edge — в выбранный файл (повторное сохранение перезаписывает его), иначе — скачать */
@@ -842,12 +1011,13 @@
     if (isPdf) handle = null;
     text.then(function (txt) {
       var d = JSON.parse(txt);
-      if (!d || !d.label || !(d.label.w > 0) || !(d.label.h > 0) || !Array.isArray(d.items)) throw new Error('bad');
-      var doc = { label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, items: d.items.filter(function (it) { return it && NAMES[it.type]; }) };
-      doc.items.forEach(function (it) { it.id = self.nextId++; });
+      if (!d || !d.label || !(d.label.w > 0) || !(d.label.h > 0) || !(Array.isArray(d.items) || Array.isArray(d.pages))) throw new Error('bad');
+      var doc = normDoc({ label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, pages: d.pages, items: d.items });
+      doc.pages.forEach(function (items) { items.forEach(function (it) { it.id = self.nextId++; }); });
       self.undoStack.push(self.saved);
       self.redoStack = [];
       self.sel = null;
+      self.page = 0;
       self.restore(JSON.stringify(doc));
       self.fileHandle = handle || null;
       self.setFileName(file.name);
@@ -861,11 +1031,12 @@
   };
 
   Editor.prototype.newDoc = function () {
-    if (this.doc.items.length && !confirm('Начать новый пустой макет? Текущий можно вернуть кнопкой «Отменить».')) return;
+    if (this.allItems().length && !confirm('Начать новый пустой макет? Текущий можно вернуть кнопкой «Отменить».')) return;
     this.undoStack.push(this.saved);
     this.redoStack = [];
     this.sel = null;
-    this.restore(JSON.stringify({ label: this.doc.label, items: [] }));
+    this.page = 0;
+    this.restore(JSON.stringify({ label: this.doc.label, pages: [[]] }));
     this.fileHandle = null;
     this.setFileName(null);
   };
@@ -880,8 +1051,10 @@
 
   /* ---------- масштаб холста ---------- */
   Editor.prototype.fit = function () {
-    var L = this.cv(), st = this.$stage;
-    var aw = Math.max(200, st.clientWidth - 48), ah = Math.max(150, st.clientHeight - 48);
+    var L = this.cv(), st = this.$stage, cs = getComputedStyle(st);
+    // место под кнопку «+» снизу и под ленту миниатюр справа (padding-right при нескольких этикетках)
+    var aw = Math.max(200, st.clientWidth - 48 - parseFloat(cs.paddingRight || 0));
+    var ah = Math.max(150, st.clientHeight - 48 - (this.$addpage ? this.$addpage.offsetHeight + 12 : 0));
     this.fitScale = Math.max(2, Math.min(aw / L.w, ah / L.h, 14));
     this.scale = this.fitScale * this.zoom;
     this.$svg.setAttribute('viewBox', '0 0 ' + L.w + ' ' + L.h);
@@ -1105,6 +1278,7 @@
     // события слушаем на всей области холста: рамку выделения можно начать и за краем этикетки
     stage.addEventListener('pointerdown', function (ev) {
       if (ev.button !== 0) return;
+      if (ev.target.closest && ev.target.closest('.xpe-addpage')) return; // кнопка «+» под этикеткой
       if (ev.target === stage && (ev.offsetX > stage.clientWidth || ev.offsetY > stage.clientHeight)) return; // полоса прокрутки
       var p = self.toMm(ev), handle = ev.target.getAttribute && ev.target.getAttribute('data-handle');
       var add = ev.shiftKey || ev.ctrlKey || ev.metaKey;
@@ -1366,6 +1540,13 @@
     if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
     if (mod && (k === 'z' || k === 'я')) { ev.preventDefault(); ev.shiftKey ? this.redo() : this.undo(); return; }
     if (mod && (k === 'y' || k === 'н')) { ev.preventDefault(); this.redo(); return; }
+    if (k === 'PageUp' || k === 'PageDown') {
+      if (this.doc.pages.length < 2) return;
+      ev.preventDefault();
+      var cur = this.pageTarget != null ? this.pageTarget : this.page;
+      this.gotoPage(cur + (k === 'PageDown' ? 1 : -1));
+      return;
+    }
     if (mod && (k === 'a' || k === 'ф')) {
       ev.preventDefault();
       this.setSelection(this.doc.items.map(function (o) { return o.id; }));
@@ -1472,7 +1653,8 @@
       P.innerHTML = '<div class="xpe-empty"><b>Ничего не выбрано</b><p>Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.</p>' +
         '<p class="xpe-keys">Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
         'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.<br>' +
-        'Несколько элементов: рамкой по пустому месту, Shift+клик или Ctrl+A.</p></div>';
+        'Несколько элементов: рамкой по пустому месту, Shift+клик или Ctrl+A.<br>' +
+        'Ещё этикетка — «+» под этикеткой: в PDF каждая станет отдельной страницей. PgUp, PgDn — листать.</p></div>';
       return;
     }
     var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
@@ -1720,7 +1902,7 @@
     var self = this, need = {};
     need[fontKey('Arimo', false)] = ['Arimo', false];
     need[fontKey('Arimo', true)] = ['Arimo', true];
-    this.doc.items.forEach(function (it) {
+    this.allItems().forEach(function (it) {
       if (it.type === 'text') need[fontKey(it.font || 'Arimo', it.bold)] = [it.font || 'Arimo', it.bold];
       if (it.type === 'barcode' && it.showText) need[fontKey(it.font || 'Arimo', false)] = [it.font || 'Arimo', false];
     });
@@ -1765,47 +1947,50 @@
       else pdf.text(str, x0, y, { baseline: 'alphabetic' });
     };
 
-    this.doc.items.forEach(function (it) {
-      if (it.type === 'text') {
-        var lay = textLayout(it);
-        pdf.setFont(fontId(it.font || 'Arimo', it.bold), 'normal');
-        pdf.setFontSize(it.size);
-        lay.lines.forEach(function (ln, i) {
-          text(ln, anchorX(it), baseline(it, lay, i), it.align);
-        });
-      } else if (it.type === 'barcode') {
-        var enc = encodeBarcode(it.format, it.data);
-        if (!enc) return;
-        var gm = barcodeGeom(it, enc);
-        enc.bars.forEach(function (b) { rect(gm.x0 + b[0] * gm.mw, it.y, b[1] * gm.mw, gm.barsH, 'F'); });
-        if (it.showText) {
-          pdf.setFont(fontId(it.font || 'Arimo', false), 'normal');
-          pdf.setFontSize(it.textSize);
-          text(enc.text, it.x + it.w / 2, gm.textY, 'center');
+    this.doc.pages.forEach(function (items, pi) {
+      if (pi) pdf.addPage([L.w, L.h], L.w > L.h ? 'landscape' : 'portrait');
+      items.forEach(function (it) {
+        if (it.type === 'text') {
+          var lay = textLayout(it);
+          pdf.setFont(fontId(it.font || 'Arimo', it.bold), 'normal');
+          pdf.setFontSize(it.size);
+          lay.lines.forEach(function (ln, i) {
+            text(ln, anchorX(it), baseline(it, lay, i), it.align);
+          });
+        } else if (it.type === 'barcode') {
+          var enc = encodeBarcode(it.format, it.data);
+          if (!enc) return;
+          var gm = barcodeGeom(it, enc);
+          enc.bars.forEach(function (b) { rect(gm.x0 + b[0] * gm.mw, it.y, b[1] * gm.mw, gm.barsH, 'F'); });
+          if (it.showText) {
+            pdf.setFont(fontId(it.font || 'Arimo', false), 'normal');
+            pdf.setFontSize(it.textSize);
+            text(enc.text, it.x + it.w / 2, gm.textY, 'center');
+          }
+        } else if (it.type === 'qr') {
+          var qe = encodeQR(it.data);
+          if (!qe) return;
+          var qg = qrGeom(it, qe);
+          qe.runs.forEach(function (r) { rect(qg.x0 + r[0] * qg.ms, qg.y0 + r[1] * qg.ms, r[2] * qg.ms, qg.ms, 'F'); });
+        } else if (it.type === 'line') {
+          var lr = lineRect(it);
+          rect(lr[0], lr[1], lr[2], lr[3], 'F');
+        } else if (it.type === 'rect') {
+          var t = it.thickness, x = it.x + t / 2, y = it.y + t / 2, w = Math.max(0, it.w - t), hh = Math.max(0, it.h - t);
+          pdf.setLineWidth(t);
+          var style = it.fill ? 'FD' : 'S';
+          if (it.radius > 0) rrect(x, y, w, hh, it.radius, style);
+          else rect(x, y, w, hh, style);
+        } else if (it.type === 'image' || it.type === 'sign') {
+          var iw = it.w, ih = it.h, ratio = imgRatio(it);
+          if (ratio) { if (ih / iw > ratio) ih = iw * ratio; else iw = ih / ratio; }
+          var src = rotImages[imgKey(it)];
+          if (!src) return;
+          var fmt = /^data:image\/jpe?g/.test(src) ? 'JPEG' : 'PNG';
+          var ir = R(it.x + (it.w - iw) / 2, it.y + (it.h - ih) / 2, iw, ih);
+          try { pdf.addImage(src, fmt, ir[0], ir[1], ir[2], ir[3]); } catch (e) { /* повреждённая картинка */ }
         }
-      } else if (it.type === 'qr') {
-        var qe = encodeQR(it.data);
-        if (!qe) return;
-        var qg = qrGeom(it, qe);
-        qe.runs.forEach(function (r) { rect(qg.x0 + r[0] * qg.ms, qg.y0 + r[1] * qg.ms, r[2] * qg.ms, qg.ms, 'F'); });
-      } else if (it.type === 'line') {
-        var lr = lineRect(it);
-        rect(lr[0], lr[1], lr[2], lr[3], 'F');
-      } else if (it.type === 'rect') {
-        var t = it.thickness, x = it.x + t / 2, y = it.y + t / 2, w = Math.max(0, it.w - t), hh = Math.max(0, it.h - t);
-        pdf.setLineWidth(t);
-        var style = it.fill ? 'FD' : 'S';
-        if (it.radius > 0) rrect(x, y, w, hh, it.radius, style);
-        else rect(x, y, w, hh, style);
-      } else if (it.type === 'image' || it.type === 'sign') {
-        var iw = it.w, ih = it.h, ratio = imgRatio(it);
-        if (ratio) { if (ih / iw > ratio) ih = iw * ratio; else iw = ih / ratio; }
-        var src = rotImages[imgKey(it)];
-        if (!src) return;
-        var fmt = /^data:image\/jpe?g/.test(src) ? 'JPEG' : 'PNG';
-        var ir = R(it.x + (it.w - iw) / 2, it.y + (it.h - ih) / 2, iw, ih);
-        try { pdf.addImage(src, fmt, ir[0], ir[1], ir[2], ir[3]); } catch (e) { /* повреждённая картинка */ }
-      }
+      });
     });
     return pdf;
   };
@@ -1850,7 +2035,7 @@
   /* Готовит картинки для PDF: знаки и SVG — в PNG, при повёрнутом макете — поворот на 90° */
   Editor.prototype.rotatedImages = function () {
     var out = {}, jobs = {}, rot = !!this.doc.label.rot;
-    this.doc.items.forEach(function (it) {
+    this.allItems().forEach(function (it) {
       if (it.type !== 'image' && it.type !== 'sign') return;
       var key = imgKey(it);
       if (jobs[key]) return;
