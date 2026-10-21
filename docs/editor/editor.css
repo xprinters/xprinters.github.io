@@ -274,6 +274,16 @@
 @media (prefers-reduced-motion: reduce) {
   .xpe-addbtn, .xpe-open .xpe-addopt { transition: none; animation: none; }
 }
+/* планшет и телефон: лента миниатюр — горизонтальной строкой под холстом */
+@media (max-width: 60em) {
+  .xpe-multi .xpe-stage { padding-right: 0; }
+  .xpe-strip {
+    position: static; width: auto; margin-top: .5rem;
+    flex-direction: row; overflow-x: auto; overflow-y: hidden;
+  }
+  /* ширина из пропорций этикетки (--xpe-ar задаёт editor.js): внутри кнопки браузер сам её не выводит */
+  .xpe-thumbsvg { height: 3rem; width: calc(3rem * var(--xpe-ar, 1.45)); }
+}
 
 /* свойства */
 .xpe-props { display: flex; flex-direction: column; gap: .5rem; user-select: text; overflow: auto; }

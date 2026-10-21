@@ -381,11 +381,22 @@
     var still = !svg.animate || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
     if (still || this.sliding) { swap(); return; }
     this.sliding = true;
+    var swapped = false;
     var out = svg.animate([
       { transform: 'none', opacity: 1 },
       { transform: 'translateY(' + (-dir * 30) + '%)', opacity: 0 }
     ], { duration: 160, easing: 'ease-in', fill: 'forwards' });
+    // страховка: в фоновой вкладке браузер может не доиграть анимацию — переход всё равно выполнится
+    setTimeout(function () {
+      if (swapped) return;
+      swapped = true;
+      out.cancel();
+      swap();
+      self.sliding = false;
+    }, 1000);
     out.onfinish = function () {
+      if (swapped) return;
+      swapped = true;
       swap();
       var inn = svg.animate([
         { transform: 'translateY(' + (dir * 30) + '%)', opacity: 0 },
@@ -454,6 +465,7 @@
       this.render();
     }
     strip.innerHTML = '';
+    strip.style.setProperty('--xpe-ar', (L.w / L.h).toFixed(4));
     if (n < 2) return;
     this.doc.pages.forEach(function (items, i) {
       var b = document.createElement('button');
@@ -477,9 +489,12 @@
       strip.appendChild(b);
     });
     // активная миниатюра — в видимой части ленты (без прокрутки самой страницы)
-    var on = strip.querySelector('.xpe-on');
-    if (on.offsetTop < strip.scrollTop) strip.scrollTop = on.offsetTop - 6;
-    else if (on.offsetTop + on.offsetHeight > strip.scrollTop + strip.clientHeight) strip.scrollTop = on.offsetTop + on.offsetHeight - strip.clientHeight + 6;
+    // активная миниатюра — в видимой части ленты; лента вертикальная (компьютер) или горизонтальная (телефон)
+    var sr = strip.getBoundingClientRect(), or = strip.querySelector('.xpe-on').getBoundingClientRect();
+    if (or.top < sr.top) strip.scrollTop -= sr.top - or.top + 6;
+    else if (or.bottom > sr.bottom) strip.scrollTop += or.bottom - sr.bottom + 6;
+    if (or.left < sr.left) strip.scrollLeft -= sr.left - or.left + 6;
+    else if (or.right > sr.right) strip.scrollLeft += or.right - sr.right + 6;
   };
 
   /* ---------- разметка интерфейса ---------- */
