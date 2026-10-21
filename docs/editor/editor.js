@@ -461,9 +461,11 @@
     thumb.addEventListener('pointerdown', function (ev) {
       if (ev.button !== 0 || self.sliding) return;
       var touch = ev.pointerType === 'touch', vertical = getComputedStyle(strip).flexDirection === 'column';
-      var x0 = ev.clientX, y0 = ev.clientY, pos = vertical ? y0 : x0, grab = 0, active = false, timer = null;
+      var x0 = ev.clientX, y0 = ev.clientY, pos = vertical ? y0 : x0, grab = 0, active = false, timer = null, ended = false;
       var A = vertical ? 'top' : 'left', B = vertical ? 'bottom' : 'right', SC = vertical ? 'scrollTop' : 'scrollLeft';
       var coord = function (e) { return vertical ? e.clientY : e.clientX; };
+      // мышь: кулак сразу при нажатии — видно, что миниатюра захвачена
+      if (!touch) document.documentElement.classList.add('xpe-grabbing');
 
       var place = function () {
         row.style.transform = 'none';
@@ -485,15 +487,20 @@
         row.classList.add('xpe-dragging');
         strip.classList.add('xpe-reordering');
         try { thumb.setPointerCapture(ev.pointerId); } catch (e) { /* палец уже отпущен */ }
+        document.documentElement.classList.add('xpe-grabbing');
         if (touch && navigator.vibrate) navigator.vibrate(15);
         place();
       };
       var finish = function (drop) {
+        if (ended) return;
+        ended = true;
         clearTimeout(timer);
+        window.removeEventListener('pointerup', up);
         thumb.removeEventListener('pointermove', move);
         thumb.removeEventListener('pointerup', up);
         thumb.removeEventListener('pointercancel', cancel);
         strip.removeEventListener('touchmove', block);
+        document.documentElement.classList.remove('xpe-grabbing');
         if (!active) return;
         self.stripDragged = true;
         setTimeout(function () { self.stripDragged = false; }, 0);
@@ -523,6 +530,8 @@
       thumb.addEventListener('pointerup', up);
       thumb.addEventListener('pointercancel', cancel);
       strip.addEventListener('touchmove', block, { passive: false });
+      // отпустили кнопку за пределами миниатюры (до начала перетаскивания) — тоже завершаем
+      window.addEventListener('pointerup', up);
       if (touch) timer = setTimeout(start, 350);
     });
   };

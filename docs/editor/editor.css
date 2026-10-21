@@ -278,9 +278,11 @@
 .xpe-tw:hover .xpe-thumbdel, .xpe-tw.xpe-on .xpe-thumbdel { visibility: visible; }
 .xpe-thumbdel:hover { background: #e5484d; color: #fff; }
 /* перетаскивание миниатюры для смены порядка */
-.xpe-thumb { touch-action: pan-x pan-y; -webkit-touch-callout: none; user-select: none; }
+/* курсор: открытая ладонь — миниатюру можно взять; сжатый кулак — пока держим (на всей странице) */
+.xpe-thumb { touch-action: pan-x pan-y; -webkit-touch-callout: none; user-select: none; cursor: grab; }
+html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 .xpe-tw.xpe-dragging { position: relative; z-index: 2; }
-.xpe-dragging .xpe-thumb { cursor: grabbing; border-color: var(--xp-accent); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); transform: scale(1.05); }
+.xpe-dragging .xpe-thumb { border-color: var(--xp-accent); box-shadow: 0 6px 18px rgba(0, 0, 0, .35); transform: scale(1.05); }
 .xpe-reordering .xpe-thumbdel { visibility: hidden !important; }
 @media (prefers-reduced-motion: reduce) {
   .xpe-addbtn, .xpe-open .xpe-addopt { transition: none; animation: none; }
