@@ -383,7 +383,7 @@
   margin-left: .35rem;
   vertical-align: top;
 }
-.md-typeset .md-button.xp-share svg { width: 1.3em; height: 1.6em; fill: none; stroke: currentColor; }
+.md-typeset .md-button.xp-share svg { width: 1.3em; height: 1.6em; fill: currentColor; }
 .xp-toast {
   position: fixed;
   left: 50%;
