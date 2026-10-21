@@ -372,3 +372,29 @@
   }
   .md-typeset .tabbed-block table:not([class]) td:nth-child(3) { grid-area: btn; }
 }
+
+/* ===== «Поделиться» у кнопок скачивания (телефон и планшет, share.js) ===== */
+.md-typeset .md-button.xp-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* та же высота, что у обычной кнопки Material: padding .625em + строка 1.6em */
+  padding: .625em .75em;
+  margin-left: .35rem;
+  vertical-align: top;
+}
+.md-typeset .md-button.xp-share svg { width: 1.2em; height: 1.6em; fill: currentColor; }
+.xp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  z-index: 10;
+  transform: translateX(-50%);
+  max-width: calc(100% - 2rem);
+  padding: .6rem .9rem;
+  border-radius: .5rem;
+  background: var(--md-default-fg-color);
+  color: var(--md-default-bg-color);
+  font-size: .7rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .25);
+}

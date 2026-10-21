@@ -124,14 +124,22 @@
     var pack = packFor(slug, hint);
     var link = document.querySelector('.xpd-packs a[data-pack="' + pack + '"]');
     var buttons = el("p", { "class": "xpd-buttons" });
-    if (link && /Windows/i.test(navigator.userAgent)) {
+    // На телефоне тоже показываем драйвер: share.js добавит «Поделиться», чтобы
+    // отправить ссылку себе на компьютер
+    var handheld = window.XPShare && window.XPShare.handheld();
+    if (link && (/Windows/i.test(navigator.userAgent) || handheld)) {
       write("Драйвер: " + PACK_TITLES[pack] + " — " + decodeURIComponent(link.href.split("/").pop()));
-      buttons.appendChild(el("a", { href: link.href, target: "_blank", rel: "noopener", "class": "md-button md-button--primary" },
+      buttons.appendChild(el("a", { href: link.href, target: "_blank", rel: "noopener", "class": "md-button md-button--primary",
+        "data-share-title": "Драйвер " + PACK_TITLES[pack] + " для " + MODELS[slug] + " (Windows)" },
         "Скачать драйвер " + PACK_TITLES[pack]));
       buttons.appendChild(document.createTextNode(" "));
       buttons.appendChild(el("a", { href: siteRoot + slug + "/", "class": "md-button" }, "Страница модели"));
       box.appendChild(buttons);
+      if (handheld) {
+        box.appendChild(el("p", null, "Драйвер ставится на компьютер. Нажмите значок «Поделиться» рядом с кнопкой и отправьте ссылку себе в мессенджер или на почту."));
+      }
       box.appendChild(driverSteps(pack));
+      if (window.XPShare) window.XPShare.attach(box);
     } else {
       buttons.appendChild(el("a", { href: siteRoot + slug + "/", "class": "md-button md-button--primary" }, "Драйверы и программы"));
       box.appendChild(buttons);

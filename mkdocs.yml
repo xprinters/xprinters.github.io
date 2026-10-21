@@ -53,6 +53,7 @@ extra_css:
 extra_javascript:
   - javascripts/hero-search.js
   - javascripts/editor-boot.js
+  - javascripts/share.js
   - javascripts/detect.js
 
 validation:
