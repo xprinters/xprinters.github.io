@@ -9,8 +9,9 @@
     var ipad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
     if (/iPhone|iPad|iPod/.test(ua) || ipad) return "Нажмите «Поделиться» внизу экрана и выберите «Добавить в Избранное».";
     if (/Android/.test(ua)) return "Откройте меню браузера ⋮ и нажмите звёздочку ☆.";
-    if (/Mac/.test(navigator.platform || ua)) return "Нажмите ⌘+D, чтобы добавить страницу в закладки.";
-    return "Нажмите Ctrl+D, чтобы добавить страницу в закладки.";
+    // в некоторых браузерах сочетание срабатывает только в английской раскладке — даём и звёздочку
+    if (/Mac/.test(navigator.platform || ua)) return "Нажмите звёздочку ☆ в адресной строке или ⌘+D.";
+    return "Нажмите звёздочку ☆ в адресной строке или Ctrl+D (в английской раскладке).";
   }
 
   var tip = null, tipTimer = null;
