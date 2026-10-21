@@ -357,7 +357,7 @@
           // файл
           '<div class="xpe-grp xpe-seg xpe-g-file">' +
             '<button type="button" class="xpe-btn xpe-new" title="Новый пустой макет">' + ICON.new + '<span>Новый</span></button>' +
-            '<button type="button" class="xpe-btn xpe-openf" title="Открыть файл макета (Ctrl+O)">' + ICON.open + '<span>Открыть</span></button>' +
+            '<button type="button" class="xpe-btn xpe-openf" title="Открыть макет: файл .xplabel или PDF из этого редактора (Ctrl+O)">' + ICON.open + '<span>Открыть</span></button>' +
             '<button type="button" class="xpe-btn xpe-savef" title="Сохранить макет в файл (Ctrl+S)">' + ICON.save + '<span>Сохранить</span></button>' +
           '</div>' +
           // история
@@ -405,7 +405,8 @@
         '</div>' +
         '<div class="xpe-hint">«Печать»: выберите термопринтер, размер бумаги как у этикетки и масштаб «По размеру бумаги». ' +
         'С телефона скачайте PDF и откройте его через «Поделиться» → 4Barcode. ' +
-        'Текущий макет запоминается в этом браузере; чтобы вернуться к нему позже или на другом компьютере — «Сохранить» в файл.</div>' +
+        'Скачанный PDF хранит и сам макет: откройте его кнопкой «Открыть», чтобы продолжить работу на любом компьютере. ' +
+        'Текущий макет также запоминается в этом браузере.</div>' +
       '</div>');
     this.root.appendChild(ui);
 
@@ -631,8 +632,67 @@
     search.focus();
   };
 
+  /* ---------- макет внутри PDF ----------
+     Каждый PDF из редактора несёт макет вложением maket.xplabel (стандартное вложение PDF,
+     видно в Acrobat в панели «Вложения»). «Открыть» находит его и восстанавливает макет.
+     Вложение теряется, если PDF пересохранить другой программой. */
+  var PDF_ATTACHMENT = 'maket.xplabel';
+
+  // строка PDF в UTF-16BE: для кириллицы в описании вложения
+  function pdfText(s) {
+    var hex = 'FEFF';
+    for (var i = 0; i < s.length; i++) hex += ('000' + s.charCodeAt(i).toString(16)).slice(-4);
+    return '<' + hex.toUpperCase() + '>';
+  }
+
+  function embedLayout(pdf, json) {
+    var I = pdf.internal, fileId = 0;
+    var data = unescape(encodeURIComponent(json)); // UTF-8 байтами, как ждёт jsPDF
+    I.events.subscribe('postPutResources', function () {
+      var streamId = I.newObject();
+      I.putStream({
+        data: data,
+        filters: ['FlateEncode'],
+        additionalKeyValues: [
+          { key: 'Type', value: '/EmbeddedFile' },
+          { key: 'Subtype', value: '/application#2Fjson' },
+          { key: 'XPLabel', value: '1' } // метка, по которой «Открыть» находит макет
+        ]
+      });
+      I.out('endobj');
+      fileId = I.newObject();
+      I.out('<< /Type /Filespec /F (' + PDF_ATTACHMENT + ') /UF ' + pdfText(PDF_ATTACHMENT) +
+        ' /Desc ' + pdfText('Макет этикетки: откройте этот PDF в редакторе на xprinters.github.io, чтобы продолжить работу') +
+        ' /AFRelationship /Source /EF << /F ' + streamId + ' 0 R >> >>');
+      I.out('endobj');
+    });
+    I.events.subscribe('putCatalog', function () {
+      I.out('/Names << /EmbeddedFiles << /Names [(' + PDF_ATTACHMENT + ') ' + fileId + ' 0 R] >> >>');
+    });
+  }
+
+  // Достаём макет из PDF: ищем поток с меткой /XPLabel, при сжатии распаковываем (zlib)
+  function layoutFromPDF(buf) {
+    var bytes = new Uint8Array(buf), s = '';
+    for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    var mark = s.lastIndexOf('/XPLabel 1');
+    if (mark < 0) return Promise.reject(new Error('nolayout'));
+    var dictStart = s.lastIndexOf('<<', mark), streamKw = s.indexOf('stream', mark);
+    var dict = s.slice(dictStart, streamKw), len = /\/Length (\d+)/.exec(dict);
+    if (!len) return Promise.reject(new Error('nolayout'));
+    var start = streamKw + 6;
+    if (s.charAt(start) === '\r') start++;
+    if (s.charAt(start) === '\n') start++;
+    var raw = bytes.subarray(start, start + (+len[1]));
+    var plain = /\/FlateDecode/.test(dict)
+      ? new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()
+      : Promise.resolve(raw);
+    return plain.then(function (b) { return new TextDecoder('utf-8').decode(b); });
+  }
+
   /* ---------- файл макета (.xplabel) ---------- */
   var FILE_TYPES = [{ description: 'Макет этикетки', accept: { 'application/json': ['.xplabel'] } }];
+  var OPEN_TYPES = [{ description: 'Макет этикетки или PDF из редактора', accept: { 'application/json': ['.xplabel', '.json'], 'application/pdf': ['.pdf'] } }];
 
   Editor.prototype.setFileName = function (name) {
     this.fileName = name || null;
@@ -642,7 +702,7 @@
   Editor.prototype.suggestName = function () {
     var L = this.doc.label, first = null;
     this.doc.items.some(function (it) { if (it.type === 'text' && it.text.trim()) { first = it.text; return true; } });
-    var base = first ? first.split('\n')[0].replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 40) : 'Макет';
+    var base = first ? first.split('\n')[0].replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40) : 'Макет';
     return base + ' ' + L.w + 'x' + L.h + '.xplabel';
   };
 
@@ -667,7 +727,7 @@
       });
       return;
     }
-    var name = this.fileName || this.suggestName();
+    var name = this.fileName && !/\.pdf$/i.test(this.fileName) ? this.fileName : this.suggestName();
     var a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
     a.download = name;
@@ -680,21 +740,24 @@
   Editor.prototype.openFile = function () {
     var self = this;
     if (window.showOpenFilePicker) {
-      window.showOpenFilePicker({ types: FILE_TYPES.concat([{ description: 'JSON', accept: { 'application/json': ['.json'] } }]) })
+      window.showOpenFilePicker({ types: OPEN_TYPES })
         .then(function (hs) { return hs[0].getFile().then(function (f) { self.readDocFile(f, hs[0]); }); })
         .catch(function (e) { if (e && e.name !== 'AbortError') alert('Не удалось открыть файл: ' + e.message); });
       return;
     }
     var inp = document.createElement('input');
     inp.type = 'file';
-    inp.accept = '.xplabel,.json,application/json';
+    inp.accept = '.xplabel,.json,.pdf,application/json,application/pdf';
     inp.onchange = function () { if (inp.files[0]) self.readDocFile(inp.files[0], null); };
     inp.click();
   };
 
   Editor.prototype.readDocFile = function (file, handle) {
-    var self = this;
-    file.text().then(function (txt) {
+    var self = this, isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+    // из PDF — макет из вложения; такой файл не перезаписываем при «Сохранить»
+    var text = isPdf ? file.arrayBuffer().then(layoutFromPDF) : file.text();
+    if (isPdf) handle = null;
+    text.then(function (txt) {
       var d = JSON.parse(txt);
       if (!d || !d.label || !(d.label.w > 0) || !(d.label.h > 0) || !Array.isArray(d.items)) throw new Error('bad');
       var doc = { label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, items: d.items.filter(function (it) { return it && NAMES[it.type]; }) };
@@ -705,8 +768,12 @@
       self.restore(JSON.stringify(doc));
       self.fileHandle = handle || null;
       self.setFileName(file.name);
-    }).catch(function () {
-      alert('Это не файл макета этикетки (.xplabel) или он повреждён.');
+    }).catch(function (e) {
+      alert(isPdf
+        ? (e && e.message === 'nolayout'
+          ? 'В этом PDF нет макета. Открыть для правки можно только PDF, скачанный из этого редактора и не пересохранённый другой программой.'
+          : 'Не удалось прочитать макет из PDF: ' + (e && e.message))
+        : 'Это не файл макета этикетки (.xplabel) или он повреждён.');
     });
   };
 
@@ -1591,6 +1658,7 @@
   Editor.prototype.buildPDF = function (fonts, rotImages) {
     var L = this.doc.label, ids = {}, n = 0, rot = !!L.rot;
     var pdf = new window.jspdf.jsPDF({ unit: 'mm', format: [L.w, L.h], orientation: L.w > L.h ? 'landscape' : 'portrait', compress: true });
+    embedLayout(pdf, this.serialize());
     Object.keys(fonts.files).forEach(function (k) {
       var id = 'F' + (n++);
       pdf.addFileToVFS(id + '.ttf', fonts.files[k]);
@@ -1734,7 +1802,7 @@
           'В PDF он заменён на Arimo.');
       }
       var pdf = self.buildPDF(fonts, res[1]);
-      if (mode !== 'print') return pdf.save('etiketka-' + L.w + 'x' + L.h + '.pdf');
+      if (mode !== 'print') return pdf.save(self.suggestName().replace(/\.xplabel$/, '.pdf'));
       var url = pdf.output('bloburl');
       if (MOBILE) {
         if (win) win.location.href = url; else window.location.href = url;
