@@ -671,10 +671,90 @@
     });
   }
 
-  // Достаём макет из PDF: ищем поток с меткой /XPLabel, при сжатии распаковываем (zlib)
-  function layoutFromPDF(buf) {
-    var bytes = new Uint8Array(buf), s = '';
+  function latin1(bytes) {
+    var s = '';
     for (var i = 0; i < bytes.length; i += 8192) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return s;
+  }
+
+  // поток вложения → текст макета (при сжатии — распаковка zlib средствами браузера)
+  function streamText(raw, dict) {
+    var plain = /\/FlateDecode/.test(dict)
+      ? new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()
+      : Promise.resolve(raw);
+    return plain.then(function (b) { return new TextDecoder('utf-8').decode(b); });
+  }
+
+  /* Макет из PDF по оглавлению файла — читаем только нужные куски, а не весь PDF:
+     конец файла (startxref, trailer) → таблица xref со смещениями объектов → каталог →
+     /Names /EmbeddedFiles → maket.xplabel → его поток. Несколько КБ при любом размере PDF.
+     Ошибка 'nolayout' — оглавление прочитано, вложения нет; любая другая — PDF устроен
+     иначе (пересохранён со сжатым оглавлением и т. п.), тогда просматриваем файл целиком. */
+  function layoutFromPDFIndex(file) {
+    var size = file.size;
+    var bytes = function (a, b) {
+      return file.slice(Math.max(0, a), Math.min(size, b)).arrayBuffer().then(function (x) { return new Uint8Array(x); });
+    };
+    var text = function (a, b) { return bytes(a, b).then(latin1); };
+    var need = function (m, what) { if (!m) throw new Error('index: ' + what); return m; };
+
+    return text(size - 2048, size).then(function (tail) {
+      var sx = need(tail.lastIndexOf('startxref') + 1, 'startxref') - 1;
+      var xrefOff = parseInt(tail.slice(sx + 9), 10);
+      var root = +need(/\/Root (\d+) 0 R/.exec(tail.slice(tail.lastIndexOf('trailer'))), 'root')[1];
+      return text(xrefOff, xrefOff + 64).then(function (head) {
+        var m = need(/^xref\s+(\d+) (\d+)\s/.exec(head), 'xref');
+        var first = +m[1], count = +m[2], at = xrefOff + m[0].length;
+        return text(at, at + 20 * count).then(function (tab) {
+          var offs = {};
+          for (var i = 0; i < count; i++) {
+            var e = tab.substr(i * 20, 20);
+            if (e.charAt(17) === 'n') offs[first + i] = parseInt(e, 10);
+          }
+          // объект целиком: его словарь, а для потока — где начинаются данные
+          var obj = function (n) {
+            var off = need(offs[n] >= 0 ? offs[n] + 1 : 0, 'object ' + n) - 1;
+            return text(off, off + 8192).then(function (t) {
+              var end = t.search(/\bendobj\b|\bstream\r?\n/);
+              return { off: off, dict: end > 0 ? t.slice(0, end) : t, raw: t };
+            });
+          };
+          // значение-словарь: встроенный << … >> или ссылка «N 0 R» на отдельный объект
+          var follow = function (o, key) {
+            var r = new RegExp(key + '\\s*(\\d+) 0 R').exec(o.dict);
+            return r ? obj(+r[1]) : Promise.resolve(o);
+          };
+          return obj(root)
+            .then(function (cat) {
+              if (cat.dict.indexOf('/EmbeddedFiles') < 0 && cat.dict.indexOf('/Names') < 0) throw new Error('nolayout');
+              return follow(cat, '/Names');
+            })
+            .then(function (names) { return follow(names, '/EmbeddedFiles'); })
+            .then(function (ef) {
+              var r = new RegExp('\\(' + PDF_ATTACHMENT.replace('.', '\\.') + '\\)\\s*(\\d+) 0 R').exec(ef.dict);
+              if (!r) throw new Error('nolayout');
+              return obj(+r[1]);
+            })
+            .then(function (spec) {
+              return obj(+need(/\/EF\s*<<\s*\/F (\d+) 0 R/.exec(spec.dict), 'EF')[1]);
+            })
+            .then(function (st) {
+              var kw = need(st.raw.indexOf('stream') + 1, 'stream') - 1;
+              var len = /\/Length (\d+)(?! \d+ R)/.exec(st.dict);
+              var lenP = len ? Promise.resolve(+len[1])
+                : obj(+need(/\/Length (\d+) 0 R/.exec(st.dict), 'Length')[1]).then(function (o) { return parseInt(o.dict.replace(/^\d+ \d+ obj/, ''), 10); });
+              var start = st.off + kw + 6 + (st.raw.substr(kw + 6, 2) === '\r\n' ? 2 : 1);
+              return lenP.then(function (n) { return bytes(start, start + n); })
+                .then(function (raw) { return streamText(raw, st.dict); });
+            });
+        });
+      });
+    });
+  }
+
+  // Запасной путь: просмотр всего файла в поиске потока с меткой /XPLabel
+  function layoutFromPDFScan(buf) {
+    var bytes = new Uint8Array(buf), s = latin1(bytes);
     var mark = s.lastIndexOf('/XPLabel 1');
     if (mark < 0) return Promise.reject(new Error('nolayout'));
     var dictStart = s.lastIndexOf('<<', mark), streamKw = s.indexOf('stream', mark);
@@ -683,11 +763,14 @@
     var start = streamKw + 6;
     if (s.charAt(start) === '\r') start++;
     if (s.charAt(start) === '\n') start++;
-    var raw = bytes.subarray(start, start + (+len[1]));
-    var plain = /\/FlateDecode/.test(dict)
-      ? new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer()
-      : Promise.resolve(raw);
-    return plain.then(function (b) { return new TextDecoder('utf-8').decode(b); });
+    return streamText(bytes.subarray(start, start + (+len[1])), dict);
+  }
+
+  function layoutFromPDF(file) {
+    return layoutFromPDFIndex(file).catch(function (e) {
+      if (e && e.message === 'nolayout') throw e;
+      return file.arrayBuffer().then(layoutFromPDFScan);
+    });
   }
 
   /* ---------- файл макета (.xplabel) ---------- */
@@ -755,7 +838,7 @@
   Editor.prototype.readDocFile = function (file, handle) {
     var self = this, isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
     // из PDF — макет из вложения; такой файл не перезаписываем при «Сохранить»
-    var text = isPdf ? file.arrayBuffer().then(layoutFromPDF) : file.text();
+    var text = isPdf ? layoutFromPDF(file) : file.text();
     if (isPdf) handle = null;
     text.then(function (txt) {
       var d = JSON.parse(txt);
