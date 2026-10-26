@@ -1236,6 +1236,9 @@
     var svgR = this.$svg.getBoundingClientRect(), css = getComputedStyle(this.root);
     var col = function (n, fb) { return (css.getPropertyValue(n) || '').trim() || fb; };
     var bg = col('--xp-card-bg', '#f8fafc'), ink = col('--md-default-fg-color--light', '#64748b');
+    var accent = col('--xp-accent', '#2563eb');
+    // границы выделенного элемента (или общей рамки нескольких) — поверх подсветки этикетки
+    var picked = this.selItems ? this.selItems() : [], box = picked.length ? boxOf(picked) : null;
     var tick = col('--md-default-fg-color--lighter', '#94a3b8'), band = col('--xp-accent-soft', '#dbeafe');
     var minor = [1, 2, 5, 10, 20].filter(function (m) { return m * s >= 4; })[0] || 50;
     var major = [5, 10, 20, 50, 100].filter(function (m) { return m * s >= 42 && m % minor === 0; })[0] || 200;
@@ -1250,6 +1253,11 @@
       var origin = vertical ? svgR.top - r.top : svgR.left - r.left, size = vertical ? L.h : L.w;
       g.fillStyle = bg; g.fillRect(0, 0, len, thick);
       g.fillStyle = band; g.fillRect(origin, 0, size * s, thick);
+      if (box) {
+        var b0 = origin + (vertical ? box.y : box.x) * s, b1 = b0 + (vertical ? box.h : box.w) * s;
+        g.globalAlpha = 0.35; g.fillStyle = accent; g.fillRect(b0, 0, b1 - b0, thick);
+        g.globalAlpha = 1; g.fillRect(Math.round(b0) - 1, 0, 2, thick); g.fillRect(Math.round(b1) - 1, 0, 2, thick);
+      }
       g.strokeStyle = tick; g.fillStyle = ink; g.lineWidth = 1;
       g.font = '9px ' + (css.getPropertyValue('--md-code-font-family') || 'monospace');
       g.textBaseline = 'top';
@@ -1313,6 +1321,7 @@
     }
     this.doc.items.forEach(function (it) { self.drawItem(svg, it); });
     this.drawOverlay(svg);
+    this.drawRulers();   // границы выделения на линейках следуют за перетаскиванием
   };
 
   Editor.prototype.drawItem = function (svg, it) {
