@@ -154,10 +154,25 @@
         var p = { t: tokens[i].t, st: tokens[i].st };
         p.w = width(p); ww += p.w; word.push(p); i++;
       }
-      if (line.some(function (q) { return !q.space; }) && lineW + ww > it.w) {
+      var filled = function () { return line.some(function (q) { return !q.space; }); };
+      var newLine = function () {
         while (line.length && line[line.length - 1].space) line.pop();   // пробел в конце строки не нужен
         flush();
+      };
+      if (ww > it.w) {
+        // слово шире блока (ссылка, код маркировки) — переносим по буквам
+        word.forEach(function (q) {
+          for (var ci = 0; ci < q.t.length; ci++) {
+            var ch = { t: q.t.charAt(ci), st: q.st };
+            ch.w = width(ch);
+            if (filled() && lineW + ch.w > it.w) newLine();
+            line.push(ch);
+            lineW += ch.w;
+          }
+        });
+        continue;
       }
+      if (filled() && lineW + ww > it.w) newLine();
       word.forEach(function (q) { line.push(q); });
       lineW += ww;
     }
@@ -380,7 +395,34 @@
     c2Cache[key] = res;
     return res;
   }
-  function is2DSquare(it) { return (it.format || 'qr') !== 'pdf417'; }
+  function is2DSquare(it) { return (it.format || 'qr') !== 'pdf417' && !it.showText; }
+
+  // Подпись под 2D-кодом. У «Честного знака» — читаемая часть: (01)GTIN(21)серийный номер
+  function codeLabel(it) {
+    var d = String(it.data || '');
+    if ((it.format || 'qr') === 'gs1dm') {
+      var m = /^(?:\]d2)?01(\d{14})21([^\u001d]+)/.exec(d.replace(/<GS>|\{GS\}|\[GS\]|\\x1[dD]|\\u001[dD]/g, '\u001d'));
+      if (m) return '(01)' + m[1] + ' (21)' + m[2];   // пробел — перенос между полями, если не влезает
+    }
+    return d.replace(/\u001d/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  // Код + подпись: подпись сразу под кодом, по центру, с переносом по ширине блока
+  function code2dLayout(it, enc) {
+    var lab = null, labH = 0, gap = 0;
+    if (it.showText) {
+      lab = { type: 'text', text: codeLabel(it), x: it.x, y: 0, w: it.w, size: it.textSize || 6, font: it.font, align: 'center' };
+      lab.lay = textLayout(lab);
+      labH = lab.lay.h;
+      gap = 0.6;
+    }
+    var g = qrGeom({ x: it.x, y: it.y, w: it.w, h: Math.max(1, it.h - labH - gap) }, enc);
+    if (lab) lab.y = g.y0 + g.h + gap;
+    g.label = lab;
+    return g;
+  }
+  function codeLabelHeight(it) {
+    return textLayout({ text: codeLabel(it), w: it.w, size: it.textSize || 6, font: it.font, align: 'center' }).h + 0.6;
+  }
   // модуль кратен точке принтера 203 dpi, код по центру блока
   function qrGeom(it, enc) {
     var ms = Math.max(1, Math.floor(Math.min(it.w / enc.cols, it.h / enc.rows) / DOT)) * DOT;
@@ -1512,6 +1554,24 @@
     this.drawRulers();   // границы выделения на линейках следуют за перетаскиванием
   };
 
+  // Текстовый блок на холсте (и подпись под 2D-кодом): каждый кусок — свой <text> в посчитанной точке
+  function svgTextBlock(g, it, lay) {
+    var fam = cssFamily(it.font || 'Arimo');
+    lay.lines.forEach(function (ln, li) {
+      var x = lineX(it, ln), base = baseline(it, lay, li);
+      ln.segs.forEach(function (sg) {
+        var gm = segGeom(sg.st, lay.size, base);
+        // white-space: pre — пробелы на краях куска не схлопываются, ширина совпадает с вёрсткой
+        var t = svgEl('text', { x: x, y: gm.y, 'font-family': fam, 'font-size': gm.fs, 'font-weight': sg.st.b ? 700 : 400,
+          'font-style': sg.st.i ? 'italic' : 'normal', fill: '#000', style: 'white-space:pre' }, g);
+        t.textContent = sg.t;
+        if (sg.st.u) svgEl('rect', { x: x, y: gm.ul - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
+        if (sg.st.s) svgEl('rect', { x: x, y: gm.st - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
+        x += sg.w;
+      });
+    });
+  }
+
   Editor.prototype.drawItem = function (svg, it) {
     // xpe-picked: выделенный элемент можно тащить пальцем (touch-action: none в CSS),
     // остальные на телефоне пропускают жест — страница прокручивается
@@ -1519,22 +1579,10 @@
     var g = svgEl('g', { 'data-id': it.id, class: picked ? 'xpe-item xpe-picked' : 'xpe-item' }, svg);
     var hit = function () { svgEl('rect', { x: it.x, y: it.y, width: it.w, height: it.h, fill: 'transparent' }, g); };
     if (it.type === 'text') {
-      var lay = textLayout(it), fam = cssFamily(it.font || 'Arimo');
+      var lay = textLayout(it);
       it.h = lay.h;
       hit();
-      lay.lines.forEach(function (ln, li) {
-        var x = lineX(it, ln), base = baseline(it, lay, li);
-        ln.segs.forEach(function (sg) {
-          var gm = segGeom(sg.st, lay.size, base);
-          // white-space: pre — пробелы на краях куска не схлопываются, ширина совпадает с вёрсткой
-          var t = svgEl('text', { x: x, y: gm.y, 'font-family': fam, 'font-size': gm.fs, 'font-weight': sg.st.b ? 700 : 400,
-            'font-style': sg.st.i ? 'italic' : 'normal', fill: '#000', style: 'white-space:pre' }, g);
-          t.textContent = sg.t;
-          if (sg.st.u) svgEl('rect', { x: x, y: gm.ul - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
-          if (sg.st.s) svgEl('rect', { x: x, y: gm.st - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
-          x += sg.w;
-        });
-      });
+      svgTextBlock(g, it, lay);
     } else if (it.type === 'barcode') {
       hit();
       var enc = encodeBarcode(it.format, it.data);
@@ -1557,11 +1605,12 @@
         return this.drawError(g, it, 'Загрузка…');
       }
       if (!qe) return this.drawError(g, it, it.data ? 'Не закодировать' : 'Нет данных');
-      var qg = qrGeom(it, qe), qd = '';
+      var qg = code2dLayout(it, qe), qd = '';
       qe.runs.forEach(function (r) {
         qd += 'M' + r2(qg.x0 + r[0] * qg.ms) + ' ' + r2(qg.y0 + r[1] * qg.ms) + 'h' + r2(r[2] * qg.ms) + 'v' + r2(qg.ms) + 'h' + r2(-r[2] * qg.ms) + 'z';
       });
       svgEl('path', { d: qd, fill: '#000' }, g);
+      if (qg.label) svgTextBlock(g, qg.label, qg.label.lay);
     } else if (it.type === 'line') {
       hit();
       var lr = lineRect(it);
@@ -2369,7 +2418,7 @@
         var gl = GTIN_LEN[it.format];
         if (gl && it.data.length === gl - 1) f += '<div class="xpe-note">Контрольная цифра: ' + enc.text[gl - 1] + '</div>';
       }
-      f += check('showText', 'Цифры под штрихкодом', it.showText);
+      f += check('showText', 'Подпись под штрихкодом', it.showText);
       if (it.showText) {
         f += this.fontSelect(it.font || 'Arimo');
         f += num('textSize', 'Размер цифр, pt', it.textSize, 0.5, ' min="4" max="24"');
@@ -2381,6 +2430,11 @@
       f += '<div class="xpe-note">' + esc(code2dInfo(fmt2)[2]) + '</div>';
       if (fmt2 === 'qr') f += select('ec', 'Защита от повреждений', it.ec || 'M',
         [['L', 'L — 7%, самый компактный'], ['M', 'M — 15%, обычно'], ['Q', 'Q — 25%'], ['H', 'H — 30%, для грубой печати']]);
+      f += check('showText', 'Подпись под кодом', it.showText);
+      if (it.showText) {
+        f += this.fontSelect(it.font || 'Arimo');
+        f += num('textSize', 'Размер подписи, pt', it.textSize || 6, 0.5, ' min="4" max="24"');
+      }
       f += '<div class="xpe-warn xpe-2dwarn"' + (this.code2dWarning(it) ? '' : ' hidden') + '>' + esc(this.code2dWarning(it)) + '</div>';
     } else if (it.type === 'line') {
       f += select('orient', 'Направление', it.orient, [['h', 'Горизонтальная'], ['v', 'Вертикальная']]);
@@ -2429,6 +2483,10 @@
         if (k === 'w' && it.type === 'qr' && is2DSquare(it)) it.h = v;
         // смена типа: пример данных, если старые не подходят; PDF417 — прямоугольный блок
         if (k === 'format' && it.type === 'barcode' && !encodeBarcode(v, it.data)) it.data = barcodeInfo(v)[3];
+        if (k === 'showText' && it.type === 'qr' && !!v !== !!it.showText) {
+          if (!it.textSize) it.textSize = 6;
+          it.h = r2(it.h + (v ? 1 : -1) * codeLabelHeight(it));
+        }
         if (k === 'format' && it.type === 'qr') {
           if (v === 'gs1dm' && !/^01\d{14}21/.test(it.data)) it.data = EXAMPLE_GS1DM;
           if (v === 'pdf417') { it.w = Math.max(it.w, 40); it.h = r2(it.w * 0.4); }   // PDF417 широкий
@@ -2543,7 +2601,7 @@
     if (!enc) return 'Эти данные не закодировать в ' + code2dInfo(it.format)[1] + '.';
     if ((it.format || 'qr') === 'gs1dm' && !hasGS(it.data) && it.data.length > 31)
       return 'В коде не видно разделителей (GS) — сканер «Честного знака» может его не принять. Скопируйте код целиком из файла заказа кодов.';
-    var g = qrGeom(it, enc);
+    var g = code2dLayout(it, enc);
     if (g.ms < DOT * 2) return 'Код слишком мелкий для термопринтера — увеличьте его.';
     return '';
   };
@@ -2642,7 +2700,7 @@
     want('Arimo', false); want('Arimo', true);
     this.allItems().forEach(function (it) {
       if (it.type === 'text') textRuns(it).forEach(function (r) { want(it.font || 'Arimo', r.b, r.i); });
-      if (it.type === 'barcode' && it.showText) want(it.font || 'Arimo', false);
+      if ((it.type === 'barcode' || it.type === 'qr') && it.showText) want(it.font || 'Arimo', false);
     });
     var keys = Object.keys(need), missing = [];
     return Promise.all(keys.map(function (k) {
@@ -2681,6 +2739,23 @@
     };
     // Наклон для «курсива» без курсивного файла: сдвиг вдоль строки, пропорциональный высоте
     // над базовой линией (как синтетический курсив браузера, tan ≈ 0,25), с учётом поворота макета
+    // Текстовый блок в PDF (и подпись под 2D-кодом) — та же вёрстка, что на холсте
+    var pdfTextBlock = function (it, lay) {
+      var fam = it.font || 'Arimo';
+      lay.lines.forEach(function (ln, li) {
+        var x = lineX(it, ln), base = baseline(it, lay, li);
+        ln.segs.forEach(function (sg) {
+          var gm = segGeom(sg.st, lay.size, base), fid = fontId(fam, sg.st.b, sg.st.i), x0 = x;
+          pdf.setFont(fid.id, 'normal');
+          pdf.setFontSize(gm.fs / PT);
+          if (fid.fake) oblique(x0, gm.y, function () { text(sg.t, x0, gm.y, 'left'); });
+          else text(sg.t, x0, gm.y, 'left');
+          if (sg.st.u) rect(x0, gm.ul - gm.th / 2, sg.w, gm.th, 'F');
+          if (sg.st.s) rect(x0, gm.st - gm.th / 2, sg.w, gm.th, 'F');
+          x += sg.w;
+        });
+      });
+    };
     var sf = pdf.internal.scaleFactor;
     var oblique = function (xb, yb, draw) {
       var toPdf = function (X, Y) { return [X * sf, (L.h - Y) * sf]; };
@@ -2716,20 +2791,7 @@
       if (pi) pdf.addPage([L.w, L.h], L.w > L.h ? 'landscape' : 'portrait');
       items.forEach(function (it) {
         if (it.type === 'text') {
-          var lay = textLayout(it), fam = it.font || 'Arimo';
-          lay.lines.forEach(function (ln, li) {
-            var x = lineX(it, ln), base = baseline(it, lay, li);
-            ln.segs.forEach(function (sg) {
-              var gm = segGeom(sg.st, lay.size, base), fid = fontId(fam, sg.st.b, sg.st.i), x0 = x;
-              pdf.setFont(fid.id, 'normal');
-              pdf.setFontSize(gm.fs / PT);
-              if (fid.fake) oblique(x0, gm.y, function () { text(sg.t, x0, gm.y, 'left'); });
-              else text(sg.t, x0, gm.y, 'left');
-              if (sg.st.u) rect(x0, gm.ul - gm.th / 2, sg.w, gm.th, 'F');
-              if (sg.st.s) rect(x0, gm.st - gm.th / 2, sg.w, gm.th, 'F');
-              x += sg.w;
-            });
-          });
+          pdfTextBlock(it, textLayout(it));
         } else if (it.type === 'barcode') {
           var enc = encodeBarcode(it.format, it.data);
           if (!enc) return;
@@ -2743,8 +2805,9 @@
         } else if (it.type === 'qr') {
           var qe = encode2D(it);
           if (!qe || qe === 'loading') return;
-          var qg = qrGeom(it, qe);
+          var qg = code2dLayout(it, qe);
           qe.runs.forEach(function (r) { rect(qg.x0 + r[0] * qg.ms, qg.y0 + r[1] * qg.ms, r[2] * qg.ms, qg.ms, 'F'); });
+          if (qg.label) pdfTextBlock(qg.label, qg.label.lay);
         } else if (it.type === 'line') {
           var lr = lineRect(it);
           rect(lr[0], lr[1], lr[2], lr[3], 'F');
