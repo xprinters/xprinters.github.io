@@ -1836,6 +1836,38 @@
     this.commit();
   };
   /* Выравнивание группы: друг относительно друга или по этикетке */
+  /* Значки выравнивания (как в настольных редакторах): линия-ориентир и два бруска */
+  var ALIGNS = [
+    ['left', 'по левому краю', 'M3 3h2v18H3zM7 6h12v4H7zM7 14h8v4H7z'],
+    ['hcenter', 'по центру', 'M11 3h2v18h-2zM4 6h16v4H4zM7 14h10v4H7z'],
+    ['right', 'по правому краю', 'M19 3h2v18h-2zM5 6h12v4H5zM9 14h8v4H9z'],
+    ['top', 'по верху', 'M3 3h18v2H3zM6 7h4v12H6zM14 7h4v8h-4z'],
+    ['vcenter', 'по середине', 'M3 11h18v2H3zM6 4h4v16H6zM14 7h4v10h-4z'],
+    ['bottom', 'по низу', 'M3 19h18v2H3zM6 5h4v12H6zM14 9h4v8h-4z']
+  ];
+  // attr — data-атрибут кнопок, what — к чему выравниваем (для подсказки)
+  function alignButtons(attr, what) {
+    return '<div class="xpe-aligns">' + ALIGNS.map(function (a) {
+      var t = 'Выровнять ' + a[1] + ' ' + what;
+      return '<button type="button" class="xpe-albtn" ' + attr + '="' + a[0] + '" title="' + t + '" aria-label="' + t + '">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + a[2] + '"/></svg></button>';
+    }).join('') + '</div>';
+  }
+
+  // Сдвиг группы целиком к краю или центру этикетки — взаимное расположение сохраняется
+  Editor.prototype.alignGroupToLabel = function (a) {
+    var items = this.selItems(), b = boxOf(items), L = this.cv(), dx = 0, dy = 0;
+    if (a === 'left') dx = -b.x;
+    if (a === 'hcenter') dx = (L.w - b.w) / 2 - b.x;
+    if (a === 'right') dx = L.w - b.w - b.x;
+    if (a === 'top') dy = -b.y;
+    if (a === 'vcenter') dy = (L.h - b.h) / 2 - b.y;
+    if (a === 'bottom') dy = L.h - b.h - b.y;
+    items.forEach(function (it) { it.x = r2(it.x + dx); it.y = r2(it.y + dy); });
+    this.render();
+    this.commit();
+  };
+
   Editor.prototype.alignGroup = function (a) {
     var items = this.selItems(), b = boxOf(items), L = this.cv();
     items.forEach(function (it) {
@@ -1997,9 +2029,8 @@
     }
     f += '<div class="xpe-grid">' + num('x', 'X, мм', it.x) + num('y', 'Y, мм', it.y) + num('w', 'Ширина', it.w, 0.5, ' min="1"') +
       num('h', 'Высота', it.h, 0.5, ' min="1"' + (it.type === 'text' ? ' disabled' : '')) + '</div>';
+    f += '<div class="xpe-f"><span>Выровнять по этикетке</span>' + alignButtons('data-al', 'этикетки') + '</div>';
     f += '<div class="xpe-actions">' +
-      '<button type="button" class="xpe-btn" data-act="cx" title="По центру по горизонтали">↔ Центр</button>' +
-      '<button type="button" class="xpe-btn" data-act="cy" title="По центру по вертикали">↕ Центр</button>' +
       '<button type="button" class="xpe-btn" data-act="up" title="Выше других">Вперёд</button>' +
       '<button type="button" class="xpe-btn" data-act="down" title="Ниже других">Назад</button>' +
       '<button type="button" class="xpe-btn" data-act="dup">Копия</button>' +
@@ -2045,6 +2076,9 @@
         self.commit();
       });
     });
+    P.querySelectorAll('[data-al]').forEach(function (b) {
+      b.addEventListener('click', function () { self.action(it, 'al-' + b.getAttribute('data-al')); });
+    });
     P.querySelectorAll('[data-act]').forEach(function (b) {
       b.addEventListener('click', function () { self.action(it, b.getAttribute('data-act')); });
     });
@@ -2061,22 +2095,10 @@
 
   Editor.prototype.renderGroupProps = function () {
     var self = this, P = this.$props, n = this.multi.length;
-    var al = function (a, title, d) {
-      return '<button type="button" class="xpe-btn xpe-ico-btn" data-align="' + a + '" title="' + title + '" aria-label="' + title + '">' +
-        '<svg class="xpe-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="' + d + '"/></svg></button>';
-    };
     P.innerHTML = '<div class="xpe-ptitle">Выбрано элементов: ' + n + '</div>' +
-      '<div class="xpe-f"><span>Выровнять между собой</span><div class="xpe-aligns">' +
-        al('left', 'По левому краю', 'M4 3v18M8 7h12M8 17h7') +
-        al('hcenter', 'По центру', 'M12 3v18M6 7h12M8 17h8') +
-        al('right', 'По правому краю', 'M20 3v18M4 7h12M9 17h7') +
-        al('top', 'По верху', 'M3 4h18M7 8v12M17 8v7') +
-        al('vcenter', 'По середине', 'M3 12h18M7 6v12M17 8v8') +
-        al('bottom', 'По низу', 'M3 20h18M7 4v12M17 9v7') +
-      '</div></div>' +
+      '<div class="xpe-f"><span>Выровнять между собой</span>' + alignButtons('data-align', 'между собой') + '</div>' +
+      '<div class="xpe-f"><span>Выровнять группу по этикетке</span>' + alignButtons('data-galign', 'этикетки (всю группу)') + '</div>' +
       '<div class="xpe-actions">' +
-        '<button type="button" class="xpe-btn" data-align="cx" title="Группу по центру этикетки по горизонтали">↔ Центр</button>' +
-        '<button type="button" class="xpe-btn" data-align="cy" title="Группу по центру этикетки по вертикали">↕ Центр</button>' +
         '<button type="button" class="xpe-btn" data-gact="dup">Копия</button>' +
         '<button type="button" class="xpe-btn xpe-danger" data-gact="del">Удалить</button>' +
       '</div>' +
@@ -2085,6 +2107,9 @@
       'Shift+клик — добавить или убрать элемент, Esc — снять выделение.</p>';
     P.querySelectorAll('[data-align]').forEach(function (b) {
       b.addEventListener('click', function () { self.alignGroup(b.getAttribute('data-align')); });
+    });
+    P.querySelectorAll('[data-galign]').forEach(function (b) {
+      b.addEventListener('click', function () { self.alignGroupToLabel(b.getAttribute('data-galign')); });
     });
     P.querySelector('[data-gact=dup]').addEventListener('click', function () { self.duplicateGroup(); });
     P.querySelector('[data-gact=del]').addEventListener('click', function () { self.removeGroup(); });
@@ -2158,8 +2183,12 @@
 
   Editor.prototype.action = function (it, a) {
     var L = this.cv(), items = this.doc.items, i = items.indexOf(it);
-    if (a === 'cx') it.x = r2((L.w - it.w) / 2);
-    else if (a === 'cy') it.y = r2((L.h - it.h) / 2);
+    if (a === 'cx' || a === 'al-hcenter') it.x = r2((L.w - it.w) / 2);
+    else if (a === 'cy' || a === 'al-vcenter') it.y = r2((L.h - it.h) / 2);
+    else if (a === 'al-left') it.x = 0;
+    else if (a === 'al-right') it.x = r2(L.w - it.w);
+    else if (a === 'al-top') it.y = 0;
+    else if (a === 'al-bottom') it.y = r2(L.h - it.h);
     else if (a === 'up' && i < items.length - 1) { items.splice(i, 1); items.splice(i + 1, 0, it); }
     else if (a === 'down' && i > 0) { items.splice(i, 1); items.splice(i - 1, 0, it); }
     else if (a === 'dup') return this.duplicate(it);

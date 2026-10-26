@@ -465,6 +465,14 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 .xpe-marquee { fill: rgba(37, 99, 235, .1); stroke: #2563eb; stroke-width: 1px; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; pointer-events: none; }
 .xpe-groupitem { fill: none; stroke: #2563eb; stroke-width: 1px; vector-effect: non-scaling-stroke; pointer-events: none; opacity: .9; }
 .xpe-groupbox { stroke-dasharray: 6 3; }
-.xpe-aligns { display: flex; gap: .3rem; flex-wrap: wrap; }
-.xpe-aligns .xpe-btn { width: 2rem; height: 2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.xpe-aligns { display: flex; gap: .25rem; }
+/* три горизонтальных и три вертикальных — с промежутком между тройками */
+.xpe-albtn {
+  flex: 1 1 0; max-width: 2.3rem; height: 2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--xp-card-border); border-radius: .35rem; background: var(--md-default-bg-color);
+  color: var(--md-default-fg-color--light); cursor: pointer;
+}
+.xpe-albtn:nth-child(4) { margin-left: .45rem; }
+.xpe-albtn svg { width: 1.15rem; height: 1.15rem; fill: currentColor; }
+.xpe-albtn:hover { border-color: var(--xp-accent); color: var(--xp-accent); background: var(--xp-accent-soft); }
 .xpe-stage { cursor: default; }
