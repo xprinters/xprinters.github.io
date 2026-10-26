@@ -1845,6 +1845,19 @@
     ['vcenter', 'по середине', 'M3 11h18v2H3zM6 4h4v16H6zM14 7h4v10h-4z'],
     ['bottom', 'по низу', 'M3 19h18v2H3zM6 5h4v12H6zM14 9h4v8h-4z']
   ];
+  // Значки действий над элементом: слои, копия, удаление (Material Design Icons)
+  var ACT_ICONS = {
+    up: ['Вперёд — поверх других элементов', 'M2 2h14v14H2zm20 6v14H8v-4h2v2h10V10h-2V8z'],
+    down: ['Назад — под другие элементы', 'M2 2h14v14H2zm2 2v10h10V4zm18 4v14H8v-4h10V8z'],
+    dup: ['Копия (Ctrl+D)', 'M16 1H4a2 2 0 0 0-2 2v14h2V3h12zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m0 16H8V7h11z'],
+    del: ['Удалить (Delete)', 'M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z']
+  };
+  function actButton(attr, key) {
+    var a = ACT_ICONS[key];
+    return '<button type="button" class="xpe-albtn' + (key === 'del' ? ' xpe-albtn-del' : '') + '" ' + attr + '="' + key + '" title="' + a[0] + '" aria-label="' + a[0] + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + a[1] + '"/></svg></button>';
+  }
+
   // attr — data-атрибут кнопок, what — к чему выравниваем (для подсказки)
   function alignButtons(attr, what) {
     return '<div class="xpe-aligns">' + ALIGNS.map(function (a) {
@@ -2030,11 +2043,9 @@
     f += '<div class="xpe-grid">' + num('x', 'X, мм', it.x) + num('y', 'Y, мм', it.y) + num('w', 'Ширина', it.w, 0.5, ' min="1"') +
       num('h', 'Высота', it.h, 0.5, ' min="1"' + (it.type === 'text' ? ' disabled' : '')) + '</div>';
     f += '<div class="xpe-f"><span>Выровнять по этикетке</span>' + alignButtons('data-al', 'этикетки') + '</div>';
-    f += '<div class="xpe-actions">' +
-      '<button type="button" class="xpe-btn" data-act="up" title="Выше других">Вперёд</button>' +
-      '<button type="button" class="xpe-btn" data-act="down" title="Ниже других">Назад</button>' +
-      '<button type="button" class="xpe-btn" data-act="dup">Копия</button>' +
-      '<button type="button" class="xpe-btn xpe-danger" data-act="del">Удалить</button></div>';
+    f += '<div class="xpe-f"><span>Элемент</span><div class="xpe-aligns xpe-acts">' +
+      actButton('data-act', 'up') + actButton('data-act', 'down') + actButton('data-act', 'dup') + actButton('data-act', 'del') +
+      '</div></div>';
     P.innerHTML = f;
 
     var localBtn = P.querySelector('.xpe-local');
@@ -2098,10 +2109,9 @@
     P.innerHTML = '<div class="xpe-ptitle">Выбрано элементов: ' + n + '</div>' +
       '<div class="xpe-f"><span>Выровнять между собой</span>' + alignButtons('data-align', 'между собой') + '</div>' +
       '<div class="xpe-f"><span>Выровнять группу по этикетке</span>' + alignButtons('data-galign', 'этикетки (всю группу)') + '</div>' +
-      '<div class="xpe-actions">' +
-        '<button type="button" class="xpe-btn" data-gact="dup">Копия</button>' +
-        '<button type="button" class="xpe-btn xpe-danger" data-gact="del">Удалить</button>' +
-      '</div>' +
+      '<div class="xpe-f"><span>Элементы</span><div class="xpe-aligns xpe-acts">' +
+        actButton('data-gact', 'dup') + actButton('data-gact', 'del') +
+      '</div></div>' +
       '<p class="xpe-keys">Тяните за любой выбранный элемент — двигается вся группа.<br>' +
       'Уголки общей рамки — пропорционально меняют размер, вместе со шрифтом.<br>' +
       'Shift+клик — добавить или убрать элемент, Esc — снять выделение.</p>';

@@ -475,4 +475,8 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 .xpe-albtn:nth-child(4) { margin-left: .45rem; }
 .xpe-albtn svg { width: 1.15rem; height: 1.15rem; fill: currentColor; }
 .xpe-albtn:hover { border-color: var(--xp-accent); color: var(--xp-accent); background: var(--xp-accent-soft); }
+/* слои, копия, удаление — тем же видом; промежуток только между «слоями» и «копия/удалить» */
+.xpe-acts .xpe-albtn:nth-child(4) { margin-left: 0; }
+.xpe-acts .xpe-albtn:nth-child(3) { margin-left: .45rem; }
+.xpe-acts .xpe-albtn-del:hover { border-color: #e5484d; color: #e5484d; background: rgba(229, 72, 77, .1); }
 .xpe-stage { cursor: default; }
