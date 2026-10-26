@@ -473,3 +473,21 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 .xpe-acts .xpe-albtn:nth-child(3) { margin-left: .45rem; }
 .xpe-acts .xpe-albtn-del:hover { border-color: #e5484d; color: #e5484d; background: rgba(229, 72, 77, .1); }
 .xpe-stage { cursor: default; }
+
+/* ===== текст с оформлением ===== */
+.xpe-rtools { display: flex; gap: .2rem; margin-bottom: .25rem; }
+.xpe-rbtn {
+  flex: 1 1 0; height: 1.8rem; padding: 0; border: 1px solid var(--xp-card-border); border-radius: .3rem;
+  background: var(--md-default-bg-color); color: var(--md-default-fg-color); cursor: pointer;
+  font-family: "Tinos", Georgia, serif; font-size: .8rem; line-height: 1;
+}
+.xpe-rbtn sup, .xpe-rbtn sub { font-size: .6em; }
+.xpe-rbtn:hover { border-color: var(--xp-accent); color: var(--xp-accent); }
+.xpe-rbtn.xpe-on { background: var(--xp-accent-soft); border-color: var(--xp-accent); color: var(--xp-tag-fg); }
+.xpe-rich {
+  min-height: 3.6rem; max-height: 10rem; overflow: auto; padding: .35rem .45rem;
+  border: 1px solid var(--xp-card-border); border-radius: .35rem; background: var(--md-default-bg-color);
+  white-space: pre-wrap; word-break: break-word; line-height: 1.35; outline: none; cursor: text; user-select: text;
+}
+.xpe-rich:focus { border-color: var(--xp-accent); box-shadow: 0 0 0 2px var(--xp-accent-soft); }
+.xpe-rich sup, .xpe-rich sub { font-size: .7em; }

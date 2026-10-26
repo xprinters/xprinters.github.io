@@ -1,8 +1,9 @@
 """Скачивает шрифты редактора этикеток с Google Fonts и урезает их до нужных символов.
 
-Для каждого семейства берутся статические начертания 400 и 700 в TTF (jsPDF встраивает
-только TrueType), из них оставляются латиница, кириллица, типографские знаки, № и ₽.
-Результат — docs/editor/fonts/<Файл>-Regular.ttf и -Bold.ttf, файл @font-face
+Для каждого семейства берутся статические начертания 400 и 700, обычные и курсивные (если
+есть), в TTF (jsPDF встраивает только TrueType); из них оставляются латиница, кириллица,
+типографские знаки, № и ₽. Результат — docs/editor/fonts/<Файл>-Regular/Bold/Italic/BoldItalic.ttf,
+файл @font-face
 docs/editor/fonts/fonts.css и список лицензий docs/editor/fonts/LICENSES.txt.
 
 Запуск: python tools/build_fonts.py
@@ -21,13 +22,12 @@ from fontTools.ttLib import TTFont
 sys.stdout.reconfigure(encoding="utf-8")
 OUT = pathlib.Path(__file__).resolve().parent.parent / "docs" / "editor" / "fonts"
 
-# семейство, имя файла, лицензия; уже лежащие в fonts/ (Arimo, Tinos, Cousine, Roboto Condensed)
-# здесь тоже перечислены — для fonts.css и LICENSES.txt, но не скачиваются заново (download=False)
+# семейство, имя файла, лицензия, скачивать ли (False — оставить файлы, что уже лежат в fonts/)
 FONTS = [
-    ("Arimo", "Arimo", "OFL 1.1", False),
-    ("Tinos", "Tinos", "OFL 1.1", False),
-    ("Cousine", "Cousine", "OFL 1.1", False),
-    ("Roboto Condensed", "RobotoCondensed", "OFL 1.1", False),
+    ("Arimo", "Arimo", "OFL 1.1", True),
+    ("Tinos", "Tinos", "OFL 1.1", True),
+    ("Cousine", "Cousine", "OFL 1.1", True),
+    ("Roboto Condensed", "RobotoCondensed", "OFL 1.1", True),
     ("Roboto", "Roboto", "OFL 1.1", True),
     ("Open Sans", "OpenSans", "OFL 1.1", True),
     ("Montserrat", "Montserrat", "OFL 1.1", True),
@@ -57,16 +57,23 @@ def fetch(url):
     return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Python-urllib"}), timeout=60).read()
 
 
+STYLES = [("Regular", "normal", "400"), ("Bold", "normal", "700"), ("Italic", "italic", "400"), ("BoldItalic", "italic", "700")]
+
+
 def ttf_urls(family):
-    css = fetch("https://fonts.googleapis.com/css2?family=" + family.replace(" ", "+") + ":wght@400;700").decode()
-    urls = dict(re.findall(r"font-weight: (\d+);.*?url\((https://[^)]+\.ttf)\)", css, re.S))
-    if "400" not in urls or "700" not in urls:
+    """{'Regular': url, 'Bold': url, 'Italic': url, 'BoldItalic': url}; курсивов может не быть."""
+    css = fetch("https://fonts.googleapis.com/css2?family=" + family.replace(" ", "+")
+                + ":ital,wght@0,400;0,700;1,400;1,700").decode()
+    found = {(st, w): u for st, w, u in re.findall(
+        r"font-style: (\w+);\s*font-weight: (\d+);.*?url\((https://[^)]+\.ttf)\)", css, re.S)}
+    urls = {name: found[(st, w)] for name, st, w in STYLES if (st, w) in found}
+    if "Regular" not in urls or "Bold" not in urls:
         raise SystemExit(f"{family}: нет начертаний 400/700 в TTF")
-    return urls["400"], urls["700"]
+    return urls
 
 
 # у кого нет ₽ — знак берём у похожего шрифта (в PDF браузер подменить символ не может)
-RUBLE_DONOR = {"Open Sans": "Roboto", "Ubuntu": "Roboto", "Roboto Slab": "PT Serif"}
+RUBLE_DONOR = {"Open Sans": "Roboto", "Ubuntu": "Roboto", "Roboto Slab": "PT Serif", "Cousine": "JetBrains Mono"}
 
 
 def add_ruble(font, donor):
@@ -122,25 +129,30 @@ def main():
     for family, file, _lic, download in FONTS:
         if not download:
             continue
-        regular, bold = ttf_urls(family)
+        urls = ttf_urls(family)
+        for stale in OUT.glob(f"{file}-*.ttf"):   # курсив мог пропасть в новой версии
+            stale.unlink()
         sizes = []
-        for url, style in ((regular, "Regular"), (bold, "Bold")):
+        for style, url in urls.items():
             donor = None
             if family in RUBLE_DONOR:
-                key = (RUBLE_DONOR[family], style)
+                d_urls = ttf_urls(RUBLE_DONOR[family])
+                d_style = style if style in d_urls else style.replace("Italic", "") or "Regular"
+                key = (RUBLE_DONOR[family], d_style)
                 if key not in donors:
-                    d_reg, d_bold = ttf_urls(RUBLE_DONOR[family])
-                    donors[key] = TTFont(io.BytesIO(fetch(d_reg if style == "Regular" else d_bold)))
+                    donors[key] = TTFont(io.BytesIO(fetch(d_urls[d_style])))
                 donor = donors[key]
             size, rub = make_subset(fetch(url), OUT / f"{file}-{style}.ttf", donor)
-            sizes.append(f"{style} {size // 1024} КБ{'' if rub else ', без ₽'}")
-        print(f"{family:18} {' · '.join(sizes)}")
+            sizes.append(f"{style} {size // 1024}{'' if rub else ' без ₽'}")
+        print(f"{family:18} {' · '.join(sizes)} КБ")
 
     css = ["/* Сгенерировано tools/build_fonts.py — не править вручную */"]
     for family, file, _lic, _dl in FONTS:
-        for style, weight in (("Regular", 400), ("Bold", 700)):
+        for style, fst, weight in STYLES:
+            if not (OUT / f"{file}-{style}.ttf").exists():
+                continue   # курсива нет — браузер наклонит обычное начертание сам
             css.append(f'@font-face {{ font-family: "{family}"; src: url("{file}-{style}.ttf") format("truetype"); '
-                       f"font-weight: {weight}; font-display: swap; }}")
+                       f"font-weight: {weight}; font-style: {fst}; font-display: swap; }}")
     (OUT / "fonts.css").write_text("\n".join(css) + "\n", encoding="utf-8")
 
     lic = ["Шрифты редактора этикеток. Источник — Google Fonts (fonts.google.com), файлы урезаны",

@@ -15,7 +15,8 @@
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
   /* Встроенные шрифты лежат в fonts/, шрифты компьютера — через Local Font Access API (Chrome, Edge) */
-  // Файлы и fonts/fonts.css собирает tools/build_fonts.py (Google Fonts, урезаны до латиницы и кириллицы)
+  // Файлы и fonts/fonts.css собирает tools/build_fonts.py (Google Fonts, урезаны до латиницы и кириллицы).
+  // noItalic — у шрифта нет курсива: браузер и PDF наклоняют обычное начертание
   var BUILTIN = [
     { family: 'Arimo', file: 'Arimo', label: 'Arimo — как Arial', cat: 'Без засечек' },
     { family: 'Roboto', file: 'Roboto', label: 'Roboto', cat: 'Без засечек' },
@@ -29,12 +30,12 @@
     { family: 'Exo 2', file: 'Exo2', label: 'Exo 2', cat: 'Без засечек' },
     { family: 'Tinos', file: 'Tinos', label: 'Tinos — как Times', cat: 'С засечками' },
     { family: 'PT Serif', file: 'PTSerif', label: 'PT Serif', cat: 'С засечками' },
-    { family: 'Roboto Slab', file: 'RobotoSlab', label: 'Roboto Slab', cat: 'С засечками' },
+    { family: 'Roboto Slab', file: 'RobotoSlab', label: 'Roboto Slab', cat: 'С засечками', noItalic: true },
     { family: 'Roboto Condensed', file: 'RobotoCondensed', label: 'Roboto Condensed', cat: 'Узкие' },
-    { family: 'Oswald', file: 'Oswald', label: 'Oswald', cat: 'Узкие' },
+    { family: 'Oswald', file: 'Oswald', label: 'Oswald', cat: 'Узкие', noItalic: true },
     { family: 'Cousine', file: 'Cousine', label: 'Cousine — как Courier', cat: 'Моноширинные' },
-    { family: 'Comfortaa', file: 'Comfortaa', label: 'Comfortaa — округлый', cat: 'Рукописные и декоративные' },
-    { family: 'Caveat', file: 'Caveat', label: 'Caveat — рукописный', cat: 'Рукописные и декоративные' }
+    { family: 'Comfortaa', file: 'Comfortaa', label: 'Comfortaa — округлый', cat: 'Рукописные и декоративные', noItalic: true },
+    { family: 'Caveat', file: 'Caveat', label: 'Caveat — рукописный', cat: 'Рукописные и декоративные', noItalic: true }
   ];
   function builtin(family) {
     for (var i = 0; i < BUILTIN.length; i++) if (BUILTIN[i].family === family) return BUILTIN[i];
@@ -45,9 +46,11 @@
   function ensureFont(family) {
     if (!document.fonts || !document.fonts.load) return Promise.resolve();
     if (!fontPromises[family]) {
-      fontPromises[family] = Promise.all([
-        document.fonts.load('400 10px "' + family + '"'), document.fonts.load('700 10px "' + family + '"')
-      ]).catch(function () {});
+      var b = builtin(family), loads = ['400', '700'];
+      if (!b || !b.noItalic) loads.push('italic 400', 'italic 700');
+      fontPromises[family] = Promise.all(loads.map(function (w) {
+        return document.fonts.load(w + ' 10px "' + family + '"');
+      })).catch(function () {});
     }
     return fontPromises[family];
   }
@@ -62,7 +65,11 @@
       var map = {};
       list.forEach(function (f) {
         var st = (f.style || '').toLowerCase(), e = map[f.family] || (map[f.family] = {});
-        if (/italic|oblique/.test(st)) return;
+        if (/italic|oblique/.test(st)) {
+          if (/^(italic|oblique)$/.test(st)) e.italic = f;
+          if (/^bold (italic|oblique)$/.test(st)) e.boldItalic = f;
+          return;
+        }
         if (/^(regular|normal|book|roman)$/.test(st)) e.regular = f;
         else if (!e.regular && !/bold|black|heavy|light|thin|medium|semi|demi|narrow|condensed/.test(st)) e.regular = f;
         if (st === 'bold') e.bold = f;
@@ -101,29 +108,82 @@
   function r2(v) { return Math.round(v * 100) / 100; }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
-  /* ---------- измерение и перенос текста ---------- */
+  /* ---------- измерение и вёрстка текста ----------
+     Текстовый блок — фрагменты (runs) со своим оформлением: b жирный, i курсив, u подчёркнутый,
+     s зачёркнутый, sup надстрочный, sub подстрочный. Без runs весь текст — в оформлении блока
+     (bold / italic / underline / strike). Одна вёрстка и для холста, и для PDF: строки состоят
+     из кусков с готовой шириной, координату x каждого куска считаем сами. */
   var mctx = document.createElement('canvas').getContext('2d');
-  function measure(text, sizeMm, bold, family) {
-    mctx.font = (bold ? '700 ' : '400 ') + '100px ' + cssFamily(family || 'Arimo');
+  function fontCss(st, family) {
+    return (st.i ? 'italic ' : '') + (st.b ? '700 ' : '400 ') + '100px ' + cssFamily(family || 'Arimo');
+  }
+  function measureSt(text, sizeMm, st, family) {
+    mctx.font = fontCss(st, family);
     return mctx.measureText(text).width / 100 * sizeMm;
   }
-  function wrap(text, width, sizeMm, bold, family) {
-    var out = [];
-    String(text).split('\n').forEach(function (para) {
-      var words = para.split(' '), line = '';
-      words.forEach(function (w) {
-        var test = line ? line + ' ' + w : w;
-        if (line && measure(test, sizeMm, bold, family) > width) { out.push(line); line = w; }
-        else line = test;
-      });
-      out.push(line);
-    });
-    return out;
+  function measure(text, sizeMm, bold, family) { return measureSt(text, sizeMm, { b: bold }, family); }
+
+  var STYLE_KEYS = ['b', 'i', 'u', 's', 'sup', 'sub'];
+  function sameSt(a, b) { return STYLE_KEYS.every(function (k) { return !!a[k] === !!b[k]; }); }
+  function textRuns(it) {
+    if (it.runs && it.runs.length) return it.runs;
+    return [{ t: String(it.text || ''), b: !!it.bold, i: !!it.italic, u: !!it.underline, s: !!it.strike }];
   }
+  var SUPK = 0.62;   // над- и подстрочный: доля основного размера
+  function segSize(st, size) { return st.sup || st.sub ? size * SUPK : size; }
+
   function textLayout(it) {
-    var size = it.size * PT, lh = size * LH;
-    var lines = wrap(it.text, it.w, size, it.bold, it.font);
-    return { lines: lines, size: size, lh: lh, h: Math.max(1, lines.length) * lh };
+    var size = it.size * PT, lh = size * LH, fam = it.font || 'Arimo';
+    // поток: слова, пробелы и переводы строки, у каждого — оформление своего фрагмента
+    var tokens = [];
+    textRuns(it).forEach(function (r) {
+      String(r.t).split(/(\n| )/).forEach(function (part) {
+        if (part) tokens.push({ t: part, st: r, space: part === ' ', nl: part === '\n' });
+      });
+    });
+    var width = function (p) { return measureSt(p.t, segSize(p.st, size), p.st, fam); };
+    var lines = [], line = [], lineW = 0, i = 0;
+    var flush = function () { lines.push(line); line = []; lineW = 0; };
+    while (i < tokens.length) {
+      var tk = tokens[i];
+      if (tk.nl) { flush(); i++; continue; }
+      if (tk.space) { var sp = { t: ' ', st: tk.st, space: true }; sp.w = width(sp); line.push(sp); lineW += sp.w; i++; continue; }
+      // слово — подряд идущие куски без пробелов, оформление внутри может меняться
+      var word = [], ww = 0;
+      while (i < tokens.length && !tokens[i].space && !tokens[i].nl) {
+        var p = { t: tokens[i].t, st: tokens[i].st };
+        p.w = width(p); ww += p.w; word.push(p); i++;
+      }
+      if (line.some(function (q) { return !q.space; }) && lineW + ww > it.w) {
+        while (line.length && line[line.length - 1].space) line.pop();   // пробел в конце строки не нужен
+        flush();
+      }
+      word.forEach(function (q) { line.push(q); });
+      lineW += ww;
+    }
+    flush();
+    var out = lines.map(function (segs) {
+      while (segs.length && segs[segs.length - 1].space) segs.pop();
+      // соседние куски с одинаковым оформлением склеиваем и меряем целиком (кернинг)
+      var merged = [], w = 0;
+      segs.forEach(function (q) {
+        var last = merged[merged.length - 1];
+        if (last && sameSt(last.st, q.st)) last.t += q.t; else merged.push({ t: q.t, st: q.st });
+      });
+      merged.forEach(function (q) { q.w = width(q); w += q.w; });
+      return { segs: merged, w: w };
+    });
+    return { lines: out, size: size, lh: lh, h: Math.max(1, out.length) * lh };
+  }
+  // начало строки с учётом выравнивания
+  function lineX(it, ln) {
+    return it.align === 'center' ? it.x + (it.w - ln.w) / 2 : it.align === 'right' ? it.x + it.w - ln.w : it.x;
+  }
+  // базовая линия куска (над/подстрочный смещены) и линии подчёркивания/зачёркивания
+  // (метрики Arimo; толщина не тоньше точки принтера 203 dpi)
+  function segGeom(st, size, base) {
+    var fs = segSize(st, size), y = base + (st.sup ? -0.33 * size : st.sub ? 0.14 * size : 0);
+    return { fs: fs, y: y, th: Math.max(0.07 * fs, DOT), ul: y + 0.11 * fs, st: y - 0.24 * fs };
   }
   function baseline(it, lay, i) {
     return it.y + i * lay.lh + (lay.lh - (ASC + DESC) * lay.size) / 2 + ASC * lay.size;
@@ -1346,16 +1406,21 @@
     var g = svgEl('g', { 'data-id': it.id, class: picked ? 'xpe-item xpe-picked' : 'xpe-item' }, svg);
     var hit = function () { svgEl('rect', { x: it.x, y: it.y, width: it.w, height: it.h, fill: 'transparent' }, g); };
     if (it.type === 'text') {
-      var lay = textLayout(it);
+      var lay = textLayout(it), fam = cssFamily(it.font || 'Arimo');
       it.h = lay.h;
       hit();
-      var t = svgEl('text', {
-        'font-family': cssFamily(it.font || 'Arimo'), 'font-size': lay.size, 'font-weight': it.bold ? 700 : 400,
-        'text-anchor': it.align === 'center' ? 'middle' : it.align === 'right' ? 'end' : 'start', fill: '#000'
-      }, g);
-      lay.lines.forEach(function (ln, i) {
-        var s = svgEl('tspan', { x: anchorX(it), y: baseline(it, lay, i) }, t);
-        s.textContent = ln;
+      lay.lines.forEach(function (ln, li) {
+        var x = lineX(it, ln), base = baseline(it, lay, li);
+        ln.segs.forEach(function (sg) {
+          var gm = segGeom(sg.st, lay.size, base);
+          // white-space: pre — пробелы на краях куска не схлопываются, ширина совпадает с вёрсткой
+          var t = svgEl('text', { x: x, y: gm.y, 'font-family': fam, 'font-size': gm.fs, 'font-weight': sg.st.b ? 700 : 400,
+            'font-style': sg.st.i ? 'italic' : 'normal', fill: '#000', style: 'white-space:pre' }, g);
+          t.textContent = sg.t;
+          if (sg.st.u) svgEl('rect', { x: x, y: gm.ul - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
+          if (sg.st.s) svgEl('rect', { x: x, y: gm.st - gm.th / 2, width: sg.w, height: gm.th, fill: '#000' }, g);
+          x += sg.w;
+        });
       });
     } else if (it.type === 'barcode') {
       hit();
@@ -1636,7 +1701,17 @@
       if (!drag && self.hover) { self.hover = null; self.render(); }
     });
     svg.addEventListener('dblclick', function () {
-      var f = self.$props.querySelector('[data-k="text"], [data-k="data"]');
+      var rich = self.$props.querySelector('[data-rich]');
+      if (rich) {
+        rich.focus();
+        var r = document.createRange();
+        r.selectNodeContents(rich);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        return;
+      }
+      var f = self.$props.querySelector('[data-k="data"]');
       if (f) { f.focus(); f.select(); }
     });
   };
@@ -1789,7 +1864,7 @@
     if (mod && k === '-') { ev.preventDefault(); this.setZoom(this.zoom / 1.25); return; }
     if (mod && k === '0') { ev.preventDefault(); this.setZoom(1); return; }
     var tag = (ev.target.tagName || '').toLowerCase();
-    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || ev.target.isContentEditable) return;
     if (mod && (k === 'z' || k === 'я')) { ev.preventDefault(); ev.shiftKey ? this.redo() : this.undo(); return; }
     if (mod && (k === 'y' || k === 'н')) { ev.preventDefault(); this.redo(); return; }
     if (k === 'PageUp' || k === 'PageDown') {
@@ -1943,6 +2018,136 @@
     }).join('') + '</select></label>';
   }
 
+  /* ---------- текст с оформлением ----------
+     Поле contenteditable: оформление ставит execCommand (теги b/i/u/s/sup/sub), а текст блока
+     и фрагменты (runs) читаются обратно разбором дерева узлов. */
+  var FMT = [
+    ['b', '<b>Ж</b>', 'Жирный (Ctrl+B)', 'bold'],
+    ['i', '<i>К</i>', 'Курсив (Ctrl+I)', 'italic'],
+    ['u', '<u>Ч</u>', 'Подчёркнутый (Ctrl+U)', 'underline'],
+    ['s', '<s>З</s>', 'Зачёркнутый', 'strikeThrough'],
+    ['sup', 'x<sup>2</sup>', 'Надстрочный', 'superscript'],
+    ['sub', 'x<sub>2</sub>', 'Подстрочный', 'subscript']
+  ];
+  function runsToHtml(runs) {
+    var html = runs.map(function (r) {
+      var h = esc(r.t).replace(/\n/g, '<br>');
+      if (r.sub) h = '<sub>' + h + '</sub>';
+      if (r.sup) h = '<sup>' + h + '</sup>';
+      if (r.s) h = '<s>' + h + '</s>';
+      if (r.u) h = '<u>' + h + '</u>';
+      if (r.i) h = '<i>' + h + '</i>';
+      if (r.b) h = '<b>' + h + '</b>';
+      return h;
+    }).join('');
+    // последний перевод строки виден в поле, только если за ним есть ещё <br>
+    return /<br>(<\/\w+>)*$/.test(html) ? html + '<br>' : html;
+  }
+  function richToRuns(root) {
+    var out = [];
+    var push = function (t, st) {
+      if (!t) return;
+      var last = out[out.length - 1];
+      if (last && sameSt(last, st)) { last.t += t; return; }
+      var r = { t: t };
+      STYLE_KEYS.forEach(function (k) { if (st[k]) r[k] = true; });
+      out.push(r);
+    };
+    var walk = function (node, st) {
+      [].forEach.call(node.childNodes, function (n) {
+        if (n.nodeType === 3) { push(n.nodeValue.replace(/\u00a0/g, ' ').replace(/[\r\n]+/g, ''), st); return; }
+        if (n.nodeType !== 1) return;
+        var tag = n.tagName.toLowerCase(), c = {}, cs = n.style || {};
+        STYLE_KEYS.forEach(function (k) { c[k] = st[k]; });
+        if (tag === 'br') { push('\n', c); return; }
+        if (tag === 'b' || tag === 'strong') c.b = true;
+        if (tag === 'i' || tag === 'em') c.i = true;
+        if (tag === 'u' || tag === 'ins') c.u = true;
+        if (tag === 's' || tag === 'strike' || tag === 'del') c.s = true;
+        if (tag === 'sup') { c.sup = true; c.sub = false; }
+        if (tag === 'sub') { c.sub = true; c.sup = false; }
+        // execCommand снимает оформление внутри тега через style="font-weight: normal" и т. п.
+        if (cs.fontWeight) c.b = cs.fontWeight === 'bold' || +cs.fontWeight >= 600;
+        if (cs.fontStyle) c.i = cs.fontStyle === 'italic' || cs.fontStyle === 'oblique';
+        var td = cs.textDecorationLine || cs.textDecoration || '';
+        if (td) { c.u = /underline/.test(td); c.s = /line-through/.test(td); }
+        if (cs.verticalAlign) { c.sup = cs.verticalAlign === 'super'; c.sub = cs.verticalAlign === 'sub'; }
+        // строки, которые браузер завернул в div/p, — переводы строки
+        if ((tag === 'div' || tag === 'p') && out.length && !/\n$/.test(out[out.length - 1].t)) push('\n', c);
+        walk(n, c);
+      });
+    };
+    walk(root, {});
+    // хвостовые переводы строки — служебные <br> поля
+    while (out.length && /\n$/.test(out[out.length - 1].t)) {
+      var last = out[out.length - 1];
+      last.t = last.t.replace(/\n+$/, '');
+      if (!last.t) out.pop();
+    }
+    return out;
+  }
+  // Фрагменты -> блок: одно оформление на весь текст — храним флагами блока, иначе runs
+  function applyRuns(it, runs) {
+    it.text = runs.map(function (r) { return r.t; }).join('');
+    var r0 = runs[0] || {}, uniform = runs.every(function (r) { return sameSt(r, r0); });
+    it.bold = !!r0.b; it.italic = !!r0.i; it.underline = !!r0.u; it.strike = !!r0.s;
+    if (uniform && !r0.sup && !r0.sub) delete it.runs;
+    else it.runs = runs;
+  }
+
+  Editor.prototype.bindRich = function (it, box) {
+    var self = this, P = this.$props, timer = null;
+    var sync = function () {
+      applyRuns(it, richToRuns(box));
+      self.render();
+      self.updateGeomInputs();
+      clearTimeout(timer);
+      timer = setTimeout(function () { self.commit(); }, 700);
+    };
+    var state = function () {
+      P.querySelectorAll('[data-fmt]').forEach(function (b) {
+        var m = FMT.filter(function (x) { return x[0] === b.getAttribute('data-fmt'); })[0], on = false;
+        try { on = document.activeElement === box && document.queryCommandState(m[3]); } catch (e) { /* старый браузер */ }
+        b.classList.toggle('xpe-on', on);
+        b.setAttribute('aria-pressed', on);
+      });
+    };
+    box.addEventListener('input', sync);
+    box.addEventListener('blur', function () { clearTimeout(timer); self.commit(); state(); });
+    box.addEventListener('keyup', state);
+    box.addEventListener('mouseup', state);
+    box.addEventListener('focus', state);
+    // Enter — перевод строки <br>, вставка — только текст
+    box.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); document.execCommand('insertLineBreak'); }
+    });
+    box.addEventListener('paste', function (ev) {
+      ev.preventDefault();
+      var t = (ev.clipboardData || window.clipboardData).getData('text');
+      document.execCommand('insertText', false, t);
+    });
+    P.querySelectorAll('[data-fmt]').forEach(function (b) {
+      b.addEventListener('mousedown', function (ev) { ev.preventDefault(); });   // не терять выделение
+      b.addEventListener('click', function () {
+        var m = FMT.filter(function (x) { return x[0] === b.getAttribute('data-fmt'); })[0];
+        var sel = window.getSelection();
+        var inside = sel.rangeCount && box.contains(sel.anchorNode) && !sel.isCollapsed;
+        if (!inside) {   // ничего не выделено — оформляем весь текст
+          box.focus();
+          var r = document.createRange();
+          r.selectNodeContents(box);
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+        document.execCommand('styleWithCSS', false, false);
+        document.execCommand(m[3], false, null);
+        if (!inside) sel.collapseToEnd();
+        sync();
+        state();
+      });
+    });
+  };
+
   /* Ничего не выбрано — настройки этикетки (как «Настройки этикетки» в LabelExpert):
      размер, ориентация, подложка; подсказки по управлению — свёрнутым блоком */
   Editor.prototype.renderLabelProps = function () {
@@ -2018,11 +2223,16 @@
     if (!it) return this.renderLabelProps();
     var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
     if (it.type === 'text') {
-      f += '<label class="xpe-f xpe-wide"><span>Текст</span><textarea data-k="text" rows="3">' + esc(it.text) + '</textarea></label>';
+      f += '<div class="xpe-f xpe-wide"><span>Текст</span>' +
+        '<div class="xpe-rtools" role="toolbar" aria-label="Оформление текста">' + FMT.map(function (m) {
+          return '<button type="button" class="xpe-rbtn" data-fmt="' + m[0] + '" title="' + m[2] + '" aria-label="' + m[2] + '">' + m[1] + '</button>';
+        }).join('') + '</div>' +
+        '<div class="xpe-rich" contenteditable="true" spellcheck="false" data-rich role="textbox" aria-multiline="true">' +
+          runsToHtml(textRuns(it)) + '</div>' +
+        '<span class="xpe-note">Выделите слово и нажмите кнопку — оформится только оно; без выделения — весь текст.</span></div>';
       f += this.fontSelect(it.font || 'Arimo');
       f += num('size', 'Размер, pt', it.size, 0.5, ' min="4" max="72"');
       f += select('align', 'Выравнивание', it.align, [['left', 'По левому краю'], ['center', 'По центру'], ['right', 'По правому краю']]);
-      f += check('bold', 'Жирный', it.bold);
     } else if (it.type === 'barcode') {
       f += select('format', 'Тип', it.format, [['CODE128', 'Code 128 (буквы и цифры)'], ['EAN13', 'EAN-13 (13 цифр)']]);
       f += '<label class="xpe-f xpe-wide"><span>Данные</span><input type="text" data-k="data" value="' + esc(it.data) + '"></label>';
@@ -2102,6 +2312,8 @@
         self.commit();
       });
     });
+    var rich = P.querySelector('[data-rich]');
+    if (rich) this.bindRich(it, rich);
     P.querySelectorAll('[data-al]').forEach(function (b) {
       b.addEventListener('click', function () { self.action(it, 'al-' + b.getAttribute('data-al')); });
     });
@@ -2235,13 +2447,17 @@
     for (var i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
     return btoa(s);
   }
-  function fontKey(family, bold) { return family + '|' + (bold ? 1 : 0); }
+  function fontKey(family, bold, italic) { return family + '|' + (bold ? 1 : 0) + (italic ? 'i' : ''); }
 
-  Editor.prototype.fontB64 = function (family, bold) {
-    var key = fontKey(family, bold), base = this.base, b = builtin(family), p;
+  // Файл начертания: встроенный из fonts/ или шрифт компьютера. Курсива нет — ошибка 'noitalic'
+  // (тогда в PDF обычное начертание наклоняется, как делает браузер)
+  Editor.prototype.fontB64 = function (family, bold, italic) {
+    var key = fontKey(family, bold, italic), base = this.base, b = builtin(family), p;
     if (fontCache[key]) return Promise.resolve(fontCache[key]);
     if (b) {
-      p = fetch(base + 'fonts/' + b.file + (bold ? '-Bold' : '-Regular') + '.ttf').then(function (r) {
+      if (italic && b.noItalic) return Promise.reject(new Error('noitalic'));
+      var style = (bold ? 'Bold' : '') + (italic ? 'Italic' : '') || 'Regular';
+      p = fetch(base + 'fonts/' + b.file + '-' + style + '.ttf').then(function (r) {
         if (!r.ok) throw new Error('font');
         return r.arrayBuffer();
       });
@@ -2249,6 +2465,11 @@
       p = queryLocal().then(function (map) {
         var e = map[family];
         if (!e) throw new Error('missing');
+        if (italic) {
+          var fi = bold ? e.boldItalic : e.italic;
+          if (!fi) throw new Error('noitalic');
+          return ttfBytes(fi);
+        }
         return ttfBytes(bold && e.bold ? e.bold : e.regular);
       });
     }
@@ -2258,15 +2479,19 @@
   /* Шрифты макета для PDF. Недоступный шрифт заменяется на Arimo, имя попадает в missing */
   Editor.prototype.loadFonts = function () {
     var self = this, need = {};
-    need[fontKey('Arimo', false)] = ['Arimo', false];
-    need[fontKey('Arimo', true)] = ['Arimo', true];
+    var want = function (fam, b, i) {
+      need[fontKey(fam, b, i)] = [fam, !!b, !!i];
+      if (i) need[fontKey(fam, b, false)] = [fam, !!b, false];   // запас для наклона, если курсива нет
+    };
+    want('Arimo', false); want('Arimo', true);
     this.allItems().forEach(function (it) {
-      if (it.type === 'text') need[fontKey(it.font || 'Arimo', it.bold)] = [it.font || 'Arimo', it.bold];
-      if (it.type === 'barcode' && it.showText) need[fontKey(it.font || 'Arimo', false)] = [it.font || 'Arimo', false];
+      if (it.type === 'text') textRuns(it).forEach(function (r) { want(it.font || 'Arimo', r.b, r.i); });
+      if (it.type === 'barcode' && it.showText) want(it.font || 'Arimo', false);
     });
     var keys = Object.keys(need), missing = [];
     return Promise.all(keys.map(function (k) {
-      return self.fontB64(need[k][0], need[k][1]).catch(function (e) {
+      return self.fontB64(need[k][0], need[k][1], need[k][2]).catch(function (e) {
+        if (e && e.message === 'noitalic') return null;   // наклоним обычное начертание
         if (builtin(need[k][0])) throw e;
         if (missing.indexOf(need[k][0]) < 0) missing.push(need[k][0]);
         return null;
@@ -2288,8 +2513,34 @@
       pdf.addFont(id + '.ttf', id, 'normal');
       ids[k] = id;
     });
-    var fontId = function (family, bold) {
-      return ids[fontKey(family, bold)] || ids[fontKey('Arimo', bold)];
+    // начертание для PDF; курсива нет — обычное с пометкой fake (наклоним сами)
+    var fontId = function (family, bold, italic) {
+      var id = ids[fontKey(family, bold, italic)];
+      if (id) return { id: id };
+      if (italic) {
+        id = ids[fontKey(family, bold, false)];
+        if (id) return { id: id, fake: true };
+      }
+      return { id: ids[fontKey('Arimo', bold)], fake: !!italic };
+    };
+    // Наклон для «курсива» без курсивного файла: сдвиг вдоль строки, пропорциональный высоте
+    // над базовой линией (как синтетический курсив браузера, tan ≈ 0,25), с учётом поворота макета
+    var sf = pdf.internal.scaleFactor;
+    var oblique = function (xb, yb, draw) {
+      var toPdf = function (X, Y) { return [X * sf, (L.h - Y) * sf]; };
+      var fromPdf = function (u, v) { return [u / sf, L.h - v / sf]; };
+      var fwd = function (x, y) { return rot ? [L.w - y, x] : [x, y]; };      // холст -> страница (мм)
+      var back = function (X, Y) { return rot ? [Y, L.w - X] : [X, Y]; };
+      var map = function (u, v) {
+        var c = back.apply(null, fromPdf(u, v));
+        c = [c[0] + 0.25 * (yb - c[1]), c[1]];
+        return toPdf.apply(null, fwd(c[0], c[1]));
+      };
+      var o = map(0, 0), ex = map(1, 0), ey = map(0, 1);
+      var m = [ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]].map(function (v) { return +v.toFixed(5); });
+      pdf.internal.write('q ' + m.join(' ') + ' cm');
+      draw();
+      pdf.internal.write('Q');
     };
     pdf.setFillColor(0, 0, 0);
     pdf.setDrawColor(0, 0, 0);
@@ -2309,11 +2560,19 @@
       if (pi) pdf.addPage([L.w, L.h], L.w > L.h ? 'landscape' : 'portrait');
       items.forEach(function (it) {
         if (it.type === 'text') {
-          var lay = textLayout(it);
-          pdf.setFont(fontId(it.font || 'Arimo', it.bold), 'normal');
-          pdf.setFontSize(it.size);
-          lay.lines.forEach(function (ln, i) {
-            text(ln, anchorX(it), baseline(it, lay, i), it.align);
+          var lay = textLayout(it), fam = it.font || 'Arimo';
+          lay.lines.forEach(function (ln, li) {
+            var x = lineX(it, ln), base = baseline(it, lay, li);
+            ln.segs.forEach(function (sg) {
+              var gm = segGeom(sg.st, lay.size, base), fid = fontId(fam, sg.st.b, sg.st.i), x0 = x;
+              pdf.setFont(fid.id, 'normal');
+              pdf.setFontSize(gm.fs / PT);
+              if (fid.fake) oblique(x0, gm.y, function () { text(sg.t, x0, gm.y, 'left'); });
+              else text(sg.t, x0, gm.y, 'left');
+              if (sg.st.u) rect(x0, gm.ul - gm.th / 2, sg.w, gm.th, 'F');
+              if (sg.st.s) rect(x0, gm.st - gm.th / 2, sg.w, gm.th, 'F');
+              x += sg.w;
+            });
           });
         } else if (it.type === 'barcode') {
           var enc = encodeBarcode(it.format, it.data);
@@ -2321,7 +2580,7 @@
           var gm = barcodeGeom(it, enc);
           enc.bars.forEach(function (b) { rect(gm.x0 + b[0] * gm.mw, it.y, b[1] * gm.mw, gm.barsH, 'F'); });
           if (it.showText) {
-            pdf.setFont(fontId(it.font || 'Arimo', false), 'normal');
+            pdf.setFont(fontId(it.font || 'Arimo', false).id, 'normal');
             pdf.setFontSize(it.textSize);
             text(enc.text, it.x + it.w / 2, gm.textY, 'center');
           }
