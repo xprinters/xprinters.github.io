@@ -18,3 +18,6 @@ Tabler Icons (https://tabler.io/icons) — знаки ухода за издел
   (на сайте: docs/editor/signs/LICENSE-tabler-icons.txt).
 
 Надписи (температура, коды переработки, возраст) — шрифт Arimo (Apache 2.0), переведены в контуры.
+
+Знаки валют — шрифты Noto Sans Bold и Noto Sans Armenian Bold (Google Fonts, OFL 1.1),
+  переведены в контуры; урезанные копии шрифтов — fonts/.

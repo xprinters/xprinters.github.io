@@ -31,18 +31,41 @@ UPM = FONT["head"].unitsPerEm
 
 
 # ---------- текст -> контур ----------
-def text_path(s, cx, baseline, size, anchor="middle"):
-    """Строка шрифтом Arimo Bold как SVG-путь; cx — центр (или левый край при anchor='start')."""
-    scale = size / UPM
-    width = sum(GLYPHS[CMAP[ord(ch)]].width for ch in s) * scale
+def text_path(s, cx, baseline, size, anchor="middle", font=None):
+    """Строка шрифтом (по умолчанию Arimo Bold) как SVG-путь; cx — центр (или левый край при anchor='start')."""
+    font = font or FONT
+    glyphs, cmap, upm = font.getGlyphSet(), font.getBestCmap(), font["head"].unitsPerEm
+    scale = size / upm
+    width = sum(glyphs[cmap[ord(ch)]].width for ch in s) * scale
     x = cx - width / 2 if anchor == "middle" else cx
-    pen = SVGPathPen(GLYPHS)
+    pen = SVGPathPen(glyphs)
     for ch in s:
-        g = CMAP[ord(ch)]
+        g = cmap[ord(ch)]
         tp = TransformPen(pen, (scale, 0, 0, -scale, x, baseline))
-        GLYPHS[g].draw(tp)
-        x += GLYPHS[g].width * scale
+        glyphs[g].draw(tp)
+        x += glyphs[g].width * scale
     return '<path fill="#000" d="%s"/>' % pen.getCommands()
+
+
+# ---------- шрифты для знаков валют: Noto Sans Bold с Google Fonts ----------
+# Скачиваются один раз и хранятся урезанными до нужных символов в tools/signs-src/fonts/ (OFL 1.1)
+def noto(family, chars):
+    import urllib.request
+    from fontTools import subset
+    path = SRC / "fonts" / (family.replace(" ", "") + "-Bold.ttf")
+    if not path.exists():
+        ua = {"User-Agent": "Python-urllib"}   # так Google Fonts отдаёт статический TTF
+        css = urllib.request.urlopen(urllib.request.Request(
+            "https://fonts.googleapis.com/css2?family=" + family.replace(" ", "+") + ":wght@700", headers=ua), timeout=60).read().decode()
+        url = re.search(r"url\((https://[^)]+\.ttf)\)", css).group(1)
+        import io
+        font = TTFont(io.BytesIO(urllib.request.urlopen(urllib.request.Request(url, headers=ua), timeout=60).read()))
+        sub = subset.Subsetter(subset.Options())
+        sub.populate(text=chars)
+        sub.subset(font)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        font.save(path)
+    return TTFont(str(path))
 
 
 # ---------- чтение и чистка SVG ----------
@@ -191,8 +214,27 @@ add("safety", "age03", "Не для детей до 3 лет", age("0-3", True))
 for a in ("0+", "3+", "6+", "12+", "16+", "18+"):
     add("safety", "age" + a[:-1], "Возрастная маркировка " + a, age(a))
 
+# Валюты: символ шрифтом Noto Sans Bold (армянский драм — Noto Sans Armenian)
+CURRENCIES = [
+    ("rub", "₽", "Российский рубль (RUB)"), ("rubtxt", "руб.", "Рубль — сокращение «руб.»"),
+    ("usd", "$", "Доллар США (USD)"), ("eur", "€", "Евро (EUR)"),
+    ("cny", "¥", "Китайский юань (CNY), японская иена (JPY)"),
+    ("kzt", "₸", "Казахстанский тенге (KZT)"), ("byn", "Br", "Белорусский рубль (BYN)"),
+    ("uzs", "сўм", "Узбекский сум (UZS)"), ("kgs", "⃀", "Киргизский сом (KGS)"),
+    ("tjs", "смн", "Таджикский сомони (TJS)"), ("amd", "֏", "Армянский драм (AMD)"),
+    ("azn", "₼", "Азербайджанский манат (AZN)"), ("gel", "₾", "Грузинский лари (GEL)"),
+    ("uah", "₴", "Украинская гривна (UAH)"), ("mnt", "₮", "Монгольский тугрик (MNT)"),
+    ("try", "₺", "Турецкая лира (TRY)"), ("gbp", "£", "Британский фунт (GBP)"),
+    ("inr", "₹", "Индийская рупия (INR)"), ("krw", "₩", "Южнокорейская вона (KRW)"),
+    ("btc", "₿", "Биткоин (BTC)"),
+]
+NOTO = noto("Noto Sans", "".join(c for _, sym, _ in CURRENCIES if sym != "֏" for c in sym))
+NOTO_AM = noto("Noto Sans Armenian", "֏")
+for sid, sym, name in CURRENCIES:
+    add("money", "cur-" + sid, name, (text_path(sym, 0, 0, 100, font=NOTO_AM if sym == "֏" else NOTO), "0 -100 100 100"))
+
 CATS = [("conf", "Соответствие"), ("care", "Уход за изделием"), ("handling", "Манипуляционные"),
-        ("eco", "Переработка"), ("food", "Пищевой контакт"), ("safety", "Возраст")]
+        ("eco", "Переработка"), ("food", "Пищевой контакт"), ("safety", "Возраст"), ("money", "Валюты")]
 
 
 # ---------- точные границы рисунка (считает браузер) ----------

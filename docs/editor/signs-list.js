@@ -380,5 +380,111 @@ window.XPSignList = [
     "ratio": 1.0
    }
   ]
+ },
+ {
+  "id": "money",
+  "name": "Валюты",
+  "items": [
+   {
+    "id": "cur-rub",
+    "name": "Российский рубль (RUB)",
+    "ratio": 1.2344
+   },
+   {
+    "id": "cur-rubtxt",
+    "name": "Рубль — сокращение «руб.»",
+    "ratio": 0.5307
+   },
+   {
+    "id": "cur-usd",
+    "name": "Доллар США (USD)",
+    "ratio": 1.6256
+   },
+   {
+    "id": "cur-eur",
+    "name": "Евро (EUR)",
+    "ratio": 1.3511
+   },
+   {
+    "id": "cur-cny",
+    "name": "Китайский юань (CNY), японская иена (JPY)",
+    "ratio": 1.2531
+   },
+   {
+    "id": "cur-kzt",
+    "name": "Казахстанский тенге (KZT)",
+    "ratio": 1.3294
+   },
+   {
+    "id": "cur-byn",
+    "name": "Белорусский рубль (BYN)",
+    "ratio": 0.7149
+   },
+   {
+    "id": "cur-uzs",
+    "name": "Узбекский сум (UZS)",
+    "ratio": 0.575
+   },
+   {
+    "id": "cur-kgs",
+    "name": "Киргизский сом (KGS)",
+    "ratio": 1.625
+   },
+   {
+    "id": "cur-tjs",
+    "name": "Таджикский сомони (TJS)",
+    "ratio": 0.3257
+   },
+   {
+    "id": "cur-amd",
+    "name": "Армянский драм (AMD)",
+    "ratio": 1.0429
+   },
+   {
+    "id": "cur-azn",
+    "name": "Азербайджанский манат (AZN)",
+    "ratio": 0.9278
+   },
+   {
+    "id": "cur-gel",
+    "name": "Грузинский лари (GEL)",
+    "ratio": 1.1266
+   },
+   {
+    "id": "cur-uah",
+    "name": "Украинская гривна (UAH)",
+    "ratio": 1.3153
+   },
+   {
+    "id": "cur-mnt",
+    "name": "Монгольский тугрик (MNT)",
+    "ratio": 1.3247
+   },
+   {
+    "id": "cur-try",
+    "name": "Турецкая лира (TRY)",
+    "ratio": 1.3165
+   },
+   {
+    "id": "cur-gbp",
+    "name": "Британский фунт (GBP)",
+    "ratio": 1.3919
+   },
+   {
+    "id": "cur-inr",
+    "name": "Индийская рупия (INR)",
+    "ratio": 1.5484
+   },
+   {
+    "id": "cur-krw",
+    "name": "Южнокорейская вона (KRW)",
+    "ratio": 0.9946
+   },
+   {
+    "id": "cur-btc",
+    "name": "Биткоин (BTC)",
+    "ratio": 1.9517
+   }
+  ]
  }
 ];
