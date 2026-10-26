@@ -233,6 +233,12 @@
     landscape: icon('M3 7h18v10H3z')
   };
 
+  function presetOptions() {
+    return PRESETS.map(function (p) {
+      return '<option value="' + p[0] + 'x' + p[1] + '">' + p[0] + ' × ' + p[1] + ' мм</option>';
+    }).join('') + '<option value="custom">Свой размер</option>';
+  }
+
   /* ---------- значения по умолчанию ---------- */
   var lastFont = 'Arimo';   // новый текст получает последний выбранный шрифт
   function defaultDoc() {
@@ -252,7 +258,9 @@
     pages = pages.map(function (p) {
       return (Array.isArray(p) ? p : (p && p.items) || []).filter(function (it) { return it && NAMES[it.type]; });
     });
-    return { label: d.label, pages: pages.length ? pages : [[]] };
+    var ul = d.underlay && typeof d.underlay.src === 'string' && /^data:image\//.test(d.underlay.src)
+      ? { src: d.underlay.src, opacity: Math.min(1, Math.max(0.1, +d.underlay.opacity || 0.5)) } : null;
+    return { label: d.label, pages: pages.length ? pages : [[]], underlay: ul };
   }
 
   function newItem(type, L) {
@@ -393,6 +401,7 @@
       out.cancel();
       swap();
       self.sliding = false;
+      self.drawRulers();
     }, 1000);
     out.onfinish = function () {
       if (swapped) return;
@@ -403,7 +412,7 @@
         { transform: 'none', opacity: 1 }
       ], { duration: 240, easing: 'cubic-bezier(.2, .8, .2, 1)' });
       out.cancel();
-      inn.onfinish = inn.oncancel = function () { self.sliding = false; };
+      inn.onfinish = inn.oncancel = function () { self.sliding = false; self.drawRulers(); };
     };
   };
 
@@ -593,9 +602,7 @@
   /* ---------- разметка интерфейса ---------- */
   Editor.prototype.build = function () {
     var self = this;
-    var opts = PRESETS.map(function (p) {
-      return '<option value="' + p[0] + 'x' + p[1] + '">' + p[0] + ' × ' + p[1] + ' мм</option>';
-    }).join('') + '<option value="custom">Свой размер</option>';
+    var opts = presetOptions();
 
     this.root.innerHTML = '';
     var ui = h(
@@ -623,12 +630,6 @@
               '<button type="button" class="xpe-btn xpe-ico-btn xpe-or-h" data-or="h" title="Горизонтальная ориентация макета" aria-label="Горизонтальная">' + ICON.landscape + '</button>' +
             '</span>' +
           '</div>' +
-          // масштаб
-          '<div class="xpe-grp xpe-seg xpe-g-zoom">' +
-            '<button type="button" class="xpe-btn xpe-ico-btn xpe-zout" title="Уменьшить (Ctrl + колёсико)" aria-label="Уменьшить">' + ICON.minus + '</button>' +
-            '<button type="button" class="xpe-btn xpe-zval" title="Вписать в окно (Ctrl+0)">100%</button>' +
-            '<button type="button" class="xpe-btn xpe-ico-btn xpe-zin" title="Увеличить (Ctrl + колёсико)" aria-label="Увеличить">' + ICON.plus + '</button>' +
-          '</div>' +
           // результат
           '<div class="xpe-grp xpe-g-out">' +
             '<button type="button" class="xpe-btn xpe-print" title="Печать (Ctrl+P)">' + ICON.print + '<span>Печать</span></button>' +
@@ -646,15 +647,27 @@
             '<button type="button" data-add="sign"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg> Знаки</button>' +
             '<input type="file" accept="image/png,image/jpeg,image/svg+xml" class="xpe-file" hidden>' +
           '</div>' +
-          '<div class="xpe-stagewrap"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
+          '<div class="xpe-stagewrap"><div class="xpe-stagebox"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
             '<div class="xpe-addpage">' +
               '<button type="button" class="xpe-addbtn" title="Добавить этикетку" aria-label="Добавить этикетку" aria-expanded="false">' +
                 '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>' +
               '<button type="button" class="xpe-addopt" data-copy="1" title="Новая этикетка с тем же содержимым">Копия</button>' +
               '<button type="button" class="xpe-addopt" data-copy="" title="Новая пустая этикетка">Пустая</button>' +
             '</div></div>' +
-          '<span class="xpe-fname" title="Файл макета"></span>' +
-          '<span class="xpe-pager" title="Этикетка / всего этикеток (PgUp, PgDn — листать)"></span>' +
+            // линейки в мм: подсвечен размер этикетки, отметка следует за курсором
+            '<canvas class="xpe-ruler xpe-ruler-h" aria-hidden="true"></canvas>' +
+            '<canvas class="xpe-ruler xpe-ruler-v" aria-hidden="true"></canvas>' +
+            '<span class="xpe-rcorner" aria-hidden="true">мм</span>' +
+            '<i class="xpe-rmark xpe-rmark-h" aria-hidden="true"></i><i class="xpe-rmark xpe-rmark-v" aria-hidden="true"></i>' +
+            '<span class="xpe-status" aria-live="off"></span>' +
+            '<div class="xpe-zoomfloat">' +
+              '<button type="button" class="xpe-zbtn xpe-zout" title="Уменьшить (Ctrl + колёсико)" aria-label="Уменьшить">' + ICON.minus + '</button>' +
+              '<button type="button" class="xpe-zbtn xpe-zval" title="Вписать в окно (Ctrl+0)">100%</button>' +
+              '<button type="button" class="xpe-zbtn xpe-zin" title="Увеличить (Ctrl + колёсико)" aria-label="Увеличить">' + ICON.plus + '</button>' +
+            '</div>' +
+            '<span class="xpe-fname" title="Файл макета"></span>' +
+            '<span class="xpe-pager" title="Этикетка / всего этикеток (PgUp, PgDn — листать)"></span>' +
+          '</div>' +
           '<div class="xpe-strip" aria-label="Этикетки"></div></div>' +
           '<div class="xpe-props"></div>' +
         '</div>' +
@@ -678,6 +691,12 @@
     this.$zval = q('.xpe-zval');
     this.$fname = q('.xpe-fname');
     this.$stagewrap = q('.xpe-stagewrap');
+    this.$stagebox = q('.xpe-stagebox');
+    this.$rulerH = q('.xpe-ruler-h');
+    this.$rulerV = q('.xpe-ruler-v');
+    this.$markH = q('.xpe-rmark-h');
+    this.$markV = q('.xpe-rmark-v');
+    this.$status = q('.xpe-status');
     this.$pager = q('.xpe-pager');
     this.$strip = q('.xpe-strip');
     this.$addpage = q('.xpe-addpage');
@@ -721,6 +740,14 @@
     q('.xpe-new').addEventListener('click', function () { self.newDoc(); });
     q('.xpe-openf').addEventListener('click', function () { self.openFile(); });
     q('.xpe-savef').addEventListener('click', function () { self.saveFile(); });
+
+    // линейки следуют за прокруткой холста; координаты курсора — в строке состояния и на линейках
+    this.$stage.addEventListener('scroll', function () { self.drawRulers(); });
+    this.$stage.addEventListener('pointermove', function (ev) {
+      if (ev.pointerType === 'touch') return;
+      self.showCursor(ev);
+    });
+    this.$stage.addEventListener('pointerleave', function () { self.showCursor(null); });
 
     // Ctrl + колёсико — масштаб относительно точки под курсором
     this.$stage.addEventListener('wheel', function (ev) {
@@ -805,7 +832,33 @@
     this.syncLabelInputs();
     this.fit();
     this.render();
+    if (!this.sel && !this.multi.length) this.renderProps();
     this.commit();
+  };
+
+  // Подложка: фото или скан готовой этикетки, чтобы выровнять по нему элементы. Не печатается.
+  // Уменьшаем до 1200 px в JPEG — иначе не поместится в автосохранение браузера.
+  Editor.prototype.readUnderlay = function (file) {
+    var self = this, fr = new FileReader();
+    fr.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+        var c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * k));
+        c.height = Math.max(1, Math.round(img.naturalHeight * k));
+        var g = c.getContext('2d');
+        g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+        g.drawImage(img, 0, 0, c.width, c.height);
+        self.doc.underlay = { src: c.toDataURL('image/jpeg', 0.75), opacity: self.doc.underlay ? self.doc.underlay.opacity : 0.5 };
+        self.render();
+        self.renderProps();
+        self.commit();
+      };
+      img.onerror = function () { alert('Не удалось открыть картинку.'); };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
   };
 
   Editor.prototype.addItem = function (it) {
@@ -1068,6 +1121,7 @@
     });
     var out = { app: 'xprinter-label', version: pages.length > 1 ? 2 : 1, label: this.doc.label, items: pages[0] };
     if (pages.length > 1) out.pages = pages;
+    if (this.doc.underlay) out.underlay = this.doc.underlay;
     return JSON.stringify(out, null, 1);
   };
 
@@ -1120,7 +1174,7 @@
     text.then(function (txt) {
       var d = JSON.parse(txt);
       if (!d || !d.label || !(d.label.w > 0) || !(d.label.h > 0) || !(Array.isArray(d.items) || Array.isArray(d.pages))) throw new Error('bad');
-      var doc = normDoc({ label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, pages: d.pages, items: d.items });
+      var doc = normDoc({ label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, pages: d.pages, items: d.items, underlay: d.underlay });
       doc.pages.forEach(function (items) { items.forEach(function (it) { it.id = self.nextId++; }); });
       self.undoStack.push(self.saved);
       self.redoStack = [];
@@ -1161,8 +1215,8 @@
   Editor.prototype.fit = function () {
     var L = this.cv(), st = this.$stage, cs = getComputedStyle(st);
     // место под кнопку «+» снизу и под ленту миниатюр справа (padding-right при нескольких этикетках)
-    var aw = Math.max(200, st.clientWidth - 48 - parseFloat(cs.paddingRight || 0));
-    var ah = Math.max(150, st.clientHeight - 48 - (this.$addpage ? this.$addpage.offsetHeight + 12 : 0));
+    var aw = Math.max(200, st.clientWidth - 48 - parseFloat(cs.paddingRight || 0) - parseFloat(cs.paddingLeft || 0));
+    var ah = Math.max(150, st.clientHeight - 48 - parseFloat(cs.paddingTop || 0) - (this.$addpage ? this.$addpage.offsetHeight + 12 : 0));
     this.fitScale = Math.max(2, Math.min(aw / L.w, ah / L.h, 14));
     this.scale = this.fitScale * this.zoom;
     this.$svg.setAttribute('viewBox', '0 0 ' + L.w + ' ' + L.h);
@@ -1170,6 +1224,68 @@
     this.$svg.setAttribute('height', L.h * this.scale);
     // 100% — реальный размер этикетки на экране (96 точек на дюйм)
     this.$zval.textContent = Math.round(this.scale / (96 / 25.4) * 100) + '%';
+    this.drawRulers();
+  };
+
+  /* ---------- линейки и строка состояния ---------- */
+  // Деления в мм от левого/верхнего края этикетки; шаг подбирается под масштаб,
+  // полоса цвета акцента — размер этикетки. Рисуем на canvas с учётом плотности экрана.
+  Editor.prototype.drawRulers = function () {
+    if (!this.$rulerH || this.sliding) return;
+    var L = this.cv(), s = this.scale, dpr = window.devicePixelRatio || 1;
+    var svgR = this.$svg.getBoundingClientRect(), css = getComputedStyle(this.root);
+    var col = function (n, fb) { return (css.getPropertyValue(n) || '').trim() || fb; };
+    var bg = col('--xp-card-bg', '#f8fafc'), ink = col('--md-default-fg-color--light', '#64748b');
+    var tick = col('--md-default-fg-color--lighter', '#94a3b8'), band = col('--xp-accent-soft', '#dbeafe');
+    var minor = [1, 2, 5, 10, 20].filter(function (m) { return m * s >= 4; })[0] || 50;
+    var major = [5, 10, 20, 50, 100].filter(function (m) { return m * s >= 42 && m % minor === 0; })[0] || 200;
+    var draw = function (cvs, vertical) {
+      var r = cvs.getBoundingClientRect(), len = vertical ? r.height : r.width, thick = vertical ? r.width : r.height;
+      if (!len || !thick) return;
+      cvs.width = Math.round((vertical ? thick : len) * dpr);
+      cvs.height = Math.round((vertical ? len : thick) * dpr);
+      var g = cvs.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (vertical) { g.translate(thick, 0); g.rotate(Math.PI / 2); }   // рисуем как горизонтальную, повернув
+      var origin = vertical ? svgR.top - r.top : svgR.left - r.left, size = vertical ? L.h : L.w;
+      g.fillStyle = bg; g.fillRect(0, 0, len, thick);
+      g.fillStyle = band; g.fillRect(origin, 0, size * s, thick);
+      g.strokeStyle = tick; g.fillStyle = ink; g.lineWidth = 1;
+      g.font = '9px ' + (css.getPropertyValue('--md-code-font-family') || 'monospace');
+      g.textBaseline = 'top';
+      var from = Math.floor(-origin / s / minor) * minor, to = (len - origin) / s;
+      g.beginPath();
+      for (var mm = from; mm <= to; mm += minor) {
+        var x = Math.round(origin + mm * s) + 0.5, isMajor = mm % major === 0, isHalf = !isMajor && mm % (major / 2) === 0;
+        var h = isMajor ? thick : isHalf ? thick * 0.5 : thick * 0.3;
+        g.moveTo(x, thick); g.lineTo(x, thick - h);
+        if (isMajor) g.fillText(String(mm), x + 2, 1);
+      }
+      g.stroke();
+      g.strokeStyle = tick;
+      g.beginPath(); g.moveTo(0, thick - 0.5); g.lineTo(len, thick - 0.5); g.stroke();
+    };
+    draw(this.$rulerH, false);
+    draw(this.$rulerV, true);
+    this.showCursor(this.lastCursor || null);
+  };
+
+  // Позиция курсора: отметки на линейках и «X / Y» в мм в строке состояния (только мышь)
+  Editor.prototype.showCursor = function (ev) {
+    if (!this.$status) return;
+    var L = this.doc.label, size = L.w + ' × ' + L.h + ' мм';
+    this.lastCursor = ev ? { clientX: ev.clientX, clientY: ev.clientY } : null;
+    if (!ev) {
+      this.$markH.style.display = this.$markV.style.display = 'none';
+      this.$status.textContent = size;
+      return;
+    }
+    var p = this.toMm(ev), fmt = function (v) { return v.toFixed(1).replace('.', ','); };
+    var rh = this.$rulerH.getBoundingClientRect(), rv = this.$rulerV.getBoundingClientRect();
+    this.$markH.style.display = this.$markV.style.display = 'block';
+    this.$markH.style.left = (ev.clientX - rh.left + this.$rulerH.offsetLeft) + 'px';
+    this.$markV.style.top = (ev.clientY - rv.top + this.$rulerV.offsetTop) + 'px';
+    this.$status.textContent = size + '   X ' + fmt(p[0]) + '   Y ' + fmt(p[1]);
   };
 
   /* Масштаб: zoom — множитель к размеру «вписать в окно». ev — точка, которая должна остаться под курсором */
@@ -1191,6 +1307,10 @@
     var svg = this.$svg, L = this.cv(), self = this;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     svgEl('rect', { x: 0, y: 0, width: L.w, height: L.h, rx: 1, fill: '#fff', class: 'xpe-paper' }, svg);
+    if (this.doc.underlay) {
+      svgEl('image', { href: this.doc.underlay.src, x: 0, y: 0, width: L.w, height: L.h,
+        preserveAspectRatio: 'xMidYMid meet', opacity: this.doc.underlay.opacity, class: 'xpe-underlay' }, svg);
+    }
     this.doc.items.forEach(function (it) { self.drawItem(svg, it); });
     this.drawOverlay(svg);
   };
@@ -1754,18 +1874,79 @@
     }).join('') + '</select></label>';
   }
 
-  Editor.prototype.renderProps = function () {
-    var self = this, it = this.sel && this.item(this.sel), P = this.$props;
-    if (this.multi.length) return this.renderGroupProps();
-    if (!it) {
-      P.innerHTML = '<div class="xpe-empty"><b>Ничего не выбрано</b><p>Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.</p>' +
-        '<p class="xpe-keys">Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
+  /* Ничего не выбрано — настройки этикетки (как «Настройки этикетки» в LabelExpert):
+     размер, ориентация, подложка; подсказки по управлению — свёрнутым блоком */
+  Editor.prototype.renderLabelProps = function () {
+    var self = this, P = this.$props, L = this.doc.label, c = this.cv(), ul = this.doc.underlay;
+    var v = L.w + 'x' + L.h, known = PRESETS.some(function (p) { return p[0] + 'x' + p[1] === v; });
+    var horiz = c.w > c.h, square = c.w === c.h;
+    P.innerHTML = '<div class="xpe-ptitle">Настройки этикетки</div>' +
+      '<label class="xpe-f"><span>Размер</span><select data-lk="preset">' + presetOptions() + '</select></label>' +
+      '<div class="xpe-grid">' +
+        '<label class="xpe-f"><span>Ширина, мм</span><input type="number" data-lk="w" min="10" max="200" step="1" value="' + L.w + '"></label>' +
+        '<label class="xpe-f"><span>Высота, мм</span><input type="number" data-lk="h" min="10" max="300" step="1" value="' + L.h + '"></label>' +
+      '</div>' +
+      '<div class="xpe-f"><span>Ориентация макета</span><div class="xpe-pseg">' +
+        '<button type="button" data-por="v"' + (!square && !horiz ? ' class="xpe-on"' : '') + (square ? ' disabled' : '') + '>Вертикальная</button>' +
+        '<button type="button" data-por="h"' + (!square && horiz ? ' class="xpe-on"' : '') + (square ? ' disabled' : '') + '>Горизонтальная</button>' +
+      '</div></div>' +
+      '<div class="xpe-f"><span>Подложка — не печатается</span>' +
+        '<div class="xpe-actions">' +
+          '<button type="button" class="xpe-btn" data-ul="add">' + (ul ? 'Заменить картинку' : 'Добавить картинку') + '</button>' +
+          (ul ? '<button type="button" class="xpe-btn xpe-danger" data-ul="del">Убрать</button>' : '') +
+        '</div>' +
+        (ul ? '<label class="xpe-f"><span>Прозрачность подложки</span><input type="range" data-ul="op" min="0.1" max="1" step="0.05" value="' + ul.opacity + '"></label>' : '') +
+        '<span class="xpe-note">Фото или скан готовой этикетки, чтобы выровнять по нему элементы. В PDF и при печати подложки нет.</span>' +
+      '</div>' +
+      '<details class="xpe-help"><summary>Подсказки по управлению</summary><p class="xpe-keys">' +
+        'Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.<br>' +
+        'Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
         'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.<br>' +
         'Несколько элементов: рамкой по пустому месту, Shift+клик или Ctrl+A.<br>' +
         'Ещё этикетка — «+» под этикеткой: в PDF каждая станет отдельной страницей. PgUp, PgDn — листать, ' +
-        'порядок — перетащите миниатюру (на телефоне — удержите её).</p></div>';
-      return;
+        'порядок — перетащите миниатюру (на телефоне — удержите её).<br>' +
+        'Ctrl + колёсико — масштаб.</p></details>';
+    var q = function (sel) { return P.querySelector(sel); };
+    var pre = q('[data-lk="preset"]');
+    pre.value = known ? v : 'custom';
+    pre.addEventListener('change', function () {
+      if (this.value === 'custom') { q('[data-lk="w"]').focus(); return; }
+      var p = this.value.split('x');
+      self.setLabel(+p[0], +p[1]);
+    });
+    P.querySelectorAll('[data-lk="w"], [data-lk="h"]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        self.setLabel(Math.min(200, Math.max(10, +q('[data-lk="w"]').value || 10)),
+          Math.min(300, Math.max(10, +q('[data-lk="h"]').value || 10)));
+      });
+    });
+    P.querySelectorAll('[data-por]').forEach(function (b) {
+      b.addEventListener('click', function () { self.setOrientation(b.getAttribute('data-por')); });
+    });
+    q('[data-ul="add"]').addEventListener('click', function () {
+      var inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.onchange = function () { if (inp.files[0]) self.readUnderlay(inp.files[0]); };
+      inp.click();
+    });
+    if (ul) {
+      q('[data-ul="del"]').addEventListener('click', function () {
+        self.doc.underlay = null;
+        self.render();
+        self.renderProps();
+        self.commit();
+      });
+      var op = q('[data-ul="op"]');
+      op.addEventListener('input', function () { self.doc.underlay.opacity = +op.value; self.render(); });
+      op.addEventListener('change', function () { self.commit(); });
     }
+  };
+
+  Editor.prototype.renderProps = function () {
+    var self = this, it = this.sel && this.item(this.sel), P = this.$props;
+    if (this.multi.length) return this.renderGroupProps();
+    if (!it) return this.renderLabelProps();
     var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
     if (it.type === 'text') {
       f += '<label class="xpe-f xpe-wide"><span>Текст</span><textarea data-k="text" rows="3">' + esc(it.text) + '</textarea></label>';

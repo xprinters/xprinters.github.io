@@ -69,12 +69,61 @@
 .xpe-top input[type=number] { width: 4em; text-align: center; color: var(--md-default-fg-color); }
 
 /* имя файла — в углу холста */
-.xpe-stagewrap { position: relative; min-width: 0; }
+.xpe-stagewrap { position: relative; min-width: 0; --xpe-rul: 18px; }
+/* холст с линейками: сами линейки, отметки курсора, строка состояния и масштаб лежат поверх его краёв */
+.xpe-stagebox { position: relative; }
+.xpe-stagebox .xpe-stage { padding-top: var(--xpe-rul); padding-left: var(--xpe-rul); }
+.xpe-ruler { position: absolute; display: block; z-index: 2; pointer-events: none; }
+.xpe-ruler-h { left: var(--xpe-rul); top: 0; width: calc(100% - var(--xpe-rul)); height: var(--xpe-rul); border-top-right-radius: .6rem; }
+.xpe-ruler-v { top: var(--xpe-rul); left: 0; width: var(--xpe-rul); height: calc(100% - var(--xpe-rul)); border-bottom-left-radius: .6rem; }
+.xpe-multi .xpe-ruler-h { width: calc(100% - var(--xpe-rul) - 8.4rem); border-top-right-radius: 0; }
+.xpe-rcorner {
+  position: absolute; left: 0; top: 0; z-index: 2; width: var(--xpe-rul); height: var(--xpe-rul);
+  display: flex; align-items: center; justify-content: center; border-top-left-radius: .6rem;
+  background: var(--xp-card-bg); color: var(--md-default-fg-color--lighter); font-size: 7px; pointer-events: none;
+  box-shadow: inset -1px -1px 0 var(--md-default-fg-color--lighter);
+}
+.xpe-rmark { display: none; position: absolute; z-index: 3; background: var(--xp-accent); pointer-events: none; }
+.xpe-rmark-h { top: 0; width: 1px; height: var(--xpe-rul); }
+.xpe-rmark-v { left: 0; height: 1px; width: var(--xpe-rul); }
+.xpe-status {
+  position: absolute; left: calc(var(--xpe-rul) + .4rem); bottom: .45rem; z-index: 2;
+  padding: .12rem .45rem; border-radius: .3rem; background: var(--xp-card-bg); border: 1px solid var(--xp-card-border);
+  color: var(--md-default-fg-color--light); font-size: .6rem; font-variant-numeric: tabular-nums; white-space: pre;
+  pointer-events: none;
+}
+.xpe-status:empty { display: none; }
+/* масштаб — плавающей кнопкой в правом нижнем углу холста */
+.xpe-zoomfloat {
+  position: absolute; right: .6rem; bottom: .45rem; z-index: 2; display: flex; align-items: center;
+  border: 1px solid var(--xp-card-border); border-radius: .5rem; background: var(--xp-card-bg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .12); overflow: hidden;
+}
+.xpe-multi .xpe-zoomfloat { right: 8.4rem; }
+.xpe-zbtn {
+  display: inline-flex; align-items: center; justify-content: center; height: 1.9rem; min-width: 1.9rem; padding: 0 .4rem;
+  border: 0; background: none; cursor: pointer; color: var(--md-default-fg-color);
+}
+.xpe-zbtn:hover { background: var(--xp-accent-soft); color: var(--xp-tag-fg); }
+.xpe-zbtn.xpe-zval { min-width: 3.4rem; font-variant-numeric: tabular-nums; border-left: 1px solid var(--xp-card-border); border-right: 1px solid var(--xp-card-border); }
+/* панель «Настройки этикетки» */
+.xpe-pseg { display: flex; }
+.xpe-pseg button {
+  flex: 1; padding: .35rem .4rem; border: 1px solid var(--xp-card-border); background: var(--md-default-bg-color);
+  cursor: pointer; margin-left: -1px;
+}
+.xpe-pseg button:first-child { border-radius: .35rem 0 0 .35rem; margin-left: 0; }
+.xpe-pseg button:last-child { border-radius: 0 .35rem .35rem 0; }
+.xpe-pseg button.xpe-on { background: var(--xp-accent-soft); color: var(--xp-tag-fg); border-color: var(--xp-accent); position: relative; }
+.xpe-pseg button:disabled { opacity: .5; cursor: default; }
+.xpe-help summary { cursor: pointer; color: var(--md-default-fg-color--light); font-size: .65rem; }
+.xpe-help[open] summary { margin-bottom: .3rem; }
+.xpe-props input[type=range] { width: 100%; accent-color: var(--xp-accent); }
 .xpe-fname {
   position: absolute;
-  left: .6rem;
-  top: .5rem;
-  max-width: calc(100% - 1.2rem);
+  left: calc(var(--xpe-rul) + .4rem);
+  top: calc(var(--xpe-rul) + .35rem);
+  max-width: calc(100% - var(--xpe-rul) - 6rem);
   padding: .15rem .5rem;
   border-radius: .3rem;
   background: var(--xp-card-bg);
@@ -103,7 +152,7 @@
   .xpe-grp + .xpe-grp:not(.xpe-g-out)::before { display: none; }
 }
 /* телефон: панель в три строки —
-   [файл · история · ориентация] / [шаблон · ширина × высота] / [масштаб · печать · PDF] */
+   [файл · история · ориентация] / [шаблон · ширина × высота] / [печать · PDF]; масштаб — в углу холста */
 @media (max-width: 30em) {
   .xpe-top { gap: .45rem .4rem; padding: .45rem; }
   .xpe-grp + .xpe-grp:not(.xpe-g-out)::before { display: none; }
@@ -114,12 +163,7 @@
   .xpe-orient { order: 3; margin-left: auto; }
   .xpe-g-label select { order: 4; flex: 1 1 6rem; min-width: 6rem; }
   .xpe-size { order: 5; }
-  .xpe-g-zoom { order: 6; }
-  .xpe-g-out { order: 7; flex: 1 1 0; min-width: 0; }
-  .xpe-g-out .xpe-print { flex: 0 0 var(--h); padding: 0; }
-  .xpe-g-out .xpe-print span { display: none; }
-  .xpe-long { display: none; }
-  .xpe-zval { min-width: 3.6em; }
+  .xpe-g-out { order: 7; flex: 1 1 100%; }
   .xpe-top input[type=number] { width: 3.4em; }
 }
 .xpe select, .xpe input[type=number], .xpe input[type=text], .xpe textarea {
@@ -240,7 +284,7 @@
 
 /* «2 / 5» в углу холста и лента миниатюр справа */
 .xpe-pager {
-  position: absolute; right: .6rem; top: .5rem;
+  position: absolute; right: .6rem; top: calc(var(--xpe-rul) + .35rem);
   padding: .15rem .55rem; border-radius: .3rem;
   background: var(--xp-accent-strong); color: #fff;
   font-size: .65rem; font-weight: 700; font-variant-numeric: tabular-nums;
@@ -248,7 +292,7 @@
 }
 .xpe-pager:empty { display: none; }
 .xpe-strip {
-  display: none; position: absolute; right: .5rem; top: 2.1rem; bottom: .5rem; width: 7.4rem;
+  display: none; position: absolute; right: .5rem; top: calc(var(--xpe-rul) + 2rem); bottom: .5rem; width: 7.4rem;
   flex-direction: column; gap: .45rem; padding: .4rem; overflow-y: auto; box-sizing: border-box;
   border-radius: .5rem; border: 1px solid var(--xp-card-border); background: var(--xp-card-bg);
   scrollbar-width: thin;
@@ -290,6 +334,8 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 /* планшет и телефон: лента миниатюр — горизонтальной строкой под холстом */
 @media (max-width: 60em) {
   .xpe-multi .xpe-stage { padding-right: 0; }
+  .xpe-multi .xpe-ruler-h { width: calc(100% - var(--xpe-rul)); border-top-right-radius: .6rem; }
+  .xpe-multi .xpe-zoomfloat { right: .6rem; }
   .xpe-strip {
     position: static; width: auto; margin-top: .5rem; gap: .5rem;
     flex-direction: row; overflow-x: auto; overflow-y: hidden;
