@@ -194,25 +194,68 @@
 
   /* ---------- штрихкоды ---------- */
   var encCache = {};
-  function eanFull(d) {
-    if (!/^\d{12,13}$/.test(d)) return null;
-    var s = 0;
-    for (var i = 0; i < 12; i++) s += (+d[i]) * (i % 2 ? 3 : 1);
-    var c = (10 - s % 10) % 10;
-    if (d.length === 13 && +d[12] !== c) return null;
-    return d.slice(0, 12) + c;
+  /* Линейные штрихкоды: формат, название, подсказка при ошибке, пример данных, группа в списке */
+  var BARCODES = [
+    ['EAN13', 'EAN-13 — товары', 'EAN-13: 12 цифр (контрольная посчитается) или 13 с верной контрольной.', '460712345678', 'Товарные'],
+    ['EAN8', 'EAN-8 — мелкие товары', 'EAN-8: 7 цифр (контрольная посчитается) или 8 с верной контрольной.', '4601234', 'Товарные'],
+    ['UPC', 'UPC-A — товары США', 'UPC-A: 11 цифр (контрольная посчитается) или 12 с верной контрольной.', '01234567890', 'Товарные'],
+    ['UPCE', 'UPC-E — короткий UPC', 'UPC-E: 6 или 8 цифр.', '01234565', 'Товарные'],
+    ['CODE128', 'Code 128 — буквы и цифры', 'Code 128: латиница, цифры и знаки.', 'ABC123456', 'Универсальные'],
+    ['CODE39', 'Code 39 — склад, производство', 'Code 39: заглавные латинские буквы, цифры, пробел и - . $ / + %.', 'ABC-123', 'Универсальные'],
+    ['GS1-128', 'GS1-128 — логистика, SSCC', 'GS1-128: идентификаторы в скобках, например (01)04601234567893(17)251231(10)ABC12.',
+      '(01)04601234567893(17)251231(10)ABC12', 'Логистика'],
+    ['ITF14', 'ITF-14 — короба', 'ITF-14: 13 цифр (контрольная посчитается) или 14 с верной контрольной.', '1460123456789', 'Логистика'],
+    ['ITF', 'ITF — «2 из 5» чередующийся', 'ITF: только цифры, чётное количество.', '12345678', 'Логистика'],
+    ['codabar', 'Codabar — библиотеки, накладные', 'Codabar: цифры и - $ : / . +, по краям можно буквы A–D.', 'A123456B', 'Прочие'],
+    ['MSI', 'MSI — склад, полки', 'MSI: только цифры.', '1234567', 'Прочие'],
+    ['pharmacode', 'Pharmacode — аптечная упаковка', 'Pharmacode: число от 3 до 131070.', '1234', 'Прочие']
+  ];
+  function barcodeInfo(format) {
+    for (var i = 0; i < BARCODES.length; i++) if (BARCODES[i][0] === format) return BARCODES[i];
+    return BARCODES[4];
   }
+  // GTIN (EAN-8/13, UPC-A, ITF-14): без контрольной цифры — дописать, с ней — проверить
+  var GTIN_LEN = { EAN13: 13, EAN8: 8, UPC: 12, ITF14: 14 };
+  function gtinFull(d, n) {
+    if (!/^\d+$/.test(d) || (d.length !== n - 1 && d.length !== n)) return null;
+    var body = d.slice(0, n - 1), sum = 0;
+    for (var i = 0; i < body.length; i++) sum += (+body[body.length - 1 - i]) * (i % 2 ? 1 : 3);
+    var full = body + ((10 - sum % 10) % 10);
+    return d.length === n && d !== full ? null : full;
+  }
+  // GS1-128: «(01)…(17)…(10)…» -> данные с FNC1 после полей переменной длины и подпись со скобками
+  var GS1_FIXED = { '00': 18, '01': 14, '02': 14, '03': 14, '04': 16, '11': 6, '12': 6, '13': 6, '14': 6, '15': 6, '16': 6,
+    '17': 6, '18': 6, '19': 6, '20': 2, '31': 6, '32': 6, '33': 6, '34': 6, '35': 6, '36': 6, '41': 13 };
+  function gs1Parse(str) {
+    var re = /\((\d{2,4})\)([^()]+)/g, m, parts = [], used = 0;
+    while ((m = re.exec(str))) { parts.push([m[1], m[2]]); used += m[0].length; }
+    if (!parts.length || used !== str.replace(/\s+$/, '').length) return null;
+    var raw = '', hri = '';
+    for (var i = 0; i < parts.length; i++) {
+      var ai = parts[i][0], v = parts[i][1], fixed = GS1_FIXED[ai.slice(0, 2)];
+      if (fixed && v.length !== fixed) return null;
+      raw += ai + v + (!fixed && i < parts.length - 1 ? String.fromCharCode(207) : '');   // 207 — FNC1 в JsBarcode
+      hri += '(' + ai + ')' + v;
+    }
+    return { raw: raw, hri: hri };
+  }
+
   function encodeBarcode(format, data) {
     var key = format + '|' + data;
     if (key in encCache) return encCache[key];
     var res = null;
     try {
-      var text = data;
-      if (format === 'EAN13') { text = eanFull(data); if (!text) throw 0; }
       if (!data) throw 0;
+      var text = data, shown = data, opts = { format: format };
+      if (GTIN_LEN[format]) { text = shown = gtinFull(data, GTIN_LEN[format]); if (!text) throw 0; }
+      if (format === 'GS1-128') {
+        var g = gs1Parse(data);
+        if (!g) throw 0;
+        text = g.raw; shown = g.hri; opts = { format: 'CODE128', ean128: true };
+      }
       var svg = document.createElementNS(NS, 'svg'), valid = true;
       JsBarcode(svg, text, {
-        format: format, width: 1, height: 1, margin: 0, flat: true,
+        format: opts.format, ean128: !!opts.ean128, width: 1, height: 1, margin: 0, flat: true,
         displayValue: false, background: 'transparent',
         valid: function (v) { valid = v; }
       });
@@ -227,7 +270,7 @@
         }
         bars.push([off + parseFloat(r.getAttribute('x')), parseFloat(r.getAttribute('width'))]);
       });
-      res = { modules: parseFloat(svg.getAttribute('width')), bars: bars, text: text };
+      res = { modules: parseFloat(svg.getAttribute('width')), bars: bars, text: shown };
     } catch (e) { res = null; }
     encCache[key] = res;
     return res;
@@ -246,12 +289,13 @@
   }
 
   var qrCache = {};
-  function encodeQR(data) {
+  function encodeQR(data, ec) {
     if (!data) return null;
-    if (data in qrCache) return qrCache[data];
+    var qkey = (ec || 'M') + '|' + data;
+    if (qkey in qrCache) return qrCache[qkey];
     var res = null;
     try {
-      var q = qrcode(0, 'M');
+      var q = qrcode(0, ec || 'M');
       q.addData(data);
       q.make();
       var n = q.getModuleCount(), runs = [];
@@ -263,16 +307,85 @@
           runs.push([s, r, c - s + 1]);
         }
       }
-      res = { n: n, runs: runs };
+      res = { cols: n, rows: n, runs: runs };
     } catch (e) { res = null; }
-    qrCache[data] = res;
+    qrCache[qkey] = res;
     return res;
   }
+
+  /* 2D-коды. QR рисует qrcode-generator, остальные — bwip-js (≈1 МБ, грузится, только когда нужен) */
+  var CODES2D = [
+    ['qr', 'QR-код', 'Текст, ссылка или любые данные.'],
+    ['datamatrix', 'DataMatrix', 'Текст или цифры. Квадратный код для мелких деталей и упаковки.'],
+    ['gs1dm', 'DataMatrix «Честный знак» (GS1)', 'Код маркировки из личного кабинета или файла заказа, вместе с разделителями (GS).'],
+    ['pdf417', 'PDF417', 'Документы, билеты, удостоверения. Код прямоугольный.'],
+    ['aztec', 'Aztec', 'Билеты и посадочные талоны.']
+  ];
+  function code2dInfo(fmt) {
+    for (var i = 0; i < CODES2D.length; i++) if (CODES2D[i][0] === fmt) return CODES2D[i];
+    return CODES2D[0];
+  }
+  var EXAMPLE_GS1DM = '0104600439931256215Hk6:qAYw+;y\u001d91EE06\u001d92Ywnts3qe8wJQUrUFQZOS1ZVuyVL0E3T1AzZSJZE8M3Y=';
+  var bwipPromise = null, bwipBase = '';
+  function loadBwip() {
+    if (window.bwipjs) return Promise.resolve();
+    if (!bwipPromise) {
+      bwipPromise = new Promise(function (resolve, reject) {
+        var sc = document.createElement('script');
+        sc.src = bwipBase + 'vendor/bwip-js-min.js';
+        sc.onload = resolve;
+        sc.onerror = function () { bwipPromise = null; reject(new Error('Не удалось загрузить библиотеку 2D-кодов')); };
+        document.head.appendChild(sc);
+      });
+    }
+    return bwipPromise;
+  }
+  // Код «Честного знака»: разделители GS в любом виде (символ 0x1D, <GS>, \x1d, \u001d, {GS}) -> FNC1;
+  // FNC1 в начале делает DataMatrix GS1-кодом
+  function gs1dmText(data) {
+    var t = String(data).replace(/^\]d2/, '').replace(/<GS>|\{GS\}|\[GS\]|\\x1[dD]|\\u001[dD]/g, '\u001d').replace(/^\u001d+/, '');
+    return '^FNC1' + t.replace(/\^/g, '^094').replace(/\u001d/g, '^FNC1');
+  }
+  function hasGS(data) { return /\u001d|<GS>|\{GS\}|\[GS\]|\\x1[dD]|\\u001[dD]/.test(data); }
+  var c2Cache = {};
+  // {cols, rows, runs[[col, row, len]]}, null — не закодировать, 'loading' — ждём bwip-js
+  function encode2D(it) {
+    var fmt = it.format || 'qr', data = it.data;
+    if (!data) return null;
+    if (fmt === 'qr') return encodeQR(data, it.ec);
+    if (!window.bwipjs) { loadBwip(); return 'loading'; }
+    var key = fmt + '|' + data;
+    if (key in c2Cache) return c2Cache[key];
+    var res = null;
+    try {
+      var o = { bcid: fmt === 'aztec' ? 'azteccode' : fmt === 'pdf417' ? 'pdf417' : 'datamatrix' };
+      if (fmt === 'gs1dm') { o.text = gs1dmText(data); o.parsefnc = true; }
+      else if (/[^\x00-\x7f]/.test(data)) {
+        // кириллица и прочее не-ASCII: пометка ECI 26 (UTF-8), иначе сканер прочитает байты как Latin-1;
+        // в UTF-8 текст переводит сама bwip-js
+        o.text = '^ECI000026' + data.replace(/\^/g, '^094');
+        o.parsefnc = true;
+      } else o.text = data;
+      var sym = window.bwipjs.raw(o)[0], runs = [];
+      for (var r = 0; r < sym.pixy; r++) {
+        for (var c = 0; c < sym.pixx; c++) {
+          if (!sym.pixs[r * sym.pixx + c]) continue;
+          var st = c;
+          while (c + 1 < sym.pixx && sym.pixs[r * sym.pixx + c + 1]) c++;
+          runs.push([st, r, c - st + 1]);
+        }
+      }
+      res = { cols: sym.pixx, rows: sym.pixy, runs: runs };
+    } catch (e) { res = null; }
+    c2Cache[key] = res;
+    return res;
+  }
+  function is2DSquare(it) { return (it.format || 'qr') !== 'pdf417'; }
+  // модуль кратен точке принтера 203 dpi, код по центру блока
   function qrGeom(it, enc) {
-    var side = Math.min(it.w, it.h);
-    var ms = Math.max(1, Math.floor(side / enc.n / DOT)) * DOT;
-    var size = ms * enc.n;
-    return { ms: ms, x0: it.x + (it.w - size) / 2, y0: it.y + (it.h - size) / 2, size: size };
+    var ms = Math.max(1, Math.floor(Math.min(it.w / enc.cols, it.h / enc.rows) / DOT)) * DOT;
+    var w = ms * enc.cols, h = ms * enc.rows;
+    return { ms: ms, x0: it.x + (it.w - w) / 2, y0: it.y + (it.h - h) / 2, w: w, h: h };
   }
 
   /* ---------- знаки: список из signs-list.js, сами знаки — файлы signs/<id>.svg ---------- */
@@ -715,7 +828,7 @@
           '<div class="xpe-tools">' +
             '<button type="button" data-add="text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v3h5.5v12h3V7H19V4z"/></svg> Текст</button>' +
             '<button type="button" data-add="barcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2v14H2zm3 0h1v14H5zm2 0h3v14H7zm4 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h3v14h-3z"/></svg> Штрихкод</button>' +
-            '<button type="button" data-add="qr"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></svg> QR-код</button>' +
+            '<button type="button" data-add="qr" title="QR-код, DataMatrix («Честный знак»), PDF417, Aztec"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></svg> QR-код</button>' +
             '<button type="button" data-add="line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg> Линия</button>' +
             '<button type="button" data-add="rect"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg> Рамка</button>' +
             '<button type="button" data-add="image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg> Картинка</button>' +
@@ -1438,8 +1551,12 @@
       }
     } else if (it.type === 'qr') {
       hit();
-      var qe = encodeQR(it.data);
-      if (!qe) return this.drawError(g, it, 'Нет данных');
+      var qe = encode2D(it), self = this;
+      if (qe === 'loading') {
+        loadBwip().then(function () { self.render(); self.renderStrip(); self.refreshWarnings(); }, function () {});
+        return this.drawError(g, it, 'Загрузка…');
+      }
+      if (!qe) return this.drawError(g, it, it.data ? 'Не закодировать' : 'Нет данных');
       var qg = qrGeom(it, qe), qd = '';
       qe.runs.forEach(function (r) {
         qd += 'M' + r2(qg.x0 + r[0] * qg.ms) + ' ' + r2(qg.y0 + r[1] * qg.ms) + 'h' + r2(r[2] * qg.ms) + 'v' + r2(qg.ms) + 'h' + r2(-r[2] * qg.ms) + 'z';
@@ -1477,7 +1594,7 @@
   function handlesFor(it) {
     if (it.type === 'text') return ['w', 'e'];
     if (it.type === 'line') return it.orient === 'v' ? ['n', 's'] : ['w', 'e'];
-    if (it.type === 'qr') return ['nw', 'ne', 'se', 'sw'];
+    if (it.type === 'qr' && is2DSquare(it)) return ['nw', 'ne', 'se', 'sw'];
     return ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
   }
   function handlePos(it, k) {
@@ -1837,8 +1954,9 @@
     if (k.indexOf('w') >= 0) { w = b.w - dx; x = b.x + dx; }
     if (k.indexOf('s') >= 0) hh = b.h + dy;
     if (k.indexOf('n') >= 0) { hh = b.h - dy; y = b.y + dy; }
-    if (it.type === 'qr' || (keep || it.type === 'image' || it.type === 'sign') && k.length === 2) {
-      var ratio = it.type === 'qr' ? 1 : b.h / b.w, size = Math.max(w, hh / ratio);
+    var sq = it.type === 'qr' && is2DSquare(it);
+    if (sq || (keep || it.type === 'image' || it.type === 'sign') && k.length === 2) {
+      var ratio = sq ? 1 : b.h / b.w, size = Math.max(w, hh / ratio);
       w = size; hh = size * ratio;
       if (k.indexOf('w') >= 0) x = b.x + b.w - w;
       if (k.indexOf('n') >= 0) y = b.y + b.h - hh;
@@ -2221,7 +2339,7 @@
     var self = this, it = this.sel && this.item(this.sel), P = this.$props;
     if (this.multi.length) return this.renderGroupProps();
     if (!it) return this.renderLabelProps();
-    var f = '<div class="xpe-ptitle">' + NAMES[it.type] + '</div>';
+    var f = '<div class="xpe-ptitle">' + esc(it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
     if (it.type === 'text') {
       f += '<div class="xpe-f xpe-wide"><span>Текст</span>' +
         '<div class="xpe-rtools" role="toolbar" aria-label="Оформление текста">' + FMT.map(function (m) {
@@ -2234,14 +2352,22 @@
       f += num('size', 'Размер, pt', it.size, 0.5, ' min="4" max="72"');
       f += select('align', 'Выравнивание', it.align, [['left', 'По левому краю'], ['center', 'По центру'], ['right', 'По правому краю']]);
     } else if (it.type === 'barcode') {
-      f += select('format', 'Тип', it.format, [['CODE128', 'Code 128 (буквы и цифры)'], ['EAN13', 'EAN-13 (13 цифр)']]);
+      var groups = [], og = '';
+      BARCODES.forEach(function (b) { if (groups.indexOf(b[4]) < 0) groups.push(b[4]); });
+      groups.forEach(function (gname) {
+        og += '<optgroup label="' + esc(gname) + '">' + BARCODES.filter(function (b) { return b[4] === gname; }).map(function (b) {
+          return '<option value="' + b[0] + '"' + (b[0] === it.format ? ' selected' : '') + '>' + esc(b[1]) + '</option>';
+        }).join('') + '</optgroup>';
+      });
+      f += '<label class="xpe-f"><span>Тип</span><select data-k="format">' + og + '</select></label>';
       f += '<label class="xpe-f xpe-wide"><span>Данные</span><input type="text" data-k="data" value="' + esc(it.data) + '"></label>';
       var enc = encodeBarcode(it.format, it.data);
-      if (!enc) f += '<div class="xpe-warn">' + (it.format === 'EAN13' ? 'EAN-13: нужно 12 или 13 цифр с верной контрольной цифрой.' : 'Code 128: латиница, цифры и знаки.') + '</div>';
+      if (!enc) f += '<div class="xpe-warn">' + esc(barcodeInfo(it.format)[2]) + '</div>';
       else {
         var gm = barcodeGeom(it, enc);
         if (gm.tooNarrow || gm.overflow) f += '<div class="xpe-warn">Штрихкод слишком узкий для такой длины данных — расширьте его, иначе сканер не прочитает.</div>';
-        if (it.format === 'EAN13' && it.data.length === 12) f += '<div class="xpe-note">Контрольная цифра: ' + enc.text[12] + '</div>';
+        var gl = GTIN_LEN[it.format];
+        if (gl && it.data.length === gl - 1) f += '<div class="xpe-note">Контрольная цифра: ' + enc.text[gl - 1] + '</div>';
       }
       f += check('showText', 'Цифры под штрихкодом', it.showText);
       if (it.showText) {
@@ -2249,7 +2375,13 @@
         f += num('textSize', 'Размер цифр, pt', it.textSize, 0.5, ' min="4" max="24"');
       }
     } else if (it.type === 'qr') {
-      f += '<label class="xpe-f xpe-wide"><span>Данные (текст или ссылка)</span><textarea data-k="data" rows="3">' + esc(it.data) + '</textarea></label>';
+      var fmt2 = it.format || 'qr';
+      f += select('format', 'Тип', fmt2, CODES2D.map(function (c) { return [c[0], c[1]]; }));
+      f += '<label class="xpe-f xpe-wide"><span>Данные</span><textarea data-k="data" rows="3">' + esc(it.data) + '</textarea></label>';
+      f += '<div class="xpe-note">' + esc(code2dInfo(fmt2)[2]) + '</div>';
+      if (fmt2 === 'qr') f += select('ec', 'Защита от повреждений', it.ec || 'M',
+        [['L', 'L — 7%, самый компактный'], ['M', 'M — 15%, обычно'], ['Q', 'Q — 25%'], ['H', 'H — 30%, для грубой печати']]);
+      f += '<div class="xpe-warn xpe-2dwarn"' + (this.code2dWarning(it) ? '' : ' hidden') + '>' + esc(this.code2dWarning(it)) + '</div>';
     } else if (it.type === 'line') {
       f += select('orient', 'Направление', it.orient, [['h', 'Горизонтальная'], ['v', 'Вертикальная']]);
       f += num('thickness', 'Толщина, мм', it.thickness, 0.1, ' min="0.1" max="5"');
@@ -2293,8 +2425,15 @@
       var apply = function () {
         var v = inp.type === 'checkbox' ? inp.checked : inp.type === 'number' ? parseFloat(inp.value) : inp.value;
         if (inp.type === 'number' && isNaN(v)) return;
-        if (k === 'h' && it.type === 'qr') it.w = v;
-        if (k === 'w' && it.type === 'qr') it.h = v;
+        if (k === 'h' && it.type === 'qr' && is2DSquare(it)) it.w = v;
+        if (k === 'w' && it.type === 'qr' && is2DSquare(it)) it.h = v;
+        // смена типа: пример данных, если старые не подходят; PDF417 — прямоугольный блок
+        if (k === 'format' && it.type === 'barcode' && !encodeBarcode(v, it.data)) it.data = barcodeInfo(v)[3];
+        if (k === 'format' && it.type === 'qr') {
+          if (v === 'gs1dm' && !/^01\d{14}21/.test(it.data)) it.data = EXAMPLE_GS1DM;
+          if (v === 'pdf417') { it.w = Math.max(it.w, 40); it.h = r2(it.w * 0.4); }   // PDF417 широкий
+          else if ((it.format || 'qr') === 'pdf417') it.h = it.w;
+        }
         if ((it.type === 'image' && it.nw || it.type === 'sign') && (k === 'w' || k === 'h')) {
           var ratio = it.type === 'sign' ? SIGNS.ratio(SIGNS.get(it.key)) : it.nh / it.nw;
           if (k === 'w') it.h = r2(v * ratio); else it.w = r2(v / ratio);
@@ -2302,7 +2441,7 @@
         if (k === 'orient' && v !== it.orient) { var t = it.w; it.w = it.h; it.h = t; }
         it[k] = v;
         self.render();
-        if (inp.tagName !== 'TEXTAREA' && inp.type === 'text') self.refreshWarnings();
+        if (inp.type === 'text' || it.type === 'qr') self.refreshWarnings();
       };
       inp.addEventListener('input', apply);
       inp.addEventListener('change', function () {
@@ -2397,9 +2536,26 @@
     });
   };
 
+  Editor.prototype.code2dWarning = function (it) {
+    var enc = encode2D(it);
+    if (enc === 'loading') return '';
+    if (!it.data) return 'Нет данных.';
+    if (!enc) return 'Эти данные не закодировать в ' + code2dInfo(it.format)[1] + '.';
+    if ((it.format || 'qr') === 'gs1dm' && !hasGS(it.data) && it.data.length > 31)
+      return 'В коде не видно разделителей (GS) — сканер «Честного знака» может его не принять. Скопируйте код целиком из файла заказа кодов.';
+    var g = qrGeom(it, enc);
+    if (g.ms < DOT * 2) return 'Код слишком мелкий для термопринтера — увеличьте его.';
+    return '';
+  };
+
   Editor.prototype.refreshWarnings = function () {
-    // штрихкод: обновить подсказки, не сбивая фокус в поле ввода
+    // штрихкод и 2D-код: обновить подсказки, не сбивая фокус в поле ввода
     var it = this.sel && this.item(this.sel);
+    if (it && it.type === 'qr') {
+      var wb = this.$props.querySelector('.xpe-2dwarn'), msg = this.code2dWarning(it);
+      if (wb) { wb.textContent = msg; wb.hidden = !msg; }
+      return;
+    }
     if (!it || it.type !== 'barcode') return;
     var enc = encodeBarcode(it.format, it.data), box = this.$props.querySelector('.xpe-warn');
     var bad = !enc;
@@ -2409,7 +2565,7 @@
       this.$props.querySelector('[data-k="data"]').closest('label').after(box);
     }
     if (box) {
-      if (bad) box.textContent = it.format === 'EAN13' ? 'EAN-13: нужно 12 или 13 цифр с верной контрольной цифрой.' : 'Code 128: латиница, цифры и знаки.';
+      if (bad) box.textContent = barcodeInfo(it.format)[2];
       else box.remove();
     }
   };
@@ -2585,8 +2741,8 @@
             text(enc.text, it.x + it.w / 2, gm.textY, 'center');
           }
         } else if (it.type === 'qr') {
-          var qe = encodeQR(it.data);
-          if (!qe) return;
+          var qe = encode2D(it);
+          if (!qe || qe === 'loading') return;
           var qg = qrGeom(it, qe);
           qe.runs.forEach(function (r) { rect(qg.x0 + r[0] * qg.ms, qg.y0 + r[1] * qg.ms, r[2] * qg.ms, qg.ms, 'F'); });
         } else if (it.type === 'line') {
@@ -2680,7 +2836,8 @@
   Editor.prototype.exportPDF = function (mode) {
     var self = this, L = this.doc.label;
     var win = mode === 'print' && MOBILE ? window.open('', '_blank') : null;
-    Promise.all([this.loadFonts(), this.rotatedImages()]).then(function (res) {
+    var need2D = this.allItems().some(function (it) { return it.type === 'qr' && (it.format || 'qr') !== 'qr'; });
+    Promise.all([this.loadFonts(), this.rotatedImages(), need2D ? loadBwip() : null]).then(function (res) {
       var fonts = res[0];
       if (fonts.missing.length) {
         alert('Шрифт «' + fonts.missing.join('», «') + '» не найден на этом компьютере или не встраивается в PDF. ' +
@@ -2729,6 +2886,7 @@
         document.fonts.load('400 10px Arimo'), document.fonts.load('700 10px Arimo')
       ]).catch(function () {}) : Promise.resolve();
       SIGN_BASE = base;
+      bwipBase = base;
       return fontReady.then(function () { el.__xpe = new Editor(el, base); return el.__xpe; });
     }
   };
