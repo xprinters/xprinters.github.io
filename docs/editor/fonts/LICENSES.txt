@@ -1,0 +1,24 @@
+Шрифты редактора этикеток. Источник — Google Fonts (fonts.google.com), файлы урезаны
+до латиницы, кириллицы и типографских знаков скриптом tools/build_fonts.py.
+
+Arimo — OFL 1.1
+Tinos — OFL 1.1
+Cousine — OFL 1.1
+Roboto Condensed — OFL 1.1
+Roboto — OFL 1.1
+Open Sans — OFL 1.1
+Montserrat — OFL 1.1
+PT Sans — OFL 1.1
+PT Serif — OFL 1.1
+Inter — OFL 1.1
+Rubik — OFL 1.1
+Fira Sans — OFL 1.1
+Ubuntu — Ubuntu Font Licence 1.0
+Exo 2 — OFL 1.1
+Roboto Slab — OFL 1.1
+Oswald — OFL 1.1
+Comfortaa — OFL 1.1
+Caveat — OFL 1.1
+
+OFL 1.1: https://openfontlicense.org
+Ubuntu Font Licence 1.0: https://ubuntu.com/legal/font-licence

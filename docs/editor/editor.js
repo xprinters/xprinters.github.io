@@ -15,11 +15,26 @@
   qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
 
   /* Встроенные шрифты лежат в fonts/, шрифты компьютера — через Local Font Access API (Chrome, Edge) */
+  // Файлы и fonts/fonts.css собирает tools/build_fonts.py (Google Fonts, урезаны до латиницы и кириллицы)
   var BUILTIN = [
-    { family: 'Arimo', file: 'Arimo', label: 'Arimo — как Arial' },
-    { family: 'Roboto Condensed', file: 'RobotoCondensed', label: 'Roboto Condensed — узкий' },
-    { family: 'Tinos', file: 'Tinos', label: 'Tinos — как Times' },
-    { family: 'Cousine', file: 'Cousine', label: 'Cousine — моноширинный' }
+    { family: 'Arimo', file: 'Arimo', label: 'Arimo — как Arial', cat: 'Без засечек' },
+    { family: 'Roboto', file: 'Roboto', label: 'Roboto', cat: 'Без засечек' },
+    { family: 'Open Sans', file: 'OpenSans', label: 'Open Sans', cat: 'Без засечек' },
+    { family: 'Montserrat', file: 'Montserrat', label: 'Montserrat', cat: 'Без засечек' },
+    { family: 'PT Sans', file: 'PTSans', label: 'PT Sans', cat: 'Без засечек' },
+    { family: 'Inter', file: 'Inter', label: 'Inter', cat: 'Без засечек' },
+    { family: 'Rubik', file: 'Rubik', label: 'Rubik', cat: 'Без засечек' },
+    { family: 'Fira Sans', file: 'FiraSans', label: 'Fira Sans', cat: 'Без засечек' },
+    { family: 'Ubuntu', file: 'Ubuntu', label: 'Ubuntu', cat: 'Без засечек' },
+    { family: 'Exo 2', file: 'Exo2', label: 'Exo 2', cat: 'Без засечек' },
+    { family: 'Tinos', file: 'Tinos', label: 'Tinos — как Times', cat: 'С засечками' },
+    { family: 'PT Serif', file: 'PTSerif', label: 'PT Serif', cat: 'С засечками' },
+    { family: 'Roboto Slab', file: 'RobotoSlab', label: 'Roboto Slab', cat: 'С засечками' },
+    { family: 'Roboto Condensed', file: 'RobotoCondensed', label: 'Roboto Condensed', cat: 'Узкие' },
+    { family: 'Oswald', file: 'Oswald', label: 'Oswald', cat: 'Узкие' },
+    { family: 'Cousine', file: 'Cousine', label: 'Cousine — как Courier', cat: 'Моноширинные' },
+    { family: 'Comfortaa', file: 'Comfortaa', label: 'Comfortaa — округлый', cat: 'Рукописные и декоративные' },
+    { family: 'Caveat', file: 'Caveat', label: 'Caveat — рукописный', cat: 'Рукописные и декоративные' }
   ];
   function builtin(family) {
     for (var i = 0; i < BUILTIN.length; i++) if (BUILTIN[i].family === family) return BUILTIN[i];
@@ -2126,9 +2141,14 @@
   };
 
   Editor.prototype.fontSelect = function (cur) {
-    var o = '<optgroup label="Встроенные">' + BUILTIN.map(function (b) {
-      return '<option value="' + esc(b.family) + '"' + (b.family === cur ? ' selected' : '') + '>' + esc(b.label) + '</option>';
-    }).join('') + '</optgroup>';
+    // встроенные — группами по стилю, в порядке BUILTIN
+    var o = '', cats = [];
+    BUILTIN.forEach(function (b) { if (cats.indexOf(b.cat) < 0) cats.push(b.cat); });
+    cats.forEach(function (cat) {
+      o += '<optgroup label="' + esc(cat) + '">' + BUILTIN.filter(function (b) { return b.cat === cat; }).map(function (b) {
+        return '<option value="' + esc(b.family) + '"' + (b.family === cur ? ' selected' : '') + '>' + esc(b.label) + '</option>';
+      }).join('') + '</optgroup>';
+    });
     var fams = localFonts ? Object.keys(localFonts).sort(function (a, b) { return a.localeCompare(b); }) : [];
     if (!builtin(cur) && fams.indexOf(cur) < 0) fams.unshift(cur);   // шрифт из сохранённого макета
     if (fams.length) {

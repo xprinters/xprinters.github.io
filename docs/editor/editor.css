@@ -1,12 +1,5 @@
 /* Редактор этикеток */
-@font-face { font-family: "Arimo"; src: url("fonts/Arimo-Regular.ttf") format("truetype"); font-weight: 400; }
-@font-face { font-family: "Arimo"; src: url("fonts/Arimo-Bold.ttf") format("truetype"); font-weight: 700; }
-@font-face { font-family: "Roboto Condensed"; src: url("fonts/RobotoCondensed-Regular.ttf") format("truetype"); font-weight: 400; }
-@font-face { font-family: "Roboto Condensed"; src: url("fonts/RobotoCondensed-Bold.ttf") format("truetype"); font-weight: 700; }
-@font-face { font-family: "Tinos"; src: url("fonts/Tinos-Regular.ttf") format("truetype"); font-weight: 400; }
-@font-face { font-family: "Tinos"; src: url("fonts/Tinos-Bold.ttf") format("truetype"); font-weight: 700; }
-@font-face { font-family: "Cousine"; src: url("fonts/Cousine-Regular.ttf") format("truetype"); font-weight: 400; }
-@font-face { font-family: "Cousine"; src: url("fonts/Cousine-Bold.ttf") format("truetype"); font-weight: 700; }
+@import url("fonts/fonts.css");   /* встроенные шрифты — tools/build_fonts.py */
 
 /* страница редактора — на всю ширину */
 .md-main:has(#xp-editor) .md-grid { max-width: 100rem; }
