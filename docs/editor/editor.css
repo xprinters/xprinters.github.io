@@ -98,6 +98,7 @@
   border: 0; background: none; cursor: pointer; color: var(--md-default-fg-color);
 }
 .xpe-zbtn:hover { background: var(--xp-accent-soft); color: var(--xp-tag-fg); }
+.xpe-zbtn.xpe-zfit { border-left: 1px solid var(--xp-card-border); }
 .xpe-zbtn.xpe-zval { min-width: 3.4rem; font-variant-numeric: tabular-nums; border-left: 1px solid var(--xp-card-border); border-right: 1px solid var(--xp-card-border); }
 /* панель «Настройки этикетки» */
 .xpe-pseg { display: flex; }
@@ -109,8 +110,7 @@
 .xpe-pseg button:last-child { border-radius: 0 .35rem .35rem 0; }
 .xpe-pseg button.xpe-on { background: var(--xp-accent-soft); color: var(--xp-tag-fg); border-color: var(--xp-accent); position: relative; }
 .xpe-pseg button:disabled { opacity: .5; cursor: default; }
-.xpe-help summary { cursor: pointer; color: var(--md-default-fg-color--light); font-size: .65rem; }
-.xpe-help[open] summary { margin-bottom: .3rem; }
+.md-typeset .xpe .xpe-help > summary { font-weight: 400; color: var(--md-default-fg-color--light); }
 .xpe-props input[type=range] { width: 100%; accent-color: var(--xp-accent); }
 .xpe-fname {
   position: absolute;
@@ -132,13 +132,10 @@
 .xpe-fname.xpe-flash { color: var(--xp-success); border-color: var(--xp-success); }
 
 /* узкие экраны: у кнопок файла остаются только иконки, результат — отдельной строкой */
-@media (max-width: 100em) {
-  .xpe-lbl { display: none; }
-}
-@media (max-width: 90em) {
-  .xpe-g-file .xpe-btn span { display: none; }
-  .xpe-g-file .xpe-btn { width: var(--h); padding: 0; }
-}
+/* Compact: у кнопок файла только иконки (подписи — во всплывающих подсказках), без надписи «Этикетка» */
+.xpe-lbl { display: none; }
+.xpe-g-file .xpe-btn span { display: none; }
+.xpe-g-file .xpe-btn { width: var(--h); padding: 0; }
 @media (max-width: 60em) {
   .xpe-g-out { margin-left: 0; flex: 1 1 100%; }
   .xpe-g-out .xpe-btn { flex: 1; }
@@ -186,7 +183,7 @@
 /* основная область */
 .xpe-body {
   display: grid;
-  grid-template-columns: 9rem minmax(0, 1fr) 15rem;
+  grid-template-columns: 3.3rem minmax(0, 1fr) 16.5rem;
   gap: var(--xpe-gap);
   min-height: 30rem;
 }
@@ -196,20 +193,34 @@
   border-radius: .6rem;
   padding: .5rem;
 }
-.xpe-tools { display: flex; flex-direction: column; gap: .3rem; }
+/* узкая колонка инструментов: только значки, подпись — подсказкой справа при наведении */
+.xpe-tools { display: flex; flex-direction: column; align-items: center; gap: .25rem; padding: .35rem; }
 .xpe-tools button {
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: .5rem;
-  padding: .5rem .6rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   border: 1px solid transparent;
-  border-radius: .4rem;
+  border-radius: .45rem;
   background: none;
   cursor: pointer;
-  text-align: left;
 }
 .xpe-tools button:hover { background: var(--xp-accent-soft); color: var(--xp-tag-fg); }
-.xpe-tools svg { width: 1.1rem; height: 1.1rem; fill: currentColor; flex: 0 0 auto; }
+.xpe-tools svg { width: 1.25rem; height: 1.25rem; fill: currentColor; flex: 0 0 auto; }
+.xpe-tl { display: none; }
+.xpe-tools button[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; left: calc(100% + .55rem); top: 50%; z-index: 5;
+  padding: .3rem .55rem; border-radius: .35rem; white-space: nowrap;
+  background: var(--md-default-fg-color); color: var(--md-default-bg-color);
+  font-size: .65rem; font-weight: 600; pointer-events: none;
+  opacity: 0; transform: translate(-.25rem, -50%); transition: opacity .12s, transform .12s;
+}
+.xpe-tools button[data-tip]:hover::after, .xpe-tools button[data-tip]:focus-visible::after { opacity: 1; transform: translate(0, -50%); }
 
 .xpe-stage {
   position: relative;
@@ -340,8 +351,38 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
   .xpe-tw:not(.xpe-on) .xpe-thumbdel { display: none; }
 }
 
-/* свойства */
-.xpe-props { display: flex; flex-direction: column; gap: .5rem; user-select: text; overflow: auto; }
+/* свойства: заголовок, раскрывающиеся секции, действия внизу */
+.xpe-props { display: flex; flex-direction: column; gap: 0; user-select: text; overflow: auto; padding: 0; }
+/* компьютер: панель не выше холста — дальше прокручивается сама, действия закреплены внизу */
+@media (min-width: 60.0625em) { .xpe-props { max-height: clamp(28rem, 68vh, 52rem); } }
+.xpe-ptitle { padding: .65rem .7rem .55rem; }
+/* .md-typeset .xpe … — перекрываем оформление <details> из Material (рамка, значок, отступы) */
+.md-typeset .xpe .xpe-sec {
+  margin: 0; padding: 0; border: 0; border-top: 1px solid var(--xp-card-border); border-radius: 0;
+  background: none; box-shadow: none; font-size: inherit; overflow: visible;
+}
+.md-typeset .xpe .xpe-sec > summary {
+  display: flex; align-items: center; justify-content: space-between; gap: .4rem;
+  margin: 0; padding: .55rem .7rem; border: 0; border-radius: 0; background: none;
+  cursor: pointer; list-style: none; user-select: none;
+  font-weight: 600; color: var(--md-default-fg-color);
+}
+.md-typeset .xpe .xpe-sec > summary::-webkit-details-marker { display: none; }
+.md-typeset .xpe .xpe-sec > summary::before { display: none; }
+.md-typeset .xpe .xpe-sec > summary::after {
+  content: ""; position: static; width: .4rem; height: .4rem; margin: 0 .15rem 0 0; flex: 0 0 auto;
+  background: none; -webkit-mask: none; mask: none;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform .15s; opacity: .55;
+}
+.md-typeset .xpe .xpe-sec[open] > summary::after { transform: rotate(45deg); }
+.md-typeset .xpe .xpe-sec > summary:hover { color: var(--xp-accent); }
+.md-typeset .xpe .xpe-sec > .xpe-secb { margin: 0; }
+.xpe-secb { display: flex; flex-direction: column; gap: .5rem; padding: 0 .7rem .7rem; }
+.xpe-pfoot {
+  position: sticky; bottom: 0; margin-top: auto; padding: .5rem .7rem;
+  border-top: 1px solid var(--xp-card-border); background: var(--xp-card-bg);
+}
 .xpe-ptitle { font-family: var(--md-code-font-family); font-weight: 700; text-transform: uppercase; font-size: .7rem; color: var(--md-default-fg-color--light); }
 .xpe-f { display: flex; flex-direction: column; gap: .2rem; }
 .xpe-f > span { color: var(--md-default-fg-color--light); font-size: .65rem; }
@@ -365,10 +406,13 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
   /* элементы — одной строкой с прокруткой вбок, сразу над холстом */
   .xpe-tools { flex-direction: row; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: .35rem; gap: .35rem; }
   .xpe-tools::-webkit-scrollbar { display: none; }
-  .xpe-tools button { flex: 0 0 auto; white-space: nowrap; padding: .45rem .65rem; border-color: var(--xp-card-border); background: var(--md-default-bg-color); }
+  .xpe-tools button { flex: 0 0 auto; width: auto; height: auto; white-space: nowrap; padding: .45rem .65rem; border-color: var(--xp-card-border); background: var(--md-default-bg-color); }
+  .xpe-tools .xpe-tl { display: inline; }
+  .xpe-tools button[data-tip]::after { display: none; }
   .xpe-stage { height: min(22rem, 58vh); }
 }
 /* на странице редактора на телефоне заголовок компактнее — больше места холсту */
+.md-typeset:has(.xpe) h1 { font-size: 1.5rem; margin: 0 0 .8rem; }
 @media (max-width: 30em) {
   .md-typeset:has(.xpe) h1 { font-size: 1.35rem; margin: 0 0 .7rem; }
 }

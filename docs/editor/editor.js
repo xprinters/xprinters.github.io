@@ -460,7 +460,8 @@
     print: icon('M7 8V3h10v5M7 17H4v-7h16v7h-3M7 14h10v7H7z'),
     download: icon('M12 3v12M7 10l5 5 5-5M5 21h14'),
     portrait: icon('M7 3h10v18H7z'),
-    landscape: icon('M3 7h18v10H3z')
+    landscape: icon('M3 7h18v10H3z'),
+    fit: icon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')
   };
 
   function presetOptions() {
@@ -868,13 +869,13 @@
         '</div>' +
         '<div class="xpe-body">' +
           '<div class="xpe-tools">' +
-            '<button type="button" data-add="text"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v3h5.5v12h3V7H19V4z"/></svg> Текст</button>' +
-            '<button type="button" data-add="barcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2v14H2zm3 0h1v14H5zm2 0h3v14H7zm4 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h3v14h-3z"/></svg> Штрихкод</button>' +
-            '<button type="button" data-add="qr" title="QR-код, DataMatrix («Честный знак»), PDF417, Aztec"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></svg> QR-код</button>' +
-            '<button type="button" data-add="line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg> Линия</button>' +
-            '<button type="button" data-add="rect"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg> Рамка</button>' +
-            '<button type="button" data-add="image"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg> Картинка</button>' +
-            '<button type="button" data-add="sign"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg> Знаки</button>' +
+            '<button type="button" data-add="text" data-tip="Текст"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v3h5.5v12h3V7H19V4z"/></svg><span class="xpe-tl">Текст</span></button>' +
+            '<button type="button" data-add="barcode" data-tip="Штрихкод"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2v14H2zm3 0h1v14H5zm2 0h3v14H7zm4 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h3v14h-3z"/></svg><span class="xpe-tl">Штрихкод</span></button>' +
+            '<button type="button" data-add="qr" data-tip="QR, DataMatrix, PDF417, Aztec"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></svg><span class="xpe-tl">QR-код</span></button>' +
+            '<button type="button" data-add="line" data-tip="Линия"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg><span class="xpe-tl">Линия</span></button>' +
+            '<button type="button" data-add="rect" data-tip="Рамка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg><span class="xpe-tl">Рамка</span></button>' +
+            '<button type="button" data-add="image" data-tip="Картинка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg><span class="xpe-tl">Картинка</span></button>' +
+            '<button type="button" data-add="sign" data-tip="Знаки: ЕАЦ, уход за одеждой, валюты…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg><span class="xpe-tl">Знаки</span></button>' +
             '<input type="file" accept="image/png,image/jpeg,image/svg+xml" class="xpe-file" hidden>' +
           '</div>' +
           '<div class="xpe-stagewrap"><div class="xpe-stagebox"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
@@ -894,6 +895,7 @@
               '<button type="button" class="xpe-zbtn xpe-zout" title="Уменьшить (Ctrl + колёсико)" aria-label="Уменьшить">' + ICON.minus + '</button>' +
               '<button type="button" class="xpe-zbtn xpe-zval" title="Вписать в окно (Ctrl+0)">100%</button>' +
               '<button type="button" class="xpe-zbtn xpe-zin" title="Увеличить (Ctrl + колёсико)" aria-label="Увеличить">' + ICON.plus + '</button>' +
+              '<button type="button" class="xpe-zbtn xpe-zfit" title="Вписать в окно (Ctrl+0)" aria-label="Вписать в окно">' + ICON.fit + '</button>' +
             '</div>' +
             '<span class="xpe-fname" title="Файл макета"></span>' +
             '<span class="xpe-pager" title="Этикетка / всего этикеток (PgUp, PgDn — листать)"></span>' +
@@ -967,6 +969,7 @@
     q('.xpe-zin').addEventListener('click', function () { self.setZoom(self.zoom * 1.25); });
     q('.xpe-zout').addEventListener('click', function () { self.setZoom(self.zoom / 1.25); });
     this.$zval.addEventListener('click', function () { self.setZoom(1); });
+    q('.xpe-zfit').addEventListener('click', function () { self.setZoom(1); });
     q('.xpe-new').addEventListener('click', function () { self.newDoc(); });
     q('.xpe-openf').addEventListener('click', function () { self.openFile(); });
     q('.xpe-savef').addEventListener('click', function () { self.saveFile(); });
@@ -2170,6 +2173,22 @@
   };
 
   /* ---------- панель свойств ---------- */
+  // Секция панели: заголовок сворачивает её; свёрнутые секции помнятся между элементами и сеансами
+  var SEC_KEY = 'xpe-closed', closedSecs = {};
+  try { closedSecs = JSON.parse(localStorage.getItem(SEC_KEY) || '{}') || {}; } catch (e) { /* без хранилища */ }
+  function sec(key, title, body, closedByDefault) {
+    var closed = key in closedSecs ? closedSecs[key] : !!closedByDefault;
+    return '<details class="xpe-sec" data-sec="' + key + '"' + (closed ? '' : ' open') + '><summary>' + title + '</summary>' +
+      '<div class="xpe-secb">' + body + '</div></details>';
+  }
+  function bindSecs(P) {
+    P.querySelectorAll('.xpe-sec').forEach(function (d) {
+      d.addEventListener('toggle', function () {
+        closedSecs[d.getAttribute('data-sec')] = !d.open;
+        try { localStorage.setItem(SEC_KEY, JSON.stringify(closedSecs)); } catch (e) { /* без хранилища */ }
+      });
+    });
+  }
   var NAMES = { text: 'Текст', barcode: 'Штрихкод', qr: 'QR-код', line: 'Линия', rect: 'Рамка', image: 'Картинка', sign: 'Знак' };
 
   function num(k, label, v, step, attrs) {
@@ -2321,8 +2340,8 @@
     var self = this, P = this.$props, L = this.doc.label, c = this.cv(), ul = this.doc.underlay;
     var v = L.w + 'x' + L.h, known = PRESETS.some(function (p) { return p[0] + 'x' + p[1] === v; });
     var horiz = c.w > c.h, square = c.w === c.h;
-    P.innerHTML = '<div class="xpe-ptitle">Настройки этикетки</div>' +
-      '<label class="xpe-f"><span>Размер</span><select data-lk="preset">' + presetOptions() + '</select></label>' +
+    P.innerHTML = '<div class="xpe-ptitle">Настройки этикетки</div>' + sec('lsize', 'Размер',
+      '<label class="xpe-f"><span>Шаблон</span><select data-lk="preset">' + presetOptions() + '</select></label>' +
       '<div class="xpe-grid">' +
         '<label class="xpe-f"><span>Ширина, мм</span><input type="number" data-lk="w" min="10" max="200" step="1" value="' + L.w + '"></label>' +
         '<label class="xpe-f"><span>Высота, мм</span><input type="number" data-lk="h" min="10" max="300" step="1" value="' + L.h + '"></label>' +
@@ -2330,16 +2349,16 @@
       '<div class="xpe-f"><span>Ориентация макета</span><div class="xpe-pseg">' +
         '<button type="button" data-por="v"' + (!square && !horiz ? ' class="xpe-on"' : '') + (square ? ' disabled' : '') + '>Вертикальная</button>' +
         '<button type="button" data-por="h"' + (!square && horiz ? ' class="xpe-on"' : '') + (square ? ' disabled' : '') + '>Горизонтальная</button>' +
-      '</div></div>' +
-      '<div class="xpe-f"><span>Подложка — не печатается</span>' +
+      '</div></div>') +
+      sec('under', 'Подложка', '<div class="xpe-f">' +
         '<div class="xpe-actions">' +
           '<button type="button" class="xpe-btn" data-ul="add">' + (ul ? 'Заменить картинку' : 'Добавить картинку') + '</button>' +
           (ul ? '<button type="button" class="xpe-btn xpe-danger" data-ul="del">Убрать</button>' : '') +
         '</div>' +
         (ul ? '<label class="xpe-f"><span>Прозрачность подложки</span><input type="range" data-ul="op" min="0.1" max="1" step="0.05" value="' + ul.opacity + '"></label>' : '') +
         '<span class="xpe-note">Фото или скан готовой этикетки, чтобы выровнять по нему элементы. В PDF и при печати подложки нет.</span>' +
-      '</div>' +
-      '<details class="xpe-help"><summary>Подсказки по управлению</summary><p class="xpe-keys">' +
+      '</div>', !ul) +
+      '<details class="xpe-sec xpe-help"><summary>Подсказки по управлению</summary><p class="xpe-keys xpe-secb">' +
         'Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.<br>' +
         'Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
         'Alt при перетаскивании — без прилипания.<br>Delete — удалить, Ctrl+D — копия, Ctrl+Z — отменить.<br>' +
@@ -2347,6 +2366,7 @@
         'Ещё этикетка — «+» под этикеткой: в PDF каждая станет отдельной страницей. PgUp, PgDn — листать, ' +
         'порядок — перетащите миниатюру (на телефоне — удержите её).<br>' +
         'Ctrl + колёсико — масштаб.</p></details>';
+    bindSecs(P);
     var q = function (sel) { return P.querySelector(sel); };
     var pre = q('[data-lk="preset"]');
     pre.value = known ? v : 'custom';
@@ -2388,7 +2408,8 @@
     var self = this, it = this.sel && this.item(this.sel), P = this.$props;
     if (this.multi.length) return this.renderGroupProps();
     if (!it) return this.renderLabelProps();
-    var f = '<div class="xpe-ptitle">' + esc(it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
+    var head = '<div class="xpe-ptitle">' + esc(it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
+    var f = '', cap = '';
     if (it.type === 'text') {
       f += '<div class="xpe-f xpe-wide"><span>Текст</span>' +
         '<div class="xpe-rtools" role="toolbar" aria-label="Оформление текста">' + FMT.map(function (m) {
@@ -2418,10 +2439,10 @@
         var gl = GTIN_LEN[it.format];
         if (gl && it.data.length === gl - 1) f += '<div class="xpe-note">Контрольная цифра: ' + enc.text[gl - 1] + '</div>';
       }
-      f += check('showText', 'Подпись под штрихкодом', it.showText);
+      cap += check('showText', 'Подпись под штрихкодом', it.showText);
       if (it.showText) {
-        f += this.fontSelect(it.font || 'Arimo');
-        f += num('textSize', 'Размер цифр, pt', it.textSize, 0.5, ' min="4" max="24"');
+        cap += this.fontSelect(it.font || 'Arimo');
+        cap += num('textSize', 'Размер цифр, pt', it.textSize, 0.5, ' min="4" max="24"');
       }
     } else if (it.type === 'qr') {
       var fmt2 = it.format || 'qr';
@@ -2430,10 +2451,10 @@
       f += '<div class="xpe-note">' + esc(code2dInfo(fmt2)[2]) + '</div>';
       if (fmt2 === 'qr') f += select('ec', 'Защита от повреждений', it.ec || 'M',
         [['L', 'L — 7%, самый компактный'], ['M', 'M — 15%, обычно'], ['Q', 'Q — 25%'], ['H', 'H — 30%, для грубой печати']]);
-      f += check('showText', 'Подпись под кодом', it.showText);
+      cap += check('showText', 'Подпись под кодом', it.showText);
       if (it.showText) {
-        f += this.fontSelect(it.font || 'Arimo');
-        f += num('textSize', 'Размер подписи, pt', it.textSize || 6, 0.5, ' min="4" max="24"');
+        cap += this.fontSelect(it.font || 'Arimo');
+        cap += num('textSize', 'Размер подписи, pt', it.textSize || 6, 0.5, ' min="4" max="24"');
       }
       f += '<div class="xpe-warn xpe-2dwarn"' + (this.code2dWarning(it) ? '' : ' hidden') + '>' + esc(this.code2dWarning(it)) + '</div>';
     } else if (it.type === 'line') {
@@ -2451,13 +2472,18 @@
       f += '<button type="button" class="xpe-btn xpe-replace">Заменить картинку</button>';
       f += '<div class="xpe-note">Лучше всего печатаются чёрные PNG на прозрачном фоне.</div>';
     }
-    f += '<div class="xpe-grid">' + num('x', 'X, мм', it.x) + num('y', 'Y, мм', it.y) + num('w', 'Ширина', it.w, 0.5, ' min="1"') +
-      num('h', 'Высота', it.h, 0.5, ' min="1"' + (it.type === 'text' ? ' disabled' : '')) + '</div>';
-    f += '<div class="xpe-f"><span>Выровнять по этикетке</span>' + alignButtons('data-al', 'этикетки') + '</div>';
-    f += '<div class="xpe-f"><span>Элемент</span><div class="xpe-aligns xpe-acts">' +
-      actButton('data-act', 'up') + actButton('data-act', 'down') + actButton('data-act', 'dup') + actButton('data-act', 'del') +
-      '</div></div>';
-    P.innerHTML = f;
+    var MAIN = { text: 'Содержимое', barcode: 'Данные', qr: 'Данные', line: 'Линия', rect: 'Рамка', sign: 'Знак', image: 'Картинка' };
+    P.innerHTML = head +
+      sec('main', MAIN[it.type], f) +
+      (cap ? sec('cap', 'Подпись', cap) : '') +
+      sec('geom', 'Положение и размер', '<div class="xpe-grid">' + num('x', 'X, мм', it.x) + num('y', 'Y, мм', it.y) +
+        num('w', 'Ширина', it.w, 0.5, ' min="1"') + num('h', 'Высота', it.h, 0.5, ' min="1"' + (it.type === 'text' ? ' disabled' : '')) + '</div>') +
+      sec('align', 'Выровнять по этикетке', alignButtons('data-al', 'этикетки')) +
+      // действия над элементом — всегда видны внизу панели
+      '<div class="xpe-pfoot xpe-aligns xpe-acts">' +
+        actButton('data-act', 'up') + actButton('data-act', 'down') + actButton('data-act', 'dup') + actButton('data-act', 'del') +
+      '</div>';
+    bindSecs(P);
 
     var localBtn = P.querySelector('.xpe-local');
     if (localBtn) localBtn.addEventListener('click', function () {
@@ -2531,14 +2557,13 @@
   Editor.prototype.renderGroupProps = function () {
     var self = this, P = this.$props, n = this.multi.length;
     P.innerHTML = '<div class="xpe-ptitle">Выбрано элементов: ' + n + '</div>' +
-      '<div class="xpe-f"><span>Выровнять между собой</span>' + alignButtons('data-align', 'между собой') + '</div>' +
-      '<div class="xpe-f"><span>Выровнять группу по этикетке</span>' + alignButtons('data-galign', 'этикетки (всю группу)') + '</div>' +
-      '<div class="xpe-f"><span>Элементы</span><div class="xpe-aligns xpe-acts">' +
-        actButton('data-gact', 'dup') + actButton('data-gact', 'del') +
-      '</div></div>' +
-      '<p class="xpe-keys">Тяните за любой выбранный элемент — двигается вся группа.<br>' +
-      'Уголки общей рамки — пропорционально меняют размер, вместе со шрифтом.<br>' +
-      'Shift+клик — добавить или убрать элемент, Esc — снять выделение.</p>';
+      sec('galign', 'Выровнять между собой', alignButtons('data-align', 'между собой')) +
+      sec('glabel', 'Выровнять группу по этикетке', alignButtons('data-galign', 'этикетки (всю группу)')) +
+      sec('ghelp', 'Подсказки', '<p class="xpe-keys">Тяните за любой выбранный элемент — двигается вся группа.<br>' +
+        'Уголки общей рамки — пропорционально меняют размер, вместе со шрифтом.<br>' +
+        'Shift+клик — добавить или убрать элемент, Esc — снять выделение.</p>', true) +
+      '<div class="xpe-pfoot xpe-aligns xpe-acts">' + actButton('data-gact', 'dup') + actButton('data-gact', 'del') + '</div>';
+    bindSecs(P);
     P.querySelectorAll('[data-align]').forEach(function (b) {
       b.addEventListener('click', function () { self.alignGroup(b.getAttribute('data-align')); });
     });

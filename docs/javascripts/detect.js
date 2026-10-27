@@ -280,11 +280,38 @@
     });
   }
 
+  // Телефон и планшет: принтер подключается к компьютеру — поиск не показываем,
+  // предлагаем отправить ссылку на компьютер или узнать модель по наклейке
+  function mountHandheld(r) {
+    var intro = document.querySelector(".xpd-intro");
+    if (intro) intro.hidden = true;
+    var box = el("div", { "class": "admonition warning" });
+    box.appendChild(el("p", { "class": "admonition-title" }, "Доступно только с компьютера"));
+    box.appendChild(el("p", null, "Модель определяется, когда принтер подключён к компьютеру. " +
+      "Откройте эту страницу на компьютере в Google Chrome или Microsoft Edge."));
+    var bar = el("p", { "class": "xpd-buttons" });
+    var send = el("button", { type: "button", "class": "md-button md-button--primary" }, "Отправить ссылку на компьютер");
+    send.onclick = function () {
+      var url = location.href.split("#")[0];
+      if (navigator.share) {
+        navigator.share({ title: "Определить принтер — Xprinter", url: url }).catch(function () { /* закрыли окно */ });
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(function () { send.textContent = "Ссылка скопирована"; });
+      }
+    };
+    bar.appendChild(send);
+    bar.appendChild(document.createTextNode(" "));
+    bar.appendChild(el("a", { href: siteRoot + "guides/model/", "class": "md-button" }, "Как узнать модель"));
+    box.appendChild(bar);
+    r.appendChild(box);
+  }
+
   function mount(r) {
     hookConnect();
     root = r;
     siteRoot = new URL(r.getAttribute("data-root") || "../", location.href).href;
     r.innerHTML = "";
+    if (window.XPShare && window.XPShare.handheld()) return mountHandheld(r);
     var hasUsb = !!navigator.usb, hasBt = !!navigator.bluetooth;
     var bar = el("p", { "class": "xpd-buttons" });
     var bUsb = el("button", { type: "button", "class": "md-button md-button--primary" }, "Найти по USB");

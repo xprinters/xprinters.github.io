@@ -373,6 +373,10 @@
   .md-typeset .tabbed-block table:not([class]) td:nth-child(3) { grid-area: btn; }
 }
 
+/* ===== кнопки на странице «Определить принтер»: при переносе на новую строку не слипаются ===== */
+.md-typeset .xpd-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.md-typeset .xpd-buttons .md-button { margin: 0; }
+
 /* ===== «Поделиться» у кнопок скачивания (телефон и планшет, share.js) ===== */
 .md-typeset .md-button.xp-share {
   display: inline-flex;
