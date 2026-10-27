@@ -8,3 +8,6 @@ telegram/
 Seagull/
 Xlife.driver.*.exe
 tools/setup/bin/
+
+# исходные 3D-модели от завода (CAD) — не публикуем
+3d-src/
