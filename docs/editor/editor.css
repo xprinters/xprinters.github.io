@@ -535,3 +535,24 @@ html.xpe-grabbing, html.xpe-grabbing * { cursor: grabbing !important; }
 }
 .xpe-rich:focus { border-color: var(--xp-accent); box-shadow: 0 0 0 2px var(--xp-accent-soft); }
 .xpe-rich sup, .xpe-rich sub { font-size: .7em; }
+
+/* ===== плашка над холстом: результат импорта .lle (бета) ===== */
+.xpe-notice {
+  display: flex; align-items: flex-start; gap: .55rem; margin-bottom: .5rem; padding: .55rem .7rem;
+  border: 1px solid #f59e0b; border-radius: .5rem; background: rgba(245, 158, 11, .1); line-height: 1.45;
+}
+.xpe-notice[hidden] { display: none; }
+.xpe-ntext { flex: 1; min-width: 0; }
+.xpe-beta {
+  flex: 0 0 auto; padding: .1rem .4rem; border-radius: .3rem; background: #f59e0b; color: #fff;
+  font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+.xpe-nclose { flex: 0 0 auto; border: 0; background: none; cursor: pointer; color: var(--md-default-fg-color--light); padding: 0 .2rem; }
+.xpe-nclose:hover { color: var(--md-default-fg-color); }
+.xpe-grid3 { grid-template-columns: 1fr 1fr 1fr; }
+/* кнопка импорта LabelExpert: значок «β» — бета */
+.xpe-llef { position: relative; }
+.xpe-bbeta {
+  position: absolute; top: -.35rem; right: -.35rem; min-width: .95rem; height: .95rem; padding: 0 .15rem; border-radius: .5rem;
+  background: #f59e0b; color: #fff; font: 700 .55rem/0.95rem system-ui, sans-serif; font-style: normal; text-align: center; pointer-events: none;
+}

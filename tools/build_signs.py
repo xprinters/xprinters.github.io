@@ -3,6 +3,7 @@
 Источники (лицензии — в tools/signs-src/CREDITS.txt):
   tools/signs-src/commons/  — знаки с Wikimedia Commons (общественное достояние / CC0)
   tools/signs-src/tabler/   — знаки ухода за изделием из Tabler Icons (MIT)
+  tools/signs-src/ginetex/  — знаки ухода в начертании ISO 3758, Ginetex Care Symbols (MIT, через Iconify)
 
 Что делает:
   * чистит SVG (метаданные редакторов, лишние атрибуты), ставит viewBox по реальным границам рисунка;
@@ -110,6 +111,11 @@ def tabler(name):
     return '<g %s>%s</g>' % (keep, body.replace("currentColor", "#000")), vb
 
 
+def ginetex(name):
+    body, vb, keep = inner(src("ginetex/%s.svg" % name))
+    return '<g>%s</g>' % body.replace("currentColor", "#000"), vb
+
+
 def commons(name):
     body, vb, keep = inner(src("commons/%s.svg" % name))
     return '<g %s>%s</g>' % (keep, body), vb
@@ -170,6 +176,57 @@ for sid, name, icon in [
     ("nodc", "Не подвергать химчистке", "wash-dryclean-off"),
 ]:
     add("care", sid, name, tabler(icon))
+
+# Уход в начертании ISO 3758 (Ginetex). Пропущены дубли: any-bleach-allowed (= bleaching),
+# natural-drying (= drying), professional-care и wet-cleaning (= dry-cleaning), ironing (неудачный рисунок)
+for sid, name, icon in [
+    ("g-wash", "Стирка разрешена", "washing"),
+    ("g-wash30", "Стирка 30 °C", "30c-fine-wash"),
+    ("g-wash30g", "Деликатная стирка 30 °C", "30c-mild-fine-wash"),
+    ("g-wash30vg", "Очень деликатная стирка 30 °C", "30c-very-mild-fine-wash"),
+    ("g-wash40", "Стирка 40 °C", "40c-coloured-wash"),
+    ("g-wash40g", "Деликатная стирка 40 °C", "40c-mild-wash"),
+    ("g-wash40vg", "Очень деликатная стирка 40 °C", "40c-very-mild-wash"),
+    ("g-wash60", "Стирка 60 °C", "60c-coloured-wash"),
+    ("g-wash60g", "Деликатная стирка 60 °C", "60c-coloured-wash-easy-care"),
+    ("g-wash70", "Стирка 70 °C", "70c-boil-wash"),
+    ("g-wash95", "Стирка 95 °C", "95c-boil-wash"),
+    ("g-washhand", "Ручная стирка в прохладной воде", "hand-wash-ambient-temperature"),
+    ("g-washhand40", "Ручная стирка до 40 °C", "hand-wash-at-40c"),
+    ("g-nowash", "Не стирать", "do-not-wash"),
+    ("g-bleach", "Отбеливание разрешено", "bleaching"),
+    ("g-bleachox", "Только кислородный отбеливатель", "only-oxygen-bleach-allowed"),
+    ("g-nobleach", "Не отбеливать", "do-not-bleach"),
+    ("g-dry", "Сушка", "drying"),
+    ("g-tumble", "Барабанная сушка", "tumble-drying"),
+    ("g-tumble1", "Барабанная сушка, низкая температура", "mild-drying-processes"),
+    ("g-tumble2", "Барабанная сушка, обычная температура", "normal-drying-process"),
+    ("g-notumble", "Не сушить в барабане", "tumble-drying-1"),
+    ("g-dryline", "Сушка на верёвке", "line-drying"),
+    ("g-drylineshade", "Сушка на верёвке в тени", "line-drying-in-the-shade"),
+    ("g-drydripline", "Сушка на верёвке без отжима", "drip-line-drying"),
+    ("g-drydriplineshade", "Сушка на верёвке без отжима, в тени", "drip-line-drying-in-the-shade"),
+    ("g-dryflat", "Сушка в горизонтальном положении", "flat-drying"),
+    ("g-dryflatshade", "Сушка в горизонтальном положении, в тени", "flat-drying-in-the-shade"),
+    ("g-drydripflat", "Сушка в горизонтальном положении без отжима", "drip-flat-drying"),
+    ("g-drydripflatshade", "Сушка в горизонтальном положении без отжима, в тени", "drip-flat-drying-in-the-shade"),
+    ("g-iron3", "Глажка до 200 °C", "hot-iron"),
+    ("g-iron2", "Глажка до 150 °C", "iron-at-moderate-temperature"),
+    ("g-iron1", "Глажка до 110 °C", "iron-at-low-temperature"),
+    ("g-iron1nosteam", "Глажка до 110 °C без пара", "iron-at-low-temperature-without-steam"),
+    ("g-noiron", "Не гладить", "do-not-iron"),
+    ("g-dc", "Профессиональная чистка", "dry-cleaning"),
+    ("g-dcP", "Химчистка (P)", "professional-dry-cleaning-in-perchloroethylene-hydrocarbons-heavy-benzines"),
+    ("g-dcPg", "Деликатная химчистка (P)", "professional-dry-cleaning-in-perchloroethylene-hydrocarbons-heavy-benzines-1"),
+    ("g-dcF", "Химчистка углеводородами (F)", "professional-dry-cleaning-in-hydrocarbons-heavy-benzines"),
+    ("g-dcFg", "Деликатная химчистка углеводородами (F)", "professional-dry-cleaning-in-hydrocarbons-heavy-benzines-1"),
+    ("g-nodc", "Не подвергать химчистке", "do-not-dry-clean"),
+    ("g-wcW", "Аквачистка (W)", "professional-wet-cleaning"),
+    ("g-wcWg", "Деликатная аквачистка (W)", "mild-professional-wet-cleaning"),
+    ("g-wcWvg", "Очень деликатная аквачистка (W)", "very-mild-professional-wet-cleaning"),
+    ("g-nowc", "Не подвергать аквачистке", "do-not-wet-clean"),
+]:
+    add("careiso", sid, name, ginetex(icon))
 
 # Манипуляционные (ISO 7000 / ГОСТ 14192)
 add("handling", "fragile", "Хрупкое, обращаться осторожно", commons("ISO_7000_-_Ref-No_0621"))
@@ -233,7 +290,7 @@ NOTO_AM = noto("Noto Sans Armenian", "֏")
 for sid, sym, name in CURRENCIES:
     add("money", "cur-" + sid, name, (text_path(sym, 0, 0, 100, font=NOTO_AM if sym == "֏" else NOTO), "0 -100 100 100"))
 
-CATS = [("conf", "Соответствие"), ("care", "Уход за изделием"), ("handling", "Манипуляционные"),
+CATS = [("conf", "Соответствие"), ("care", "Уход за изделием"), ("careiso", "Уход — ISO 3758"), ("handling", "Манипуляционные"),
         ("eco", "Переработка"), ("food", "Пищевой контакт"), ("safety", "Возраст"), ("money", "Валюты")]
 
 

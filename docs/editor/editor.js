@@ -125,7 +125,53 @@
 
   var STYLE_KEYS = ['b', 'i', 'u', 's', 'sup', 'sub'];
   function sameSt(a, b) { return STYLE_KEYS.every(function (k) { return !!a[k] === !!b[k]; }); }
+
+  /* ---------- поля: нумерация и дата ----------
+     Текстовый блок с it.field: текст не хранится, а считается — для каждой этикетки тиража (COPY)
+     свой номер; дата — на момент печати (или заданная) со сдвигом. */
+  var COPY = 0;   // номер этикетки в тираже при выводе PDF; на холсте — 0 (первая)
+  var MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  var DATE_FORMATS = [
+    ['dd.MM.yyyy', '28.10.2026'], ['dd.MM.yy', '28.10.26'], ['dd MMMM yyyy', '28 октября 2026'], ['MM.yyyy', '10.2026'],
+    ['yyyy-MM-dd', '2026-10-28'], ['dd.MM.yyyy HH:mm', '28.10.2026 15:16'], ['HH:mm', '15:16']
+  ];
+  function pad(n, len) { var v = String(Math.abs(n)); while (v.length < len) v = '0' + v; return (n < 0 ? '-' : '') + v; }
+  function formatDate(d, fmt) {
+    return fmt.replace(/yyyy|yy|MMMM|MM|dd|HH|mm|ss/g, function (t) {
+      switch (t) {
+        case 'yyyy': return String(d.getFullYear());
+        case 'yy': return pad(d.getFullYear() % 100, 2);
+        case 'MMMM': return MONTHS_GEN[d.getMonth()];
+        case 'MM': return pad(d.getMonth() + 1, 2);
+        case 'dd': return pad(d.getDate(), 2);
+        case 'HH': return pad(d.getHours(), 2);
+        case 'mm': return pad(d.getMinutes(), 2);
+        case 'ss': return pad(d.getSeconds(), 2);
+      }
+    });
+  }
+  function fieldDate(f) {
+    var d = f.date && /^\d{4}-\d\d-\d\d$/.test(f.date) ? new Date(f.date + 'T00:00:00') : new Date();
+    var a = f.add || {};
+    if (a.y) d.setFullYear(d.getFullYear() + a.y);
+    if (a.m) {   // 31 января + 1 месяц = 28/29 февраля, а не 3 марта
+      var day = d.getDate();
+      d.setDate(1); d.setMonth(d.getMonth() + a.m);
+      d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+    }
+    if (a.d) d.setDate(d.getDate() + a.d);
+    if (a.h) d.setHours(d.getHours() + a.h);
+    if (a.mi) d.setMinutes(d.getMinutes() + a.mi);
+    return d;
+  }
+  function fieldText(it, copy) {
+    var f = it.field, v;
+    if (f.k === 'serial') v = pad((+f.start || 0) + (copy || 0) * (+f.step || 1), Math.max(0, Math.min(12, +f.digits || 0)));
+    else v = formatDate(fieldDate(f), f.fmt || 'dd.MM.yyyy');
+    return (f.prefix || '') + v + (f.suffix || '');
+  }
   function textRuns(it) {
+    if (it.field) return [{ t: fieldText(it, COPY), b: !!it.bold, i: !!it.italic, u: !!it.underline, s: !!it.strike }];
     if (it.runs && it.runs.length) return it.runs;
     return [{ t: String(it.text || ''), b: !!it.bold, i: !!it.italic, u: !!it.underline, s: !!it.strike }];
   }
@@ -294,12 +340,13 @@
     var tsize = it.textSize * PT;
     var textH = it.showText ? tsize * 1.2 : 0, gap = it.showText ? 0.6 : 0;
     var raw = it.w / enc.modules;
-    var mw = Math.max(1, Math.floor(raw / DOT)) * DOT;  // ширина модуля кратна точке принтера
+    // ширина модуля кратна точке принтера; допуск 1,5 % — 19,75 мм под 79 модулей дают 2 точки, а не 1
+    var mw = Math.max(1, Math.floor(raw / DOT + 0.015)) * DOT;
     var bw = mw * enc.modules;
     return {
       mw: mw, x0: it.x + (it.w - bw) / 2, barsH: Math.max(1, it.h - textH - gap),
       tsize: tsize, textY: it.y + it.h - textH + ASC * tsize + (textH - (ASC + DESC) * tsize) / 2,
-      tooNarrow: raw < DOT, overflow: bw > it.w + 0.01
+      tooNarrow: raw < DOT * 0.985, overflow: bw > it.w * 1.015 + 0.01
     };
   }
 
@@ -461,7 +508,8 @@
     download: icon('M12 3v12M7 10l5 5 5-5M5 21h14'),
     portrait: icon('M7 3h10v18H7z'),
     landscape: icon('M3 7h18v10H3z'),
-    fit: icon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')
+    fit: icon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'),
+    lle: icon('M12 3v10M8 9l4 4 4-4M4 14v6h16v-6')
   };
 
   function presetOptions() {
@@ -491,13 +539,19 @@
     });
     var ul = d.underlay && typeof d.underlay.src === 'string' && /^data:image\//.test(d.underlay.src)
       ? { src: d.underlay.src, opacity: Math.min(1, Math.max(0.1, +d.underlay.opacity || 0.5)) } : null;
-    return { label: d.label, pages: pages.length ? pages : [[]], underlay: ul };
+    var copies = Math.round(+d.copies);
+    return { label: d.label, pages: pages.length ? pages : [[]], underlay: ul, copies: copies > 1 ? Math.min(MAX_COPIES, copies) : 1 };
   }
+  var MAX_COPIES = 1000;
 
   function newItem(type, L) {
     var W = L.w, H = L.h;
     switch (type) {
       case 'text': return { type: type, x: W * 0.1, y: H * 0.4, w: W * 0.8, text: 'Текст', size: 10, bold: false, align: 'center', font: lastFont };
+      case 'serial': return { type: 'text', x: W * 0.1, y: H * 0.4, w: W * 0.8, text: '', size: 12, bold: true, align: 'center', font: lastFont,
+        field: { k: 'serial', start: 1, step: 1, digits: 4, prefix: '№ ', suffix: '' } };
+      case 'date': return { type: 'text', x: W * 0.1, y: H * 0.4, w: W * 0.8, text: '', size: 10, bold: false, align: 'center', font: lastFont,
+        field: { k: 'date', fmt: 'dd.MM.yyyy', date: '', add: { d: 0, m: 0, y: 0 }, prefix: 'Годен до: ', suffix: '' } };
       case 'barcode': return { type: type, x: W * 0.1, y: H * 0.3, w: W * 0.8, h: H * 0.45, format: 'CODE128', data: 'ABC123456', showText: true, textSize: 8 };
       case 'qr': var s = Math.min(W, H) * 0.5; return { type: type, x: (W - s) / 2, y: (H - s) / 2, w: s, h: s, data: 'https://xprinter.shop' };
       case 'line': return { type: type, x: W * 0.1, y: H / 2 - 1, w: W * 0.8, h: 2, thickness: 0.4, orient: 'h' };
@@ -842,8 +896,11 @@
           // файл
           '<div class="xpe-grp xpe-seg xpe-g-file">' +
             '<button type="button" class="xpe-btn xpe-new" title="Новый пустой макет">' + ICON.new + '<span>Новый</span></button>' +
-            '<button type="button" class="xpe-btn xpe-openf" title="Открыть макет: файл .xplabel или PDF из этого редактора (Ctrl+O)">' + ICON.open + '<span>Открыть</span></button>' +
+            '<button type="button" class="xpe-btn xpe-openf" title="Открыть макет: .xplabel, PDF из этого редактора или .lle из LabelExpert (бета) (Ctrl+O)">' + ICON.open + '<span>Открыть</span></button>' +
             '<button type="button" class="xpe-btn xpe-savef" title="Сохранить макет в файл (Ctrl+S)">' + ICON.save + '<span>Сохранить</span></button>' +
+            '<button type="button" class="xpe-btn xpe-llef" title="Импорт из LabelExpert (.lle) — бета. Макеты LabelExpert лежат в папке ' +
+              '%AppData%\\com.aiyin.labelexpert\\Label Expert\\db\\template — вставьте этот путь в строку «Имя файла» окна выбора">' +
+              ICON.lle + '<span>LabelExpert</span><i class="xpe-bbeta">β</i></button>' +
           '</div>' +
           // история
           '<div class="xpe-grp xpe-seg xpe-g-hist">' +
@@ -875,10 +932,13 @@
             '<button type="button" data-add="line" data-tip="Линия"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg><span class="xpe-tl">Линия</span></button>' +
             '<button type="button" data-add="rect" data-tip="Рамка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg><span class="xpe-tl">Рамка</span></button>' +
             '<button type="button" data-add="image" data-tip="Картинка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg><span class="xpe-tl">Картинка</span></button>' +
+            '<button type="button" data-add="serial" data-tip="Нумерация: 0001, 0002…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2v10H4V9.4L2.8 10 2 8.4zm5.5 0h4a1.5 1.5 0 0 1 1.5 1.5v2.2a1.5 1.5 0 0 1-1.5 1.5H11.5V15H15v2H9.5v-4.8A1.5 1.5 0 0 1 11 10.7h2V9H9.5zm7.5 0h5v6l-.1.4L20 17h-2.2l1.6-3.8H17V11h3V9h-3z"/></svg><span class="xpe-tl">Нумерация</span></button>' +
+            '<button type="button" data-add="date" data-tip="Дата: сегодня, «годен до»"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zM5 9v11h14V9zm2 2h4v4H7z"/></svg><span class="xpe-tl">Дата</span></button>' +
             '<button type="button" data-add="sign" data-tip="Знаки: ЕАЦ, уход за одеждой, валюты…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2.4v14H2zM2 5h5v2.2H2zM2 10.9h4.4v2.2H2zM2 16.8h5V19H2zM9 5h2.4v14H9zM13.6 5H16v14h-2.4zM9 5h7v2.2H9zM9 10.9h7v2.2H9zM18 5h2.4v14H18zM18 5h4v2.2h-4zM18 16.8h4V19h-4z"/></svg><span class="xpe-tl">Знаки</span></button>' +
             '<input type="file" accept="image/png,image/jpeg,image/svg+xml" class="xpe-file" hidden>' +
           '</div>' +
-          '<div class="xpe-stagewrap"><div class="xpe-stagebox"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
+          '<div class="xpe-stagewrap"><div class="xpe-notice" role="status" hidden><span class="xpe-beta">бета</span><div class="xpe-ntext"></div>' +
+            '<button type="button" class="xpe-nclose" title="Закрыть" aria-label="Закрыть">✕</button></div><div class="xpe-stagebox"><div class="xpe-stage"><svg class="xpe-svg" xmlns="' + NS + '"></svg>' +
             '<div class="xpe-addpage">' +
               '<button type="button" class="xpe-addbtn" title="Добавить этикетку" aria-label="Добавить этикетку" aria-expanded="false">' +
                 '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>' +
@@ -932,6 +992,8 @@
     this.$pager = q('.xpe-pager');
     this.$strip = q('.xpe-strip');
     this.$addpage = q('.xpe-addpage');
+    this.$notice = q('.xpe-notice');
+    q('.xpe-nclose').addEventListener('click', function () { self.notice(null); });
     // «+» раскрывает выбор «Копия» / «Пустая»
     var addBtn = q('.xpe-addbtn'), addBox = this.$addpage;
     var setAddOpen = function (open) {
@@ -973,6 +1035,14 @@
     q('.xpe-new').addEventListener('click', function () { self.newDoc(); });
     q('.xpe-openf').addEventListener('click', function () { self.openFile(); });
     q('.xpe-savef').addEventListener('click', function () { self.saveFile(); });
+    // классическое окно выбора файла: новое (showOpenFilePicker) не пускает в AppData, где LabelExpert хранит макеты
+    q('.xpe-llef').addEventListener('click', function () {
+      var inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = '.lle';
+      inp.onchange = function () { if (inp.files[0]) self.readLle(inp.files[0]); };
+      inp.click();
+    });
 
     // линейки следуют за прокруткой холста; координаты курсора — в строке состояния и на линейках
     this.$stage.addEventListener('scroll', function () { self.drawRulers(); });
@@ -1332,7 +1402,130 @@
 
   /* ---------- файл макета (.xplabel) ---------- */
   var FILE_TYPES = [{ description: 'Макет этикетки', accept: { 'application/json': ['.xplabel'] } }];
-  var OPEN_TYPES = [{ description: 'Макет этикетки или PDF из редактора', accept: { 'application/json': ['.xplabel', '.json'], 'application/pdf': ['.pdf'] } }];
+  var OPEN_TYPES = [
+    { description: 'Макет этикетки, PDF из редактора, LabelExpert (бета)', accept: { 'application/json': ['.xplabel', '.json', '.lle'], 'application/pdf': ['.pdf'] } },
+    { description: 'Макет LabelExpert / iPRT .lle (бета)', accept: { 'application/octet-stream': ['.lle'] } }
+  ];
+
+  /* ---------- импорт макета LabelExpert (.lle) — бета ----------
+     .lle — JSON; сам макет — строкой в editJsonString: schema (размер в своих единицах, scale единиц на мм)
+     и templates — элементы снизу вверх. Цвета — ARGB-числа. Что перенести нельзя, собираем в warns. */
+  var LLE_BARCODES = { code128: 'CODE128', code39: 'CODE39', ean13: 'EAN13', ean8: 'EAN8', upca: 'UPC', upce: 'UPCE',
+    itf14: 'ITF14', itf: 'ITF', itf25: 'ITF', codabar: 'codabar', msi: 'MSI', gs1128: 'GS1-128', ean128: 'GS1-128' };
+  var LLE_2D = { qrcode: 'qr', datamatrix: 'datamatrix', pdf417: 'pdf417', aztec: 'aztec' };
+  function lleToDoc(raw) {
+    var top = JSON.parse(raw), ej = top.editJsonString;
+    if (typeof ej === 'string') ej = JSON.parse(ej);
+    if (!ej || !ej.schema || !Array.isArray(ej.templates)) throw new Error('bad');
+    var sc = +ej.schema.scale || 1;
+    var W = +top.width || (ej.schema.size && ej.schema.size.width / sc), H = +top.height || (ej.schema.size && ej.schema.size.height / sc);
+    if (!(W > 0) || !(H > 0)) throw new Error('bad');
+    var mm = function (v) { return r2((+v || 0) / sc); };
+    var warns = {}, warn = function (m) { warns[m] = (warns[m] || 0) + 1; };
+    var items = [], images = [];
+    var white = function (c) { return c != null && (c >>> 0) === 0xffffffff; };
+    var textBase = function (t, e) {
+      t.size = r2(Math.max(4, mm(e.font_size) / PT));
+      t.bold = !!e.bold || +e.font_weight >= 600;
+      t.italic = !!e.italic;
+      t.underline = e.decoration === 'underline';
+      t.strike = /line ?through/i.test(e.decoration || '');
+      t.align = e.text_align === 'center' || e.text_align === 'right' ? e.text_align : 'left';
+      t.font = 'Arimo';
+      if (e.reverse || white(e.text_color)) warn('белый текст на чёрном (инверсия) — перенесён обычным чёрным');
+      if (+e.text_style_letter_spacing) warn('разрядка текста');
+      if (e.text_axis === 'vertical') warn('вертикальный текст — перенесён горизонтальным');
+      return t;
+    };
+    ej.templates.forEach(function (e) {
+      var x = mm(e.offset && e.offset.x), y = mm(e.offset && e.offset.y), w = mm(e.size && e.size.width), h = mm(e.size && e.size.height);
+      var it = null;
+      if (+e.angle || e.quarter_turns) warn('поворот элементов');
+      switch (e.code) {
+        case 'text':
+          it = textBase({ type: 'text', x: x, y: y, w: w, text: String(e.text || '') }, e);
+          break;
+        case 'serialNumber':
+          var sv = String(e.text || e.serial || '1');
+          if (e.serial_type && e.serial_type !== 'radix_10') warn('нумерация не в десятичной системе — заменена десятичной');
+          it = textBase({ type: 'text', x: x, y: y, w: w, text: '',
+            field: { k: 'serial', start: parseInt(sv, 10) || 0, step: (+e.interval || 1) * (e.operation_type === 'decrease' ? -1 : 1),
+              digits: /^\d+$/.test(sv) ? sv.length : 0, prefix: e.prefix || '', suffix: e.suffix || '' } }, e);
+          break;
+        case 'datetime':
+          var o = Array.isArray(e.offset_time) ? e.offset_time : [], hasTime = /\d\d:\d\d/.test(String(e.text || ''));
+          var fmt = (e.date_format || 'yyyy-MM-dd') + (hasTime ? ' ' + (e.time_format || 'HH:mm') : '');
+          it = textBase({ type: 'text', x: x, y: y, w: w, text: '',
+            field: { k: 'date', fmt: fmt, date: '', add: { y: +o[0] || 0, m: +o[1] || 0, d: +o[2] || 0, h: +o[3] || 0, mi: +o[4] || 0 }, prefix: e.prefix || '', suffix: e.suffix || '' } }, e);
+          break;
+        case 'barcode':
+          var bt = String(e.type || '').toLowerCase().replace(/[^a-z0-9]/g, ''), fmtB = LLE_BARCODES[bt];
+          if (!fmtB) { warn('штрихкод ' + e.type + ' — заменён на Code 128'); fmtB = 'CODE128'; }
+          it = { type: 'barcode', x: x, y: y, w: w, h: h, format: fmtB, data: String(e.content || ''), showText: !!e.visible_text,
+            textSize: r2(Math.max(4, mm(e.font_height) / PT)) };
+          if (!encodeBarcode(it.format, it.data)) { warn('штрихкод с данными, которые не подходят к его типу'); }
+          break;
+        case 'qrcode':
+          var qt = String(e.type || 'qrcode').toLowerCase().replace(/[^a-z0-9]/g, ''), fmtQ = LLE_2D[qt];
+          if (!fmtQ) { warn('2D-код ' + e.type + ' — заменён на QR'); fmtQ = 'qr'; }
+          it = { type: 'qr', x: x, y: y, w: w, h: fmtQ === 'pdf417' ? h : w, format: fmtQ, data: String(e.content || '') };
+          break;
+        case 'image':
+          var src = typeof e.content === 'string' && e.content.length > 32 ? 'data:image/png;base64,' + e.content : null;
+          if (/^https?:/.test(e.content || '')) src = null;
+          if (!src) { warn('картинки по ссылке'); break; }
+          if (e.effect_type && e.effect_type !== 'original') warn('эффекты картинок (чёрно-белый порог)');
+          it = { type: 'image', x: x, y: y, w: w, h: h, src: src, nw: 0, nh: 0 };
+          images.push(it);
+          break;
+        case 'line':
+          var vert = e.orientation === 'vertical';
+          it = { type: 'line', x: x, y: y, w: vert ? Math.max(w, 2) : w, h: vert ? h : Math.max(h, 2), thickness: Math.max(0.1, mm(e.thickness)), orient: vert ? 'v' : 'h' };
+          if (e.type && e.type !== 'solidLine') warn('пунктирные линии — перенесены сплошными');
+          break;
+        case 'path':
+          var th = Math.max(0.1, mm(e.thickness));
+          if (e.type === 'rectangle') it = { type: 'rect', x: x, y: y, w: w, h: h, thickness: th, fill: !!e.fill, radius: mm(e.rounded) };
+          else if (e.type === 'oval') {   // круг — рамка со скруглением в половину стороны; овал — «пилюля»
+            it = { type: 'rect', x: x, y: y, w: w, h: h, thickness: th, fill: !!e.fill, radius: r2(Math.min(w, h) / 2) };
+            if (Math.abs(w - h) > Math.min(w, h) * 0.1) warn('овалы — перенесены скруглённой рамкой');
+          } else warn('фигуры «' + (e.label || e.type) + '»');
+          if (it && e.line_type && e.line_type !== 'solidLine') warn('пунктирные рамки — перенесены сплошными');
+          break;
+        case 'material': case 'symbol':
+          warn('значки из библиотеки LabelExpert — добавьте похожие кнопкой «Знаки»');
+          break;
+        case 'table':
+          warn('таблицы');
+          break;
+        default:
+          warn('элементы «' + (e.label || e.code) + '»');
+      }
+      // LabelExpert подгоняет ширину текста вплотную — у нас другой шрифт, поэтому расширяем блок до строки
+      if (it && it.type === 'text') {
+        var probe = clone(it); probe.w = 1e4;
+        var lw = Math.max.apply(null, textLayout(probe).lines.map(function (l) { return l.w; }).concat([0])) + 0.4;
+        if (lw > it.w) {
+          if (it.align === 'center') it.x = r2(it.x - (lw - it.w) / 2);
+          else if (it.align === 'right') it.x = r2(it.x - (lw - it.w));
+          it.w = r2(lw);
+        }
+      }
+      if (it) items.push(it);
+    });
+    // размеры картинок — из самих картинок
+    var wait = images.map(function (it) {
+      return new Promise(function (resolve) {
+        var img = new Image();
+        img.onload = function () { it.nw = img.naturalWidth; it.nh = img.naturalHeight; resolve(); };
+        img.onerror = function () { it.nw = 1; it.nh = 1; resolve(); };
+        img.src = it.src;
+      });
+    });
+    return Promise.all(wait).then(function () {
+      return { doc: { label: { w: r2(W), h: r2(H), rot: false }, pages: [items] }, warns: warns };
+    });
+  }
 
   Editor.prototype.setFileName = function (name) {
     this.fileName = name || null;
@@ -1355,6 +1548,7 @@
     var out = { app: 'xprinter-label', version: pages.length > 1 ? 2 : 1, label: this.doc.label, items: pages[0] };
     if (pages.length > 1) out.pages = pages;
     if (this.doc.underlay) out.underlay = this.doc.underlay;
+    if (this.doc.copies > 1) out.copies = this.doc.copies;
     return JSON.stringify(out, null, 1);
   };
 
@@ -1394,20 +1588,21 @@
     }
     var inp = document.createElement('input');
     inp.type = 'file';
-    inp.accept = '.xplabel,.json,.pdf,application/json,application/pdf';
+    inp.accept = '.xplabel,.json,.pdf,.lle,application/json,application/pdf';
     inp.onchange = function () { if (inp.files[0]) self.readDocFile(inp.files[0], null); };
     inp.click();
   };
 
   Editor.prototype.readDocFile = function (file, handle) {
     var self = this, isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+    if (/\.lle$/i.test(file.name)) return this.readLle(file);
     // из PDF — макет из вложения; такой файл не перезаписываем при «Сохранить»
     var text = isPdf ? layoutFromPDF(file) : file.text();
     if (isPdf) handle = null;
     text.then(function (txt) {
       var d = JSON.parse(txt);
       if (!d || !d.label || !(d.label.w > 0) || !(d.label.h > 0) || !(Array.isArray(d.items) || Array.isArray(d.pages))) throw new Error('bad');
-      var doc = normDoc({ label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, pages: d.pages, items: d.items, underlay: d.underlay });
+      var doc = normDoc({ label: { w: +d.label.w, h: +d.label.h, rot: !!d.label.rot }, pages: d.pages, items: d.items, underlay: d.underlay, copies: d.copies });
       doc.pages.forEach(function (items) { items.forEach(function (it) { it.id = self.nextId++; }); });
       self.undoStack.push(self.saved);
       self.redoStack = [];
@@ -1416,6 +1611,7 @@
       self.restore(JSON.stringify(doc));
       self.fileHandle = handle || null;
       self.setFileName(file.name);
+      self.notice(null);
     }).catch(function (e) {
       alert(isPdf
         ? (e && e.message === 'nolayout'
@@ -1425,15 +1621,47 @@
     });
   };
 
+  Editor.prototype.readLle = function (file) {
+    var self = this;
+    file.text().then(lleToDoc).then(function (res) {
+      var doc = normDoc(res.doc);
+      doc.pages.forEach(function (items) { items.forEach(function (it) { it.id = self.nextId++; }); });
+      self.undoStack.push(self.saved);
+      self.redoStack = [];
+      self.sel = null;
+      self.page = 0;
+      self.restore(JSON.stringify(doc));
+      self.fileHandle = null;   // .lle не перезаписываем: «Сохранить» создаст .xplabel
+      self.setFileName(file.name.replace(/\.lle$/i, '.xplabel'));
+      var miss = Object.keys(res.warns);
+      self.notice('<b>Импорт из LabelExpert — бета-режим.</b> Проверьте макет перед печатью: шрифты заменены на Arimo, ' +
+        'размеры текста могут немного отличаться.' +
+        (miss.length ? '<br>Не перенеслось или перенеслось иначе: ' + miss.map(function (m) {
+          return esc(m) + (res.warns[m] > 1 ? ' (' + res.warns[m] + ')' : '');
+        }).join('; ') + '.' : ''));
+    }).catch(function () {
+      alert('Не удалось прочитать файл LabelExpert. Импорт .lle работает в бета-режиме — пришлите файл в поддержку, разберёмся.');
+    });
+  };
+
+  // Плашка над холстом с крестиком (результат импорта и т. п.)
+  Editor.prototype.notice = function (html) {
+    var box = this.$notice;
+    if (!html) { box.hidden = true; return; }
+    box.querySelector('.xpe-ntext').innerHTML = html;
+    box.hidden = false;
+  };
+
   Editor.prototype.newDoc = function () {
     if (this.allItems().length && !confirm('Начать новый пустой макет? Текущий можно вернуть кнопкой «Отменить».')) return;
     this.undoStack.push(this.saved);
     this.redoStack = [];
     this.sel = null;
     this.page = 0;
-    this.restore(JSON.stringify({ label: this.doc.label, pages: [[]] }));
+    this.restore(JSON.stringify({ label: this.doc.label, pages: [[]], copies: 1 }));
     this.fileHandle = null;
     this.setFileName(null);
+    this.notice(null);
   };
 
   Editor.prototype.flash = function (msg) {
@@ -2358,6 +2586,8 @@
         (ul ? '<label class="xpe-f"><span>Прозрачность подложки</span><input type="range" data-ul="op" min="0.1" max="1" step="0.05" value="' + ul.opacity + '"></label>' : '') +
         '<span class="xpe-note">Фото или скан готовой этикетки, чтобы выровнять по нему элементы. В PDF и при печати подложки нет.</span>' +
       '</div>', !ul) +
+      sec('copies', 'Тираж', this.copiesField() +
+        '<span class="xpe-note">Сколько этикеток будет в PDF. С «Нумерацией» у каждой свой номер.</span>', (this.doc.copies || 1) < 2) +
       '<details class="xpe-sec xpe-help"><summary>Подсказки по управлению</summary><p class="xpe-keys xpe-secb">' +
         'Добавьте элемент кнопками «Текст», «Штрихкод», «QR-код»… или нажмите на элемент на этикетке.<br>' +
         'Перетаскивайте мышью, тяните за квадратики по краям.<br>Стрелки — сдвиг на 0,5 мм (с Shift — 2 мм).<br>' +
@@ -2368,6 +2598,12 @@
         'Ctrl + колёсико — масштаб.</p></details>';
     bindSecs(P);
     var q = function (sel) { return P.querySelector(sel); };
+    var cpi = q('[data-copies]');
+    cpi.addEventListener('change', function () {
+      self.doc.copies = Math.min(MAX_COPIES, Math.max(1, Math.round(+cpi.value) || 1));
+      cpi.value = self.doc.copies;
+      self.commit();
+    });
     var pre = q('[data-lk="preset"]');
     pre.value = known ? v : 'custom';
     pre.addEventListener('change', function () {
@@ -2408,9 +2644,16 @@
     var self = this, it = this.sel && this.item(this.sel), P = this.$props;
     if (this.multi.length) return this.renderGroupProps();
     if (!it) return this.renderLabelProps();
-    var head = '<div class="xpe-ptitle">' + esc(it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
+    var fk = it.field && it.field.k;
+    var head = '<div class="xpe-ptitle">' + esc(fk === 'serial' ? 'Нумерация' : fk === 'date' ? 'Дата' : it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
     var f = '', cap = '';
-    if (it.type === 'text') {
+    if (fk) {
+      f += this.fieldForm(it);
+      f += this.fontSelect(it.font || 'Arimo');
+      f += num('size', 'Размер, pt', it.size, 0.5, ' min="4" max="72"');
+      f += select('align', 'Выравнивание', it.align, [['left', 'По левому краю'], ['center', 'По центру'], ['right', 'По правому краю']]);
+      f += '<div class="xpe-grid">' + check('bold', 'Жирный', it.bold) + check('italic', 'Курсив', it.italic) + check('underline', 'Подчёркнутый', it.underline) + '</div>';
+    } else if (it.type === 'text') {
       f += '<div class="xpe-f xpe-wide"><span>Текст</span>' +
         '<div class="xpe-rtools" role="toolbar" aria-label="Оформление текста">' + FMT.map(function (m) {
           return '<button type="button" class="xpe-rbtn" data-fmt="' + m[0] + '" title="' + m[2] + '" aria-label="' + m[2] + '">' + m[1] + '</button>';
@@ -2472,7 +2715,7 @@
       f += '<button type="button" class="xpe-btn xpe-replace">Заменить картинку</button>';
       f += '<div class="xpe-note">Лучше всего печатаются чёрные PNG на прозрачном фоне.</div>';
     }
-    var MAIN = { text: 'Содержимое', barcode: 'Данные', qr: 'Данные', line: 'Линия', rect: 'Рамка', sign: 'Знак', image: 'Картинка' };
+    var MAIN = { text: fk ? 'Значение' : 'Содержимое', barcode: 'Данные', qr: 'Данные', line: 'Линия', rect: 'Рамка', sign: 'Знак', image: 'Картинка' };
     P.innerHTML = head +
       sec('main', MAIN[it.type], f) +
       (cap ? sec('cap', 'Подпись', cap) : '') +
@@ -2537,6 +2780,7 @@
     });
     var rich = P.querySelector('[data-rich]');
     if (rich) this.bindRich(it, rich);
+    if (fk) this.bindFieldForm(it);
     P.querySelectorAll('[data-al]').forEach(function (b) {
       b.addEventListener('click', function () { self.action(it, 'al-' + b.getAttribute('data-al')); });
     });
@@ -2552,6 +2796,84 @@
       inp.onchange = function () { if (inp.files[0]) self.readImage(inp.files[0], it); };
       inp.click();
     });
+  };
+
+  // Нумерация и дата: свои поля ввода (data-fk), тираж — общий для документа
+  function fnum(k, label, v, attrs) {
+    return '<label class="xpe-f"><span>' + label + '</span><input type="number" data-fk="' + k + '" value="' + esc(v) + '" step="1"' + (attrs || '') + '></label>';
+  }
+  function ftext(k, label, v) {
+    return '<label class="xpe-f"><span>' + label + '</span><input type="text" data-fk="' + k + '" value="' + esc(v || '') + '"></label>';
+  }
+  Editor.prototype.copiesField = function () {
+    return '<label class="xpe-f"><span>Тираж — этикеток в PDF</span><input type="number" data-copies min="1" max="' + MAX_COPIES +
+      '" step="1" value="' + (this.doc.copies || 1) + '"></label>';
+  };
+  Editor.prototype.fieldForm = function (it) {
+    var f = it.field, out = '';
+    if (f.k === 'serial') {
+      var last = fieldText({ field: f }, (this.doc.copies || 1) - 1);
+      out += '<div class="xpe-grid">' + fnum('start', 'Первый номер', f.start) + fnum('step', 'Шаг', f.step) +
+        fnum('digits', 'Цифр (с нулями)', f.digits, ' min="0" max="12"') + '</div>';
+      out += '<div class="xpe-grid">' + ftext('prefix', 'Текст перед', f.prefix) + ftext('suffix', 'Текст после', f.suffix) + '</div>';
+      out += this.copiesField();
+      out += '<div class="xpe-note xpe-fnote">Первая: ' + esc(fieldText({ field: f }, 0)) + ' · последняя: ' + esc(last) +
+        '. В PDF каждая этикетка тиража получит следующий номер.</div>';
+    } else {
+      var a = f.add || {};
+      var fmts = DATE_FORMATS.some(function (d) { return d[0] === f.fmt; }) ? DATE_FORMATS : DATE_FORMATS.concat([[f.fmt]]);
+      out += '<label class="xpe-f"><span>Формат</span><select data-fk="fmt">' + fmts.map(function (d) {
+        return '<option value="' + d[0] + '"' + (d[0] === f.fmt ? ' selected' : '') + '>' + esc(formatDate(new Date(), d[0])) + '</option>';
+      }).join('') + '</select></label>';
+      out += '<label class="xpe-f"><span>От какой даты</span><select data-fk="base">' +
+        '<option value=""' + (f.date ? '' : ' selected') + '>Сегодня — в день печати</option>' +
+        '<option value="fixed"' + (f.date ? ' selected' : '') + '>Своя дата</option></select></label>';
+      if (f.date) out += '<label class="xpe-f"><span>Дата</span><input type="date" data-fk="date" value="' + esc(f.date) + '"></label>';
+      out += '<div class="xpe-f"><span>Прибавить (срок годности)</span><div class="xpe-grid xpe-grid3">' +
+        fnum('add.d', 'дней', a.d || 0) + fnum('add.m', 'месяцев', a.m || 0) + fnum('add.y', 'лет', a.y || 0) + '</div></div>';
+      out += '<div class="xpe-grid">' + ftext('prefix', 'Текст перед', f.prefix) + ftext('suffix', 'Текст после', f.suffix) + '</div>';
+      out += '<div class="xpe-note xpe-fnote">' + (f.date ? 'Дата на этикетке: ' : 'Если напечатать сегодня: ') + esc(fieldText(it, 0)) + '</div>';
+    }
+    return out;
+  };
+  Editor.prototype.bindFieldForm = function (it) {
+    var self = this, P = this.$props, f = it.field;
+    var refresh = function () {
+      self.render();
+      self.updateGeomInputs();
+      var note = P.querySelector('.xpe-fnote'), tmp = h('<div>' + self.fieldForm(it) + '</div>').querySelector('.xpe-fnote');
+      if (note && tmp) note.innerHTML = tmp.innerHTML;
+    };
+    P.querySelectorAll('[data-fk]').forEach(function (inp) {
+      var k = inp.getAttribute('data-fk');
+      var apply = function () {
+        var v = inp.type === 'number' ? Math.round(+inp.value || 0) : inp.value;
+        if (k === 'base') { f.date = v ? (f.date || formatDate(new Date(), 'yyyy-MM-dd')) : ''; return; }
+        if (k.indexOf('add.') === 0) { f.add = f.add || {}; f.add[k.slice(4)] = v; }
+        else f[k] = v;
+        refresh();
+      };
+      inp.addEventListener('input', function () { if (k !== 'base') apply(); });
+      inp.addEventListener('change', function () {
+        apply();
+        if (k === 'base') self.renderProps();
+        self.render();
+        self.commit();
+      });
+    });
+    var cp = P.querySelector('[data-copies]');
+    if (cp) {
+      cp.addEventListener('input', function () {
+        var v = Math.round(+cp.value);
+        if (v >= 1) { self.doc.copies = Math.min(MAX_COPIES, v); refresh(); }
+      });
+      cp.addEventListener('change', function () {
+        self.doc.copies = Math.min(MAX_COPIES, Math.max(1, Math.round(+cp.value) || 1));
+        cp.value = self.doc.copies;
+        refresh();
+        self.commit();
+      });
+    }
   };
 
   Editor.prototype.renderGroupProps = function () {
@@ -2812,8 +3134,11 @@
       else pdf.text(str, x0, y, { baseline: 'alphabetic' });
     };
 
-    this.doc.pages.forEach(function (items, pi) {
-      if (pi) pdf.addPage([L.w, L.h], L.w > L.h ? 'landscape' : 'portrait');
+    var pages = this.doc.pages, copies = this.doc.copies || 1, first = true;
+    for (var copy = 0; copy < copies; copy++) pages.forEach(function (items) {
+      COPY = copy;
+      if (!first) pdf.addPage([L.w, L.h], L.w > L.h ? 'landscape' : 'portrait');
+      first = false;
       items.forEach(function (it) {
         if (it.type === 'text') {
           pdfTextBlock(it, textLayout(it));
@@ -2853,6 +3178,7 @@
         }
       });
     });
+    COPY = 0;
     return pdf;
   };
 

@@ -21,3 +21,9 @@ Tabler Icons (https://tabler.io/icons) — знаки ухода за издел
 
 Знаки валют — шрифты Noto Sans Bold и Noto Sans Armenian Bold (Google Fonts, OFL 1.1),
   переведены в контуры; урезанные копии шрифтов — fonts/.
+
+Ginetex Care Symbols (https://github.com/yessir-web-tech/ginetex-icons, получены через Iconify:
+  https://icon-sets.iconify.design/ginetex/) — знаки ухода в начертании ISO 3758, лицензия MIT,
+  © 2024 YESSIR Organization; текст лицензии — ginetex/LICENSE
+  (на сайте: docs/editor/signs/LICENSE-ginetex-icons.txt).
+  Сами символы GINETEX — товарные знаки ассоциации GINETEX; MIT касается рисунков иконок.
