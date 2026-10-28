@@ -556,6 +556,9 @@
       case 'qr': var s = Math.min(W, H) * 0.5; return { type: type, x: (W - s) / 2, y: (H - s) / 2, w: s, h: s, data: 'https://xprinter.shop' };
       case 'line': return { type: type, x: W * 0.1, y: H / 2 - 1, w: W * 0.8, h: 2, thickness: 0.4, orient: 'h' };
       case 'rect': return { type: type, x: 1.5, y: 1.5, w: W - 3, h: H - 3, thickness: 0.4, fill: false, radius: 1 };
+      case 'table': return { type: type, x: W * 0.1, y: H * 0.2, w: W * 0.8, h: H * 0.6, rows: 3, cols: 2, colw: [1, 1], rowh: [1, 1, 1],
+        cells: [['Состав', 'Хлопок 100%'], ['Размер', '48'], ['Цвет', 'Чёрный']], size: 7, font: lastFont, bold: false, align: 'left',
+        thickness: 0.3, bg: false };
     }
   }
 
@@ -584,7 +587,7 @@
 
   Editor.prototype.loadDocFonts = function () {
     var self = this, fams = {};
-    this.allItems().forEach(function (it) { if (it.type === 'text' || it.type === 'barcode') fams[it.font || 'Arimo'] = 1; });
+    this.allItems().forEach(function (it) { if (it.type === 'text' || it.type === 'barcode' || it.type === 'table') fams[it.font || 'Arimo'] = 1; });
     Promise.all(Object.keys(fams).map(ensureFont)).then(function () { self.render(); });
   };
 
@@ -930,7 +933,8 @@
             '<button type="button" data-add="barcode" data-tip="Штрихкод"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h2v14H2zm3 0h1v14H5zm2 0h3v14H7zm4 0h1v14h-1zm3 0h2v14h-2zm3 0h1v14h-1zm2 0h3v14h-3z"/></svg><span class="xpe-tl">Штрихкод</span></button>' +
             '<button type="button" data-add="qr" data-tip="QR, DataMatrix, PDF417, Aztec"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></svg><span class="xpe-tl">QR-код</span></button>' +
             '<button type="button" data-add="line" data-tip="Линия"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11h18v2H3z"/></svg><span class="xpe-tl">Линия</span></button>' +
-            '<button type="button" data-add="rect" data-tip="Рамка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg><span class="xpe-tl">Рамка</span></button>' +
+            '<button type="button" data-add="rect" data-tip="Фигура: рамка, овал, треугольник"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h18v18H3zm2 2v14h14V5z"/></svg><span class="xpe-tl">Фигура</span></button>' +
+            '<button type="button" data-add="table" data-tip="Таблица: состав, размеры, характеристики"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v16H3zm2 2v3h6V6zm8 0v3h6V6zm-8 5v3h6v-3zm8 0v3h6v-3zm-8 5v2h6v-2zm8 0v2h6v-2z"/></svg><span class="xpe-tl">Таблица</span></button>' +
             '<button type="button" data-add="image" data-tip="Картинка"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2M8.5 13.5l2.5 3 3.5-4.5 4.5 6H5z"/></svg><span class="xpe-tl">Картинка</span></button>' +
             '<button type="button" data-add="serial" data-tip="Нумерация: 0001, 0002…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h2v10H4V9.4L2.8 10 2 8.4zm5.5 0h4a1.5 1.5 0 0 1 1.5 1.5v2.2a1.5 1.5 0 0 1-1.5 1.5H11.5V15H15v2H9.5v-4.8A1.5 1.5 0 0 1 11 10.7h2V9H9.5zm7.5 0h5v6l-.1.4L20 17h-2.2l1.6-3.8H17V11h3V9h-3z"/></svg><span class="xpe-tl">Нумерация</span></button>' +
             '<button type="button" data-add="date" data-tip="Дата: сегодня, «годен до»"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zM5 9v11h14V9zm2 2h4v4H7z"/></svg><span class="xpe-tl">Дата</span></button>' +
@@ -1481,22 +1485,33 @@
         case 'line':
           var vert = e.orientation === 'vertical';
           it = { type: 'line', x: x, y: y, w: vert ? Math.max(w, 2) : w, h: vert ? h : Math.max(h, 2), thickness: Math.max(0.1, mm(e.thickness)), orient: vert ? 'v' : 'h' };
-          if (e.type && e.type !== 'solidLine') warn('пунктирные линии — перенесены сплошными');
+          if (e.type && e.type !== 'solidLine') it.dash = /dot/i.test(e.type) && !/dash/i.test(e.type) ? 'dot' : 'dash';
           break;
         case 'path':
           var th = Math.max(0.1, mm(e.thickness));
-          if (e.type === 'rectangle') it = { type: 'rect', x: x, y: y, w: w, h: h, thickness: th, fill: !!e.fill, radius: mm(e.rounded) };
-          else if (e.type === 'oval') {   // круг — рамка со скруглением в половину стороны; овал — «пилюля»
-            it = { type: 'rect', x: x, y: y, w: w, h: h, thickness: th, fill: !!e.fill, radius: r2(Math.min(w, h) / 2) };
-            if (Math.abs(w - h) > Math.min(w, h) * 0.1) warn('овалы — перенесены скруглённой рамкой');
-          } else warn('фигуры «' + (e.label || e.type) + '»');
-          if (it && e.line_type && e.line_type !== 'solidLine') warn('пунктирные рамки — перенесены сплошными');
+          var shp = { rectangle: 'rect', oval: 'ellipse', triangle: 'triangle' }[e.type];
+          if (shp) it = { type: 'rect', shape: shp, x: x, y: y, w: w, h: h, thickness: th, fill: !!e.fill, radius: shp === 'rect' ? mm(e.rounded) : 0 };
+          else warn('фигуры «' + (e.label || e.type) + '»');
+          if (it && e.line_type && e.line_type !== 'solidLine') it.dash = /dot/i.test(e.line_type) && !/dash/i.test(e.line_type) ? 'dot' : 'dash';
           break;
         case 'material': case 'symbol':
           warn('значки из библиотеки LabelExpert — добавьте похожие кнопкой «Знаки»');
           break;
         case 'table':
-          warn('таблицы');
+          var rowsL = Array.isArray(e.row_data_source) ? e.row_data_source : [];
+          var nc = +e.column_count || (rowsL[0] && rowsL[0].children ? rowsL[0].children.length : 1), nr = rowsL.length || +e.row_count || 1;
+          var colw = (Array.isArray(e.column_widths) && e.column_widths.length === nc ? e.column_widths : null) || Array(nc).fill(1);
+          var cell0 = (rowsL[0] && rowsL[0].children && rowsL[0].children[0]) || {};
+          it = { type: 'table', x: x, y: y, w: w, h: h, rows: nr, cols: nc,
+            colw: colw.map(function (v) { return r2(+v || 1); }),
+            rowh: rowsL.length ? rowsL.map(function (rw) { return r2(+rw.height || 1); }) : Array(nr).fill(1),
+            cells: rowsL.map(function (rw) { return (rw.children || []).slice(0, nc).map(function (c) { return String(c.text || ''); }); }),
+            size: r2(Math.max(4, mm(e.text_size || cell0.text_size || 12) / PT)), font: 'Arimo',
+            bold: !!(e.text_bold || cell0.text_bold), align: (e.text_align === 'left' || e.text_align === 'right') ? e.text_align : 'center',
+            thickness: Math.max(0.1, mm(e.border_width || 1)), bg: (+e.color >>> 0) === 0xffffffff };
+          tableResize(it, nr, nc);
+          var perCell = rowsL.some(function (rw) { return (rw.children || []).some(function (c) { return c.text_bold !== cell0.text_bold || c.text_size !== cell0.text_size; }); });
+          if (perCell) warn('разное оформление ячеек таблицы — приведено к одному');
           break;
         default:
           warn('элементы «' + (e.label || e.code) + '»');
@@ -1844,12 +1859,33 @@
       if (qg.label) svgTextBlock(g, qg.label, qg.label.lay);
     } else if (it.type === 'line') {
       hit();
-      var lr = lineRect(it);
-      svgEl('rect', { x: lr[0], y: lr[1], width: lr[2], height: lr[3], fill: '#000' }, g);
+      var lr = lineRect(it), vl = it.orient === 'v';
+      dashSegs(vl ? lr[3] : lr[2], dashPattern(it)).forEach(function (sg) {
+        svgEl('rect', vl ? { x: lr[0], y: lr[1] + sg[0], width: lr[2], height: sg[1], fill: '#000' }
+          : { x: lr[0] + sg[0], y: lr[1], width: sg[1], height: lr[3], fill: '#000' }, g);
+      });
     } else if (it.type === 'rect') {
-      var tk = it.thickness;
-      svgEl('rect', { x: it.x + tk / 2, y: it.y + tk / 2, width: Math.max(0, it.w - tk), height: Math.max(0, it.h - tk),
-        rx: it.radius || 0, fill: it.fill ? '#000' : 'transparent', stroke: '#000', 'stroke-width': tk }, g);
+      hit();
+      var tk = it.thickness, pat = dashPattern(it);
+      var sa = { fill: it.fill ? '#000' : 'none', stroke: '#000', 'stroke-width': tk, 'stroke-linejoin': 'round' };
+      if (pat) sa['stroke-dasharray'] = pat.join(' ');
+      if (it.shape === 'ellipse') {
+        sa.cx = it.x + it.w / 2; sa.cy = it.y + it.h / 2; sa.rx = Math.max(0, (it.w - tk) / 2); sa.ry = Math.max(0, (it.h - tk) / 2);
+        svgEl('ellipse', sa, g);
+      } else if (it.shape === 'triangle') {
+        sa.points = trianglePts(it).map(function (p) { return r2(p[0]) + ',' + r2(p[1]); }).join(' ');
+        svgEl('polygon', sa, g);
+      } else {
+        sa.x = it.x + tk / 2; sa.y = it.y + tk / 2; sa.width = Math.max(0, it.w - tk); sa.height = Math.max(0, it.h - tk); sa.rx = it.radius || 0;
+        svgEl('rect', sa, g);
+      }
+    } else if (it.type === 'table') {
+      hit();
+      if (it.bg) svgEl('rect', { x: it.x, y: it.y, width: it.w, height: it.h, fill: '#fff' }, g);
+      var tg = tableGeom(it), td = '';
+      tableRules(it, tg).forEach(function (q) { td += 'M' + r2(q[0]) + ' ' + r2(q[1]) + 'h' + r2(q[2]) + 'v' + r2(q[3]) + 'h' + r2(-q[2]) + 'z'; });
+      svgEl('path', { d: td, fill: '#000' }, g);
+      tableCells(it, tg).forEach(function (cl) { svgTextBlock(g, cl[0], cl[1]); });
     } else if (it.type === 'image') {
       hit();
       svgEl('image', { x: it.x, y: it.y, width: it.w, height: it.h, href: it.src, preserveAspectRatio: 'xMidYMid meet' }, g);
@@ -1860,6 +1896,65 @@
       svgEl('image', { x: it.x, y: it.y, width: it.w, height: it.h, href: SIGNS.url(sg), preserveAspectRatio: 'xMidYMid meet' }, g);
     }
   };
+  // Пунктир: длины штриха и промежутка от толщины, не мельче 2 точек принтера
+  function dashPattern(it) {
+    var t = Math.max(it.thickness, DOT * 2);
+    if (it.dash === 'dot') return [t, t * 1.6];
+    if (it.dash === 'dash') return [Math.max(1, t * 4), Math.max(0.7, t * 2.5)];
+    return null;
+  }
+  // Отрезки пунктирной линии длиной len: [[начало, длина], ...]
+  function dashSegs(len, pat) {
+    if (!pat) return [[0, len]];
+    var out = [], p = 0;
+    while (p < len) { out.push([p, Math.min(pat[0], len - p)]); p += pat[0] + pat[1]; }
+    return out;
+  }
+  function trianglePts(it) {
+    var t = it.thickness / 2;   // линия внутри рамки элемента
+    return [[it.x + it.w / 2, it.y + t * 2], [it.x + it.w - t * 1.5, it.y + it.h - t], [it.x + t * 1.5, it.y + it.h - t]];
+  }
+  // Таблица: границы столбцов и строк (доли colw/rowh растягиваются на размер блока)
+  function tableGeom(it) {
+    var sum = function (a) { return a.reduce(function (s, v) { return s + (+v || 0); }, 0) || 1; };
+    var cw = sum(it.colw), rh = sum(it.rowh), xs = [it.x], ys = [it.y];
+    it.colw.forEach(function (v) { xs.push(xs[xs.length - 1] + (+v || 0) / cw * it.w); });
+    it.rowh.forEach(function (v) { ys.push(ys[ys.length - 1] + (+v || 0) / rh * it.h); });
+    return { xs: xs, ys: ys };
+  }
+  // Линии сетки — прямоугольники толщиной t, крайние внутри блока
+  function tableRules(it, g) {
+    var t = it.thickness, out = [];
+    g.ys.forEach(function (y) { out.push([it.x, Math.min(Math.max(y - t / 2, it.y), it.y + it.h - t), it.w, t]); });
+    g.xs.forEach(function (x) { out.push([Math.min(Math.max(x - t / 2, it.x), it.x + it.w - t), it.y, t, it.h]); });
+    return out;
+  }
+  // Текст ячейки: блок шириной ячейки с полями, по вертикали — по центру
+  var CELL_PAD = 0.8;
+  function tableCells(it, g) {
+    var out = [];
+    for (var r = 0; r < it.rows; r++) for (var c = 0; c < it.cols; c++) {
+      var txt = String((it.cells[r] || [])[c] || '');
+      if (!txt) continue;
+      var cell = { text: txt, size: it.size, font: it.font, bold: it.bold, align: it.align,
+        x: g.xs[c] + CELL_PAD, w: Math.max(1, g.xs[c + 1] - g.xs[c] - CELL_PAD * 2), y: 0 };
+      var lay = textLayout(cell);
+      cell.y = g.ys[r] + (g.ys[r + 1] - g.ys[r] - lay.h) / 2;
+      out.push([cell, lay]);
+    }
+    return out;
+  }
+  // Строки и столбцы: меняем количество, содержимое сохраняется
+  function tableResize(it, rows, cols) {
+    rows = Math.max(1, Math.min(30, rows | 0)); cols = Math.max(1, Math.min(12, cols | 0));
+    while (it.rowh.length < rows) it.rowh.push(it.rowh[it.rowh.length - 1] || 1);
+    while (it.colw.length < cols) it.colw.push(it.colw[it.colw.length - 1] || 1);
+    it.rowh.length = rows; it.colw.length = cols;
+    var cells = [];
+    for (var r = 0; r < rows; r++) { cells.push([]); for (var c = 0; c < cols; c++) cells[r].push(String((it.cells[r] || [])[c] || '')); }
+    it.cells = cells; it.rows = rows; it.cols = cols;
+  }
+
   function lineRect(it) {
     var t = it.thickness;
     return it.orient === 'v' ? [it.x + it.w / 2 - t / 2, it.y, t, it.h] : [it.x, it.y + it.h / 2 - t / 2, it.w, t];
@@ -2201,7 +2296,7 @@
       it.y = r2(ay + (s.y - ay) * f);
       it.w = r2(Math.max(1, s.w * f));
       if (it.type !== 'text') it.h = r2(Math.max(1, s.h * f));
-      if (it.type === 'text') it.size = Math.max(4, Math.round(s.size * f * 2) / 2);
+      if (it.type === 'text' || it.type === 'table') it.size = Math.max(4, Math.round(s.size * f * 2) / 2);
       if (it.type === 'barcode') it.textSize = Math.max(4, Math.round(s.textSize * f * 2) / 2);
     });
   };
@@ -2417,7 +2512,9 @@
       });
     });
   }
-  var NAMES = { text: 'Текст', barcode: 'Штрихкод', qr: 'QR-код', line: 'Линия', rect: 'Рамка', image: 'Картинка', sign: 'Знак' };
+  var NAMES = { text: 'Текст', barcode: 'Штрихкод', qr: 'QR-код', line: 'Линия', rect: 'Рамка', image: 'Картинка', sign: 'Знак', table: 'Таблица' };
+  var SHAPES = [['rect', 'Прямоугольник'], ['ellipse', 'Овал / круг'], ['triangle', 'Треугольник']];
+  function shapeName(it) { return { ellipse: 'Овал', triangle: 'Треугольник' }[it.shape] || 'Рамка'; }
 
   function num(k, label, v, step, attrs) {
     return '<label class="xpe-f"><span>' + label + '</span><input type="number" data-k="' + k + '" value="' + r2(v) +
@@ -2645,7 +2742,8 @@
     if (this.multi.length) return this.renderGroupProps();
     if (!it) return this.renderLabelProps();
     var fk = it.field && it.field.k;
-    var head = '<div class="xpe-ptitle">' + esc(fk === 'serial' ? 'Нумерация' : fk === 'date' ? 'Дата' : it.type === 'qr' ? code2dInfo(it.format)[1] : NAMES[it.type]) + '</div>';
+    var head = '<div class="xpe-ptitle">' + esc(fk === 'serial' ? 'Нумерация' : fk === 'date' ? 'Дата' : it.type === 'qr' ? code2dInfo(it.format)[1] :
+      it.type === 'rect' ? shapeName(it) : NAMES[it.type]) + '</div>';
     var f = '', cap = '';
     if (fk) {
       f += this.fieldForm(it);
@@ -2703,10 +2801,29 @@
     } else if (it.type === 'line') {
       f += select('orient', 'Направление', it.orient, [['h', 'Горизонтальная'], ['v', 'Вертикальная']]);
       f += num('thickness', 'Толщина, мм', it.thickness, 0.1, ' min="0.1" max="5"');
+      f += select('dash', 'Вид', it.dash || '', [['', 'Сплошная'], ['dash', 'Штрихи'], ['dot', 'Точки']]);
     } else if (it.type === 'rect') {
+      f += select('shape', 'Фигура', it.shape || 'rect', SHAPES);
       f += num('thickness', 'Толщина, мм', it.thickness, 0.1, ' min="0.1" max="5"');
-      f += num('radius', 'Скругление, мм', it.radius, 0.5, ' min="0" max="20"');
+      f += select('dash', 'Линия', it.dash || '', [['', 'Сплошная'], ['dash', 'Штрихи'], ['dot', 'Точки']]);
+      if (!it.shape || it.shape === 'rect') f += num('radius', 'Скругление, мм', it.radius, 0.5, ' min="0" max="20"');
       f += check('fill', 'Залить чёрным', it.fill);
+    } else if (it.type === 'table') {
+      f += '<div class="xpe-grid">' +
+        '<label class="xpe-f"><span>Строк</span><input type="number" data-tk="rows" min="1" max="30" step="1" value="' + it.rows + '"></label>' +
+        '<label class="xpe-f"><span>Столбцов</span><input type="number" data-tk="cols" min="1" max="12" step="1" value="' + it.cols + '"></label></div>';
+      var gw = tableGeom(it), cellsHtml = '';
+      for (var tr = 0; tr < it.rows; tr++) for (var tc = 0; tc < it.cols; tc++) {
+        cellsHtml += '<input type="text" data-cell="' + tr + ',' + tc + '" value="' + esc((it.cells[tr] || [])[tc] || '') + '" aria-label="Строка ' + (tr + 1) + ', столбец ' + (tc + 1) + '">';
+      }
+      f += '<div class="xpe-f"><span>Ячейки</span><div class="xpe-tcells" style="--xpe-tc:' + it.cols + '">' + cellsHtml + '</div></div>';
+      f += '<div class="xpe-f"><span>Ширина столбцов, мм</span><div class="xpe-tcells" style="--xpe-tc:' + it.cols + '">' +
+        it.colw.map(function (v, i) { return '<input type="number" data-colw="' + i + '" min="1" step="0.5" value="' + r2(gw.xs[i + 1] - gw.xs[i]) + '">'; }).join('') + '</div></div>';
+      f += this.fontSelect(it.font || 'Arimo');
+      f += num('size', 'Размер текста, pt', it.size, 0.5, ' min="4" max="48"');
+      f += select('align', 'Текст в ячейках', it.align, [['left', 'По левому краю'], ['center', 'По центру'], ['right', 'По правому краю']]);
+      f += num('thickness', 'Толщина линий, мм', it.thickness, 0.1, ' min="0.1" max="3"');
+      f += '<div class="xpe-grid">' + check('bold', 'Жирный', it.bold) + check('bg', 'Белый фон', it.bg) + '</div>';
     } else if (it.type === 'sign') {
       var sgn = SIGNS.get(it.key);
       f += '<div class="xpe-signcur">' + (sgn ? SIGNS.img(sgn) + '<span>' + esc(sgn.name) + '</span>' : '') + '</div>';
@@ -2715,7 +2832,7 @@
       f += '<button type="button" class="xpe-btn xpe-replace">Заменить картинку</button>';
       f += '<div class="xpe-note">Лучше всего печатаются чёрные PNG на прозрачном фоне.</div>';
     }
-    var MAIN = { text: fk ? 'Значение' : 'Содержимое', barcode: 'Данные', qr: 'Данные', line: 'Линия', rect: 'Рамка', sign: 'Знак', image: 'Картинка' };
+    var MAIN = { text: fk ? 'Значение' : 'Содержимое', barcode: 'Данные', qr: 'Данные', line: 'Линия', rect: 'Фигура', sign: 'Знак', image: 'Картинка', table: 'Таблица' };
     P.innerHTML = head +
       sec('main', MAIN[it.type], f) +
       (cap ? sec('cap', 'Подпись', cap) : '') +
@@ -2781,6 +2898,7 @@
     var rich = P.querySelector('[data-rich]');
     if (rich) this.bindRich(it, rich);
     if (fk) this.bindFieldForm(it);
+    if (it.type === 'table') this.bindTableForm(it);
     P.querySelectorAll('[data-al]').forEach(function (b) {
       b.addEventListener('click', function () { self.action(it, 'al-' + b.getAttribute('data-al')); });
     });
@@ -2874,6 +2992,32 @@
         self.commit();
       });
     }
+  };
+
+  Editor.prototype.bindTableForm = function (it) {
+    var self = this, P = this.$props;
+    P.querySelectorAll('[data-tk]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var v = Math.round(+inp.value) || 1;
+        tableResize(it, inp.getAttribute('data-tk') === 'rows' ? v : it.rows, inp.getAttribute('data-tk') === 'cols' ? v : it.cols);
+        self.render(); self.renderProps(); self.commit();
+      });
+    });
+    P.querySelectorAll('[data-cell]').forEach(function (inp) {
+      var rc = inp.getAttribute('data-cell').split(',');
+      inp.addEventListener('input', function () { it.cells[+rc[0]][+rc[1]] = inp.value; self.render(); });
+      inp.addEventListener('change', function () { self.commit(); });
+    });
+    // ширина столбца в мм: остальные столбцы сохраняют свои мм, блок меняет ширину
+    P.querySelectorAll('[data-colw]').forEach(function (inp) {
+      inp.addEventListener('change', function () {
+        var g = tableGeom(it), mmw = g.xs.slice(1).map(function (x, i) { return x - g.xs[i]; });
+        mmw[+inp.getAttribute('data-colw')] = Math.max(1, +inp.value || 1);
+        it.colw = mmw.map(r2);
+        it.w = r2(mmw.reduce(function (a, b) { return a + b; }, 0));
+        self.render(); self.renderProps(); self.commit();
+      });
+    });
   };
 
   Editor.prototype.renderGroupProps = function () {
@@ -3048,6 +3192,7 @@
     this.allItems().forEach(function (it) {
       if (it.type === 'text') textRuns(it).forEach(function (r) { want(it.font || 'Arimo', r.b, r.i); });
       if ((it.type === 'barcode' || it.type === 'qr') && it.showText) want(it.font || 'Arimo', false);
+      if (it.type === 'table') want(it.font || 'Arimo', !!it.bold);
     });
     var keys = Object.keys(need), missing = [];
     return Promise.all(keys.map(function (k) {
@@ -3127,6 +3272,7 @@
     // холст (x, y) -> страница: поворот на 90° по часовой стрелке
     var R = function (x, y, w, h) { return rot ? [L.w - (y + h), x, h, w] : [x, y, w, h]; };
     var rect = function (x, y, w, h, style) { var r = R(x, y, w, h); pdf.rect(r[0], r[1], r[2], r[3], style); };
+    var P = function (x, y) { return rot ? [L.w - y, x] : [x, y]; };   // точка холста -> точка страницы
     var rrect = function (x, y, w, h, rad, style) { var r = R(x, y, w, h); pdf.roundedRect(r[0], r[1], r[2], r[3], rad, rad, style); };
     var text = function (str, x, y, align) {   // y — базовая линия
       var tw = pdf.getTextWidth(str), x0 = align === 'center' ? x - tw / 2 : align === 'right' ? x - tw : x;
@@ -3159,14 +3305,32 @@
           qe.runs.forEach(function (r) { rect(qg.x0 + r[0] * qg.ms, qg.y0 + r[1] * qg.ms, r[2] * qg.ms, qg.ms, 'F'); });
           if (qg.label) pdfTextBlock(qg.label, qg.label.lay);
         } else if (it.type === 'line') {
-          var lr = lineRect(it);
-          rect(lr[0], lr[1], lr[2], lr[3], 'F');
+          var lr = lineRect(it), vl = it.orient === 'v';
+          dashSegs(vl ? lr[3] : lr[2], dashPattern(it)).forEach(function (sg) {
+            if (vl) rect(lr[0], lr[1] + sg[0], lr[2], sg[1], 'F'); else rect(lr[0] + sg[0], lr[1], sg[1], lr[3], 'F');
+          });
         } else if (it.type === 'rect') {
           var t = it.thickness, x = it.x + t / 2, y = it.y + t / 2, w = Math.max(0, it.w - t), hh = Math.max(0, it.h - t);
+          var pat = dashPattern(it);
           pdf.setLineWidth(t);
+          pdf.setLineJoin('round');
+          if (pat) pdf.setLineDashPattern(pat, 0);
           var style = it.fill ? 'FD' : 'S';
-          if (it.radius > 0) rrect(x, y, w, hh, it.radius, style);
+          if (it.shape === 'ellipse') {
+            var ec = P(it.x + it.w / 2, it.y + it.h / 2), erx = w / 2, ery = hh / 2;
+            pdf.ellipse(ec[0], ec[1], rot ? ery : erx, rot ? erx : ery, style);
+          } else if (it.shape === 'triangle') {
+            var tp = trianglePts(it).map(function (p) { return P(p[0], p[1]); });
+            pdf.triangle(tp[0][0], tp[0][1], tp[1][0], tp[1][1], tp[2][0], tp[2][1], style);
+          } else if (it.radius > 0) rrect(x, y, w, hh, it.radius, style);
           else rect(x, y, w, hh, style);
+          if (pat) pdf.setLineDashPattern([], 0);
+          pdf.setLineJoin('miter');
+        } else if (it.type === 'table') {
+          if (it.bg) { pdf.setFillColor(255, 255, 255); rect(it.x, it.y, it.w, it.h, 'F'); pdf.setFillColor(0, 0, 0); }
+          var tg = tableGeom(it);
+          tableRules(it, tg).forEach(function (q) { rect(q[0], q[1], q[2], q[3], 'F'); });
+          tableCells(it, tg).forEach(function (cl) { pdfTextBlock(cl[0], cl[1]); });
         } else if (it.type === 'image' || it.type === 'sign') {
           var iw = it.w, ih = it.h, ratio = imgRatio(it);
           if (ratio) { if (ih / iw > ratio) ih = iw * ratio; else iw = ih / ratio; }
