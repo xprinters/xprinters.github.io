@@ -1,5 +1,6 @@
 ---
 title: BarTender
+seo_title: "BarTender UltraLite для Xprinter — ключ, установка, пустые этикетки"
 description: BarTender UltraLite для Xprinter и 4BARCODE — установка, ключ лицензии, пробный период 30 дней, ошибки установки, не видит принтер, пустые этикетки, лишние страницы
 ---
 

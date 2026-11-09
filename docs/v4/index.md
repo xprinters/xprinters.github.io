@@ -1,5 +1,6 @@
 ---
 title: Xprinter V4
+seo_title: "Драйвер Xprinter V4 (4BARCODE 4B-2064C) — скачать, инструкция"
 description: Драйверы, программы и видеоинструкции для Xprinter V4
 model:
   order: 4

@@ -1293,7 +1293,7 @@
       I.out('endobj');
       fileId = I.newObject();
       I.out('<< /Type /Filespec /F (' + PDF_ATTACHMENT + ') /UF ' + pdfText(PDF_ATTACHMENT) +
-        ' /Desc ' + pdfText('Макет этикетки: откройте этот PDF в редакторе на xprinters.github.io, чтобы продолжить работу') +
+        ' /Desc ' + pdfText('Макет этикетки: откройте этот PDF в редакторе на 4barcode.ru, чтобы продолжить работу') +
         ' /AFRelationship /Source /EF << /F ' + streamId + ' 0 R >> >>');
       I.out('endobj');
     });

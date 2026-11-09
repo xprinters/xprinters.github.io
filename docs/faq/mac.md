@@ -1,5 +1,6 @@
 ---
 title: macOS
+seo_title: "Драйвер Xprinter для macOS — установка и печать этикеток"
 description: Как подключить термопринтер Xprinter и 4BARCODE к MacBook, установка драйвера pkg, добавление принтера, размер этикетки на Mac, Bluetooth и macOS, программы для этикеток на Mac
 ---
 

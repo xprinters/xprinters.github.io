@@ -1,7 +1,33 @@
 {% extends "base.html" %}
 
+{# Заголовок вкладки и поисковой выдачи: seo_title из шапки страницы (под реальные запросы),
+   иначе — как у Material: «Название - Xprinter · Поддержка» #}
+{% block htmltitle %}
+  {% if page and page.meta and page.meta.seo_title %}
+    <title>{{ page.meta.seo_title }}</title>
+  {% else %}
+    {{ super() }}
+  {% endif %}
+{% endblock %}
+
 {% block extrahead %}
   <!-- У сайта своя светлая и тёмная тема. Без этой метки Chrome и Samsung Internet
        в режиме «тёмные сайты» перекрашивают страницу сами — этикетка в редакторе становится серой. -->
   <meta name="color-scheme" content="light dark">
+  {% if page %}
+    {% set og_title = page.meta.seo_title or page.meta.title or page.title or config.site_name %}
+    {% set og_desc = page.meta.description or config.site_description %}
+    <!-- Превью ссылки в Telegram, WhatsApp, ВКонтакте и соцсетях; картинку выбирает hooks/seo.py -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ config.site_name }}">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="{{ og_title | striptags }}">
+    <meta property="og:description" content="{{ og_desc }}">
+    {% if page.canonical_url %}<meta property="og:url" content="{{ page.canonical_url }}">{% endif %}
+    {% if page.meta.og_image %}<meta property="og:image" content="{{ page.meta.og_image }}">{% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    {% for ld in page.meta.jsonld or [] %}
+      <script type="application/ld+json">{{ ld | tojson }}</script>
+    {% endfor %}
+  {% endif %}
 {% endblock %}

@@ -1,5 +1,6 @@
 ---
 title: Как узнать модель
+seo_title: "Как узнать модель принтера Xprinter или 4BARCODE"
 description: Где посмотреть модель термопринтера Xprinter или 4BARCODE
 ---
 

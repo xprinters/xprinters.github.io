@@ -1,5 +1,6 @@
 ---
 title: Xprinter V3
+seo_title: "Драйвер Xprinter V3 (XP-Q361U, 4BARCODE 3B-Q361U) — скачать"
 description: Драйверы, программы и видеоинструкции для Xprinter V3
 model:
   order: 3

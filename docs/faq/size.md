@@ -1,5 +1,6 @@
 ---
 title: Размер этикетки и печать PDF
+seo_title: "Размер этикетки в драйвере Xprinter, печать PDF Ozon и Wildberries"
 description: Как настроить размер этикетки 58x40 и 75x120 в драйвере, печать PDF Ozon, Wildberries, Яндекс Маркет через Chrome, ориентация, смещение, этикетка на листе A4
 ---
 

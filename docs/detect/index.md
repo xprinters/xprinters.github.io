@@ -1,5 +1,6 @@
 ---
 title: Определить принтер
+seo_title: "Как узнать модель термопринтера Xprinter — определить онлайн"
 description: Определение модели термопринтера Xprinter и 4BARCODE прямо в браузере — по USB или Bluetooth — и скачивание нужного драйвера
 hide:
   - navigation

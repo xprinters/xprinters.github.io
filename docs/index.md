@@ -1,5 +1,6 @@
 ---
 title: Драйверы и инструкции
+seo_title: "Драйверы Xprinter и 4BARCODE — скачать, инструкции, видео"
 description: Драйверы, программы и видеоинструкции для термопринтеров Xprinter и 4BARCODE
 hide:
   - navigation

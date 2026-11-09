@@ -1,5 +1,6 @@
 ---
 title: Xprinter XP-365B
+seo_title: "Драйвер Xprinter XP-365B — скачать, инструкция, калибровка"
 description: Драйверы, программы и видеоинструкции для Xprinter XP-365B
 model:
   order: 1

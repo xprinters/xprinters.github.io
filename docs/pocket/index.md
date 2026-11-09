@@ -1,5 +1,6 @@
 ---
 title: Xprinter Pocket
+seo_title: "Xprinter Pocket XP-P322B — драйвер, приложение, инструкция"
 description: Драйверы, программы и видеоинструкции для Xprinter Pocket (XP-P322B)
 model:
   order: 8

@@ -1,5 +1,6 @@
 ---
 title: Принтеры
+seo_title: "Драйверы для термопринтеров Xprinter и 4BARCODE — все модели"
 description: Все модели термопринтеров Xprinter и 4BARCODE с драйверами и инструкциями
 ---
 

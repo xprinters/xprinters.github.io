@@ -1,5 +1,6 @@
 ---
 title: Телефон и Bluetooth
+seo_title: "Печать с телефона на Xprinter по Bluetooth — приложение 4Barcode"
 description: Подключение термопринтера к телефону через 4Barcode, PIN 0000, печать этикеток Ozon и WB с телефона, принтер без Bluetooth, подключение по Bluetooth к Windows
 ---
 

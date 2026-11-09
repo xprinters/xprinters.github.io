@@ -1,5 +1,6 @@
 ---
 title: Xprinter V1BT
+seo_title: "Драйвер Xprinter V1BT (4BARCODE 4B-2083B) — скачать, инструкция"
 description: Драйверы, программы и видеоинструкции для Xprinter V1BT
 model:
   order: 6

@@ -1,5 +1,6 @@
 ---
 title: A4PRO / A4 Tattoo
+seo_title: "Тату-принтер A4PRO и A4 Tattoo (P83, P84) — драйвер, приложение"
 description: Драйверы и инструкции для A4PRO / A4 Tattoo
 model:
   order: 7

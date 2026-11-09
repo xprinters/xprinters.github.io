@@ -1,5 +1,6 @@
 ---
 title: Xprinter V2 / XP-Q371U
+seo_title: "Драйвер Xprinter V2 (XP-Q371U, 4BARCODE 3B-Q371U) — скачать"
 description: Драйверы, программы и видеоинструкции для Xprinter V2 (XP-Q371U)
 model:
   order: 2

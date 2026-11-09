@@ -1,5 +1,6 @@
 ---
 title: Xprinter Mini
+seo_title: "Драйвер Xprinter Mini (XP-D465B, 4BARCODE 4B-2054N) — скачать"
 description: Драйверы, программы и видеоинструкции для Xprinter Mini
 model:
   order: 5

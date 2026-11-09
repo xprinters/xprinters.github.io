@@ -1,5 +1,6 @@
 ---
 title: Гайды
+seo_title: "Гайды по термопринтерам Xprinter и 4BARCODE"
 description: Общие инструкции для термопринтеров Xprinter и 4BARCODE
 ---
 
