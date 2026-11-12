@@ -11,6 +11,11 @@ model:
 cloud: https://cloud.mail.ru/public/biAt/tnWUDxjwK
 ---
 
+!!! info "V4 или V4 rev.2?"
+
+    Эта страница — для V4 с прошивкой **4BARCODE**: установщик драйвера находит принтер как **4BARCODE 4B-2064C**.
+    Если установщик показывает **Xprinter XP-428A** или на обложке инструкции указано **rev.2** — вам на страницу [Xprinter V4 rev.2](../v4rev2/index.md).
+
 ## Драйвер
 
 === ":fontawesome-brands-windows: Windows"

@@ -78,9 +78,9 @@ namespace XprinterSetup
             { "XprinterXP-365B", "xp-365b" }, { "4BARCODE3B-365B", "xp-365b" },
             { "4BARCODE4B-2083B", "v1bt" }, { "XprinterXP-D362B", "v1bt" },
             { "4BARCODE3B-T371U", "v2" }, { "4BARCODE3B-Q371U", "v2" },
-            { "XprinterXP-T371U", "v2" }, { "XprinterXP-Q371U", "v2" },
-            { "4BARCODE3B-Q361U", "v3" }, { "XprinterXP-Q361U", "v3" },
-            { "4BARCODE4B-2064C", "v4" },
+            { "XprinterXP-T371U", "v2rev2" }, { "XprinterXP-Q371U", "v2rev2" },
+            { "4BARCODE3B-Q361U", "v3" }, { "XprinterXP-Q361U", "v3rev2" },
+            { "4BARCODE4B-2064C", "v4" }, { "XprinterXP-428A", "v4rev2" },
             { "4BARCODE4B-2054N", "mini" }, { "XprinterXP-D465B", "mini" },
             { "XprinterXP-P322B", "pocket" },
             { "XlifeP83", "a4pro" }, { "XlifeP83C", "a4pro" }, { "XlifeP84", "a4pro" },
@@ -88,8 +88,9 @@ namespace XprinterSetup
 
         public static readonly Dictionary<string, string> Names = new Dictionary<string, string>
         {
-            { "xp-365b", "Xprinter XP-365B" }, { "v1bt", "Xprinter V1BT" }, { "v2", "Xprinter V2" },
-            { "v3", "Xprinter V3" }, { "v4", "Xprinter V4" }, { "mini", "Xprinter Mini" },
+            { "xp-365b", "Xprinter XP-365B" }, { "v1bt", "Xprinter V1BT" }, { "v2", "Xprinter V2" }, { "v2rev2", "Xprinter V2 rev.2" },
+            { "v3", "Xprinter V3" }, { "v3rev2", "Xprinter V3 rev.2" }, { "v4", "Xprinter V4" }, { "v4rev2", "Xprinter V4 rev.2" },
+            { "mini", "Xprinter Mini" },
             { "pocket", "Xprinter Pocket" }, { "a4pro", "A4PRO / A4 Tattoo" },
         };
     }
@@ -214,11 +215,24 @@ namespace XprinterSetup
         }
     }
 
-    // «Xprinter_2024.3.exe» > «Xprinter_11.5.exe»: числа сравниваются как числа
+    // Версии Seagull: 11.x (до 2022) < 2022.x … 2025.x (по годам) < 12.x (с 2026).
+    // Поэтому «Xprinter_12.6.exe» > «Xprinter_2024.3.exe» > «Xprinter_11.5.exe»: сначала сравнивается эпоха
+    // нумерации по первому числу версии, затем сами числа.
     class VersionAwareComparer : IComparer<string>
     {
+        static int Era(string name)
+        {
+            var m = Regex.Match(name, @"(\d+)\.\d");
+            long major;
+            if (!m.Success || !long.TryParse(m.Groups[1].Value, out major)) return 0;
+            if (major >= 2000) return 1;   // 2022.x … 2025.x
+            return major >= 12 ? 2 : 0;    // 12.x и новее — после годовой нумерации; 11.x — до неё
+        }
+
         public int Compare(string a, string b)
         {
+            int ea = Era(a), eb = Era(b);
+            if (ea != eb) return ea.CompareTo(eb);
             var pa = Regex.Split(a, @"(\d+)");
             var pb = Regex.Split(b, @"(\d+)");
             for (int i = 0; i < Math.Min(pa.Length, pb.Length); i++)

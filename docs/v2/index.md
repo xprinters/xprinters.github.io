@@ -1,16 +1,23 @@
 ---
-title: Xprinter V2 / XP-Q371U
-seo_title: "Драйвер Xprinter V2 (XP-Q371U, 4BARCODE 3B-Q371U) — скачать"
-description: Драйверы, программы и видеоинструкции для Xprinter V2 (XP-Q371U)
+title: Xprinter V2
+seo_title: "Драйвер Xprinter V2 — скачать, инструкция, настройка"
+description: Драйверы, программы и видеоинструкции для Xprinter V2 (прошивка 4BARCODE)
 model:
   order: 2
-  name: Xprinter V2 / XP-Q371U
+  name: Xprinter V2
   image: assets/models/v2.png
   interfaces: [USB, USB + Bluetooth]
   manual: https://cloud.mail.ru/public/G976/5rdfeGf7H
   youtube: https://www.youtube.com/playlist?list=PL-7hEbRPRT8I-krpUTmojeau45RVA270r
-cloud: https://cloud.mail.ru/public/nkxc/7vAPgsGwh
+  note: Прошивка 4BARCODE — в установщике драйвера принтер называется «4BARCODE 3B-Q371U» (или 3B-T371U)
+cloud: https://cloud.mail.ru/public/BEjx/hMrCkaHEW
 ---
+
+!!! info "V2 или V2 rev.2?"
+
+    Эта страница — для V2 с прошивкой **4BARCODE**: установщик драйвера находит принтер как **4BARCODE 3B-Q371U** или **3B-T371U**.
+    Если установщик показывает **Xprinter XP-Q371U** или **XP-T371U** — вам на страницу [Xprinter V2 rev.2](../v2rev2/index.md).
+    Не уверены — [определите модель](../detect/index.md) автоматически.
 
 ## Драйвер
 
@@ -18,40 +25,28 @@ cloud: https://cloud.mail.ru/public/nkxc/7vAPgsGwh
 
     | Система | Драйвер | |
     |---|---|---|
-    | **Windows 7–11** | Xprinter 2024.3 | [Скачать](<cloud:Драйвер/Windows/Windows 7-11>){ .md-button .md-button--primary } |
-    | Windows 7 | Xprinter 2022.2 | [Скачать](<cloud:Драйвер/Windows/Windows 7>){ .md-button } |
-    | Windows XP | Xprinter 2020.1 / 7.4 | [Скачать](<cloud:Драйвер/Windows/Windows XP>){ .md-button } |
-    | Для кассовых программ (чеки) | XPrinter Driver Setup 7.77 | [Скачать](<cloud:Драйвер/Windows/Для кассовых программ>){ .md-button } |
+    | **Windows 7–11** | 4BARCODE 2025.1 | [Скачать](<cloud:ДРАЙВЕР/Windows/Для этикеток/4BARCODE_2025.1.exe>){ .md-button .md-button--primary } |
 
-    Тестовая этикетка для проверки печати: [40×30 мм, PDF](cloud:Драйвер/Windows/40х30_тест.pdf).
+    Установщик сам найдёт принтер по USB как **4BARCODE 3B-Q371U** (или 3B-T371U, буква не важна). По Bluetooth принтер виден как **Printer001**, PIN-код **0000**.
 
 === ":fontawesome-brands-apple: macOS"
 
-    Драйвер `net.xprinter.drv_3.13.1` и тестовые этикетки 58×40 и 75×120 мм.
+    Драйвер 4BARCODE `prt.4barcode.drv_3.13.26`.
 
-    [Скачать для macOS](cloud:Драйвер/MacOS){ .md-button .md-button--primary }
-
-=== ":fontawesome-brands-linux: Linux"
-
-    [Для печати этикеток](<cloud:Драйвер/Linux/Для печати этикеток>){ .md-button .md-button--primary }
-    [Для чековой ленты](<cloud:Драйвер/Linux/Для печати на чековой ленте>){ .md-button }
+    [Скачать для macOS](cloud:/biAt/tnWUDxjwK/Драйвер/MacOS){ .md-button .md-button--primary }
 
 ## Видеоинструкции
 
 <div class="grid cards xp-videos" markdown>
 
--   :material-play-circle: [Подключение к macOS](<cloud:Драйвер/MacOS/XP-365B на MacOS.mp4>)
--   :material-play-circle: [Установка драйвера в Windows (видео для XP-365B, шаги те же)](cloud:/Kfzk/HHA7de4t3/Инструкции/XP-365B_SETUP.mp4)
--   :material-play-circle: [Переустановка драйвера](<cloud:/Kfzk/HHA7de4t3/Инструкции/Переустановка драйвера.mp4>)
+-   :material-play-circle: [Установка драйвера по USB](<cloud:ДРАЙВЕР/Windows/Для этикеток/USB-настройка.mp4>)
+-   :material-play-circle: [Установка драйвера по Bluetooth](<cloud:ДРАЙВЕР/Windows/Для этикеток/Bluetooth-настройка.mp4>)
+-   :material-play-circle: [Настройка размера этикеток](<cloud:ДРАЙВЕР/Windows/Для этикеток/Настройка размера этикеток.mp4>)
 
 </div>
 
 ## Программы для этикеток
 
 --8<-- "apps.md"
-
-## Документация
-
-- [Версия с LAN (сетевым портом)](cloud:/Kfzk/HHA7de4t3/Инструкции/LAN_XP-365B_Q371U) — драйвер, утилита настройки и инструкция
 
 --8<-- "help.md"

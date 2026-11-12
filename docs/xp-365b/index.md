@@ -18,7 +18,8 @@ cloud: https://cloud.mail.ru/public/Kfzk/HHA7de4t3
 
     | Система | Драйвер | |
     |---|---|---|
-    | **Windows 7–11** | Xprinter 2024.3 | [Скачать](<cloud:Драйвер/Windows/Windows 7-11>){ .md-button .md-button--primary } |
+    | **Windows 7–11** | Xprinter 12.6 <span class="xp-new">актуальный</span> | [Скачать](<cloud:Драйвер/Windows/Windows 7-11/Xprinter_12.6.exe>){ .md-button .md-button--primary } |
+    | Windows 7–11, предыдущая версия | Xprinter 2024.3 | [Скачать](<cloud:Драйвер/Windows/Windows 7-11/Xprinter_2024.3.exe>){ .md-button } |
     | Windows 7 | Xprinter 2022.2 | [Скачать](<cloud:Драйвер/Windows/Windows 7>){ .md-button } |
     | Windows XP | Xprinter 2020.1 / 7.4 | [Скачать](<cloud:Драйвер/Windows/Windows XP>){ .md-button } |
     | Для кассовых программ (чеки) | XPrinter Driver Setup 7.77 | [Скачать](<cloud:Драйвер/Windows/Для кассовых программ>){ .md-button } |

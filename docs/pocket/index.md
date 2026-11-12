@@ -18,7 +18,8 @@ cloud: https://cloud.mail.ru/public/ETsc/PhcPGEsKT
 
     | Назначение | Драйвер | |
     |---|---|---|
-    | **Этикетки** (USB и Bluetooth) | Xprinter 11.5 | [Скачать](cloud:Windows_USB_Bluetooth/Драйвер){ .md-button .md-button--primary } |
+    | **Этикетки** (USB и Bluetooth) | Xprinter 12.6 <span class="xp-new">актуальный</span> | [Скачать](<cloud:/Kfzk/HHA7de4t3/Драйвер/Windows/Windows 7-11/Xprinter_12.6.exe>){ .md-button .md-button--primary } |
+    | Этикетки, предыдущая версия | Xprinter 11.5 | [Скачать](cloud:Windows_USB_Bluetooth/Драйвер){ .md-button } |
     | Чеки | Xprinter 2024.11 | [Скачать](<cloud:Windows_USB_Bluetooth/Драйвер/Для режима печати чеков>){ .md-button } |
 
 === ":fontawesome-brands-apple: macOS"

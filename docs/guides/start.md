@@ -53,9 +53,11 @@ USB-кабель только передаёт данные, без блока �
 |---|---|
 | XP-365B | Xprinter XP-365B |
 | V2 | 4BARCODE 3B-T371U или 3B-Q371U |
+| V2 rev.2 | Xprinter XP-Q371U или XP-T371U |
 | V3 | 4BARCODE 3B-Q361U |
 | V3 rev.2 | Xprinter XP-Q361U |
 | V4 | 4BARCODE 4B-2064C |
+| V4 rev.2 | Xprinter XP-428A |
 | V1BT | 4BARCODE 4B-2083B |
 | Mini | 4BARCODE 4B-2054N |
 

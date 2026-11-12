@@ -104,10 +104,12 @@ nav:
   - Принтеры:
       - models/index.md
       - Xprinter XP-365B: xp-365b/index.md
-      - Xprinter V2 / XP-Q371U: v2/index.md
+      - Xprinter V2: v2/index.md
+      - Xprinter V2 rev.2: v2rev2/index.md
       - Xprinter V3: v3/index.md
       - Xprinter V3 rev.2: v3rev2/index.md
       - Xprinter V4: v4/index.md
+      - Xprinter V4 rev.2: v4rev2/index.md
       - Xprinter Mini: mini/index.md
       - Xprinter V1BT: v1bt/index.md
       - A4PRO / A4 Tattoo: a4pro/index.md

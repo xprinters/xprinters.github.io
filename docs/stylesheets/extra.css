@@ -433,3 +433,10 @@
   line-height: 1.45;
   box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
 }
+
+/* ===== плашка «актуальный» у свежей версии драйвера ===== */
+.md-typeset .xp-new {
+  display: inline-block; margin-left: .35em; padding: .05em .5em; border-radius: 1em;
+  background: var(--xp-success-soft); color: var(--xp-success); border: 1px solid var(--xp-success);
+  font-size: .62rem; font-weight: 700; line-height: 1.5; vertical-align: .1em; white-space: nowrap;
+}
