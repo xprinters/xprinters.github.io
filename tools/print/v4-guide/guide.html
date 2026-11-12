@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Xprinter V4 rev.2 — руководство пользователя</title>
+<!--
+  Бумажная инструкция Xprinter V4 rev.2 (заводская модель Xprinter XP-428A).
+  Формат и вёрстка — как у инструкции V3 rev.2 (tools/print/v3-guide): 2 листа 209,9 × 284,7 мм, по 4 полосы ≈ 105 × 142 мм.
+    Лист 1: [задняя обложка][обложка] / [стр. 1][стр. 2]
+    Лист 2: [стр. 3][стр. 4] / [стр. 5][стр. 6]
+  Сборка: python tools/print/v4-guide/build.py, кривые для типографии: outline.py, центровка кружков: check_circles.py.
+  Рисунки — векторные из заводского макета (make_figs.py, подписи убраны), номера к ним ставит этот файл (.fb).
+-->
+<style>
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Regular.ttf"); font-weight: 400; }
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Bold.ttf"); font-weight: 700; }
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Italic.ttf"); font-weight: 400; font-style: italic; }
+  @font-face { font-family: "Cousine"; src: url("../../../docs/editor/fonts/Cousine-Bold.ttf"); font-weight: 700; }
+
+  :root {
+    --ink: #141414;      /* основной текст и плашки */
+    --mid: #5c5c5c;      /* вторичный текст */
+    --line: #c8c8c8;     /* тонкие линии */
+    --tint: #efefef;     /* фон врезок */
+  }
+  @page { size: 209.9mm 284.7mm; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Rubik", sans-serif; color: var(--ink); font-size: 7.1pt; line-height: 1.34;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  img { display: block; }
+  b, strong { font-weight: 700; }
+
+  .sheet { width: 209.9mm; height: 284.7mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+           page-break-after: always; overflow: hidden; }
+  .sheet:last-child { page-break-after: auto; }
+  .panel { position: relative; overflow: hidden; }
+
+  /* ---------- полоса с текстом: колонтитул, поле, номер ---------- */
+  .page { padding: 12.5mm 7mm 11mm; }
+  .run { position: absolute; left: 7mm; right: 7mm; top: 5.2mm; display: flex; justify-content: space-between; align-items: baseline;
+         padding-bottom: 1.3mm; border-bottom: .3mm solid var(--ink);
+         font-size: 5.6pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+  .run span:last-child { color: var(--mid); }
+  .foot { position: absolute; left: 7mm; right: 7mm; bottom: 4.6mm; display: flex; align-items: center; justify-content: center; gap: 2.2mm; }
+  .foot::before, .foot::after { content: ""; flex: 1; border-top: .2mm solid var(--line); }
+  .foot span { display: block; width: 4.4mm; height: 4.4mm; }
+
+  /* ---------- заголовки ---------- */
+  h2 { font-size: 10.5pt; line-height: 1.15; margin: 0 0 2mm; font-weight: 700; display: flex; align-items: center; gap: 1.8mm; }
+  h2::before { content: ""; width: 1.3mm; height: 3.8mm; background: var(--ink); flex: 0 0 auto; }
+  .sub { margin: -1.2mm 0 2mm 3.1mm; color: var(--mid); font-size: 6.4pt; }
+  h3 { font-size: 7.6pt; margin: 2.6mm 0 1.3mm; font-weight: 700; }
+  h3 small { font-weight: 400; color: var(--mid); font-size: 6.2pt; margin-left: .8mm; }
+  .gap { height: 3.2mm; }
+  p { margin: 0 0 1.4mm; }
+
+  /* ---------- нумерованные шаги: номер в кружке ---------- */
+  ol.steps { list-style: none; margin: 0 0 1.4mm; padding: 0; counter-reset: s; }
+  ol.steps > li { position: relative; padding-left: 5mm; margin: 0 0 1.05mm; min-height: 3.4mm; }
+  ol.steps > li > .circ { position: absolute; left: 0; top: 0; }
+  .circ { display: block; }
+  ul.dots { list-style: none; margin: 0 0 1.4mm; padding: 0; }
+  ul.dots > li { position: relative; padding-left: 3.2mm; margin: 0 0 .6mm; }
+  ul.dots > li::before { content: ""; position: absolute; left: .4mm; top: 1.15mm; width: 1.1mm; height: 1.1mm; background: var(--ink); border-radius: 50%; }
+
+  /* ---------- элементы ---------- */
+  .k { display: inline-block; font-family: "Cousine", monospace; font-weight: 700; font-size: 5.4pt; line-height: 1; padding: .4mm .8mm;
+       border: .25mm solid var(--ink); border-radius: .7mm; vertical-align: .2mm; background: #fff; }
+  .site { font-weight: 700; white-space: nowrap; }
+  .nw { white-space: nowrap; }
+  .arr { display: inline-block; width: 2.5mm; height: 1.6mm; vertical-align: .05mm; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .tip { margin: 2.2mm 0 0; padding: 1.8mm 2.2mm 1.8mm 7.6mm; background: var(--tint); border-radius: 1mm; position: relative; }
+  .tip > .circ { position: absolute; left: 2.2mm; top: 1.8mm; }
+  .warn { margin: 1.6mm 0; padding: 1.5mm 2.2mm 1.5mm 7.6mm; border: .3mm solid var(--ink); border-radius: 1mm; position: relative; }
+  .warn > .circ { position: absolute; left: 2.2mm; top: 1.5mm; }
+  .label { font-size: 5.8pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--mid); margin: 0 0 1mm; }
+
+  /* ---------- задняя обложка ---------- */
+  .back { padding: 11mm 9mm 8mm; display: flex; flex-direction: column; }
+  .back > .label { text-align: center; }
+  .back .big { text-align: center; font-size: 26pt; font-weight: 700; letter-spacing: -.015em; line-height: 1; margin: 1.5mm 0 4.5mm; }
+  .feats { display: grid; grid-template-columns: 1fr 1fr; gap: 2.2mm 3mm; }
+  .feat { display: flex; align-items: center; gap: 2mm; font-size: 7pt; line-height: 1.2; }
+  .feat svg { width: 6.4mm; height: 6.4mm; flex: 0 0 auto; }
+  .back .mine { margin: 5mm 0 0; padding: 2.2mm 3mm; border: .3mm solid var(--ink); border-radius: 1mm; text-align: center; font-size: 7.4pt; }
+  .back .mine b { font-size: 9.5pt; }
+  .back .maker { margin-top: auto; padding-top: 2.5mm; border-top: .2mm solid var(--line); text-align: center; font-size: 5.9pt; line-height: 1.45; color: #333; }
+  .back .maker p { margin-bottom: 1.2mm; }
+
+  /* ---------- обложка ---------- */
+  .cover { display: grid; grid-template-columns: 13.5mm 2.2mm 1.2mm 2.2mm 1fr; }
+  .spine { background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; }
+  .spine span { writing-mode: vertical-rl; font-weight: 700; font-size: 16pt; letter-spacing: .08em; white-space: nowrap; }
+  .stripe { background: #cfcfcf; } .sp { background: #fff; }
+  .cbox { margin: 4mm 4mm 4mm 3.5mm; display: flex; flex-direction: column; }
+  .chead { display: flex; justify-content: space-between; align-items: center; }
+  .chead .label { margin: 0; }
+  .badge { background: var(--ink); color: #fff; font-weight: 700; font-size: 9.5pt; letter-spacing: .04em; padding: 1.1mm 2.8mm; border-radius: .8mm; }
+  .model { display: flex; flex-direction: column; align-items: flex-end; }
+  .model i { font-style: italic; font-size: 8pt; margin-top: .6mm; color: var(--ink); }
+  .ctitle { font-size: 19pt; font-weight: 700; line-height: 1.05; margin: 4mm 0 1mm; letter-spacing: -.01em; }
+  .csub { color: var(--mid); font-size: 7.4pt; }
+  .cimg { flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 1mm 3mm; }
+  .cimg img { max-width: 100%; max-height: 100%; }
+  .csite { background: var(--ink); color: #fff; border-radius: 1.2mm; padding: 2.4mm 3mm; display: flex; align-items: center; gap: 2.6mm; }
+  .csite svg { width: 7mm; height: 7mm; flex: 0 0 auto; }
+  .csite div { font-size: 6.6pt; line-height: 1.25; }
+  .csite b { display: block; font-size: 15pt; letter-spacing: -.01em; line-height: 1.12; }
+  .cfoot { display: flex; align-items: center; justify-content: space-between; gap: 2mm; margin-top: 2.2mm; font-size: 6pt; color: var(--mid); line-height: 1.3; }
+  .cfoot img { height: 3.4mm; flex: 0 0 auto; }
+  .cread { margin-top: 1.8mm; padding-top: 1.8mm; border-top: .2mm solid var(--line); font-size: 6.6pt; text-align: center; }
+
+  /* ---------- страницы ---------- */
+  .kit { display: grid; grid-template-columns: 1fr 1fr; gap: .5mm 3mm; margin-bottom: 1mm; }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: .9mm 3mm; margin-top: 1.4mm; }
+  .legend div { display: flex; align-items: center; gap: 1.4mm; }
+  .legend em { font-style: normal; flex: 0 0 auto; width: 3.6mm; height: 3.6mm; }
+  .legend i { color: var(--mid); font-size: 6pt; }
+  .fig { margin: 1.4mm 0 1.8mm; }
+  .modes img { width: 96%; margin: .8mm auto 1.4mm; }
+  .qrs { display: flex; justify-content: center; gap: 6mm; margin: 2mm 0 2.4mm; text-align: center; }
+  .qrs figure { margin: 0; padding: 2mm 2mm 1.6mm; border: .3mm solid var(--ink); border-radius: 1.4mm; width: 28mm; }
+  .qrs img { width: 21mm; height: 21mm; margin: 0 auto 1.4mm; }
+  .qrs figcaption { font-size: 6.4pt; line-height: 1.2; }
+  .qrs figcaption b { font-size: 7.4pt; }
+  /* рисунок с номерами выносок: координаты номеров — в процентах от рисунка */
+  .figw { position: relative; margin: 1.4mm auto 1.8mm; }
+  .figw img { width: 100%; }
+  .fb { position: absolute; width: 3.2mm; height: 3.2mm; transform: translate(-50%, -50%); }
+  .tbl { width: 100%; border-collapse: collapse; margin: 1mm 0 1.4mm; }
+  .tbl td { padding: .9mm 1.2mm; border-top: .2mm solid var(--line); vertical-align: top; }
+  .tbl tr:first-child td { border-top: 0; }
+  .tbl td:first-child { font-weight: 700; white-space: nowrap; width: 1%; padding-left: 0; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- иконки: Material Design Icons (Apache 2.0) -->
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M5 20h14v-2H5zM19 9h-4V3H9v6H5l7 7z"/></symbol>
+    <symbol id="i-app" viewBox="0 0 24 24"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zm2 2h2v2h-2zm-6 2h2v2h-2zm4 0h2v4h-2zm-2 2h2v2h-2z"/></symbol>
+    <symbol id="i-ed" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></symbol>
+    <symbol id="i-vid" viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5zM12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16"/></symbol>
+    <symbol id="i-faq" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2zm1-16a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16m0-14a4 4 0 0 0-4 4h2a2 2 0 1 1 4 0c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5a4 4 0 0 0-4-4"/></symbol>
+    <symbol id="i-sup" viewBox="0 0 24 24"><path d="M12 1a9 9 0 0 0-9 9v7a3 3 0 0 0 3 3h3v-8H5v-2a7 7 0 0 1 14 0v2h-4v8h4v1h-7v2h6a3 3 0 0 0 3-3V10a9 9 0 0 0-9-9"/></symbol>
+    <symbol id="i-web" viewBox="0 0 24 24"><path d="M16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2m-5.15 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8 8 0 0 1-4.33 3.56M14.34 14H9.66c-.1-.66-.16-1.32-.16-2s.06-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2M12 19.96c-.83-1.2-1.5-2.53-1.91-3.96h3.82c-.41 1.43-1.08 2.76-1.91 3.96M8 8H5.08A7.92 7.92 0 0 1 9.4 4.44C8.8 5.55 8.35 6.75 8 8m-2.92 8H8c.35 1.25.8 2.45 1.4 3.56A8 8 0 0 1 5.08 16m-.82-2C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2M12 4.03c.83 1.2 1.5 2.54 1.91 3.97h-3.82c.41-1.43 1.08-2.77 1.91-3.97M18.92 8h-2.95a15.7 15.7 0 0 0-1.38-3.56c1.84.63 3.37 1.9 4.33 3.56M12 2C6.47 2 2 6.5 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></symbol>
+  </defs>
+</svg>
+
+<!-- ===================== ЛИСТ 1 ===================== -->
+<section class="sheet">
+
+  <!-- задняя обложка -->
+  <div class="panel back">
+    <div class="label">Сайт поддержки</div>
+    <div class="big">4barcode.ru</div>
+    <div class="feats">
+      <div class="feat"><svg><use href="#i-dl"/></svg>Драйверы для Windows и macOS</div>
+      <div class="feat"><svg><use href="#i-app"/></svg>Программы для печати этикеток</div>
+      <div class="feat"><svg><use href="#i-ed"/></svg>Онлайн-редактор этикеток</div>
+      <div class="feat"><svg><use href="#i-vid"/></svg>Видеоинструкции</div>
+      <div class="feat"><svg><use href="#i-faq"/></svg>Решение частых проблем</div>
+      <div class="feat"><svg><use href="#i-sup"/></svg>Техническая поддержка</div>
+    </div>
+    <div class="mine">Страница вашего принтера<br><b>4barcode.ru/v4rev2</b></div>
+    <div class="maker">
+      <p>Производитель: Джухай Глобал Технолоджи ко. ЛТД<br>ZHUHAI GLOBAL TECHNOLOGY CO., LTD<br>
+         Адрес: Китай, провинция Гуандун, город Чжухай, район Сянгжоу,<br>Цианьшан промышленный парк, Хуавей шоссе, 613, строение 1, блок 5F, С</p>
+      <p>Гарантийный срок — 12 мес. · Сделано в Китае</p>
+    </div>
+  </div>
+
+  <!-- обложка -->
+  <div class="panel cover">
+    <div class="spine"><span>ТЕРМОПРИНТЕР ЭТИКЕТОК</span></div>
+    <div class="stripe"></div><div class="sp"></div><div class="stripe"></div>
+    <div class="cbox">
+      <div class="chead"><div class="label">Термопринтер</div><div class="model"><div class="badge">XPRINTER V4</div><i>rev.2</i></div></div>
+      <div class="ctitle">Руководство<br>пользователя</div>
+      <div class="csub">Этикетки до 108 мм · USB и Bluetooth</div>
+      <div class="cimg"><img src="img/cover_printer.png" alt=""></div>
+      <div class="csite"><svg fill="#fff"><use href="#i-web"/></svg>
+        <div>Драйверы, программы и видеоинструкции<b>4barcode.ru</b></div></div>
+      <div class="cfoot"><span>Рекомендуем термоэтикетки с защитным слоем бренда EcoTop</span><img src="img/ecotop_word.png" alt="EcoTop"></div>
+      <div class="cread">Пожалуйста, ознакомьтесь с инструкцией перед использованием принтера</div>
+    </div>
+  </div>
+
+  <!-- стр. 1 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Знакомство</span></div>
+    <h2>Комплектация</h2>
+    <div class="kit">
+      <div>1. Термопринтер</div><div>4. Кабель USB</div>
+      <div>2. Адаптер питания</div><div>5. Вал для рулона и 2 ограничителя</div>
+      <div>3. Кабель питания</div><div>6. Руководство пользователя</div>
+    </div>
+    <div class="gap"></div>
+    <h2>Внешний вид</h2>
+    <div class="figw" style="width:68%">
+      <img src="img/views.png" alt=""><span class="fb" data-n="1" style="left:25.3%;top:8.6%"></span><span class="fb" data-n="2" style="left:64.6%;top:3.5%"></span><span class="fb" data-n="3" style="left:51.2%;top:43.0%"></span><span class="fb" data-n="4" style="left:61.5%;top:51.2%"></span><span class="fb" data-n="5" style="left:32.4%;top:88.3%"></span><span class="fb" data-n="6" style="left:51.2%;top:91.8%"></span><span class="fb" data-n="7" style="left:45.0%;top:95.4%"></span>
+    </div>
+    <div class="legend">
+      <div><em>1</em>Индикатор</div><div><em>5</em>Выключатель питания</div>
+      <div><em>2</em>Кнопка FEED</div><div><em>6</em>Разъём USB</div>
+      <div><em>3</em>Кнопки открытия крышки</div><div><em>7</em>Разъём питания</div>
+      <div><em>4</em>Вход для внешней ленты</div>
+    </div>
+    <div class="foot"><span>1</span></div>
+  </div>
+
+  <!-- стр. 2 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Подключение и рулон</span></div>
+    <h2>Подключение</h2>
+    <ol class="steps">
+      <li>Поставьте принтер на ровную устойчивую поверхность. Выключатель — в положении <b class="nw">O (ВЫКЛ.)</b>.</li>
+      <li>Соедините принтер с компьютером кабелем USB.</li>
+      <li>Вставьте штекер адаптера в разъём питания сзади, затем подключите кабель питания к адаптеру и к розетке.</li>
+    </ol>
+    <div class="warn">Подключайте и отключайте кабели только при выключенном принтере.</div>
+    <div class="gap" style="height:2mm"></div>
+    <h2>Установка рулона</h2>
+    <ol class="steps">
+      <li>Наденьте рулон на вал и прижмите ограничителями с двух сторон. Втулка 25 мм надевается сразу, для втулки 38 мм сначала наденьте переходник.</li>
+    </ol>
+    <div class="figw" style="width:92%">
+      <img src="img/roll.png" alt=""><span class="fb" data-n="1" style="left:22.8%;top:22.3%"></span><span class="fb" data-n="2" style="left:84.9%;top:25.4%"></span><span class="fb" data-n="3" style="left:86.5%;top:57.7%"></span><span class="fb" data-n="4" style="left:65.5%;top:89.8%"></span>
+    </div>
+    <div class="legend" style="margin-top:.6mm">
+      <div><em>1</em>Переходник для втулки 38 мм</div><div><em>3</em>Ограничитель</div>
+      <div><em>2</em>Рулон этикеток</div><div><em>4</em>Вал</div>
+    </div>
+    <div class="tip">Рулоны до 127 мм в диаметре ставятся внутрь. Ленту с внешнего держателя или стопку заводите сзади — через вход для внешней ленты (4 на стр. 1).</div>
+    <div class="foot"><span>2</span></div>
+  </div>
+</section>
+
+<!-- ===================== ЛИСТ 2 ===================== -->
+<section class="sheet">
+
+  <!-- стр. 3 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Установка рулона</span></div>
+    <ol class="steps" data-start="2">
+      <li>Нажмите от себя кнопки открытия с двух сторон <b>(1)</b> и поднимите крышку.</li>
+    </ol>
+    <div class="figw" style="width:50%">
+      <img src="img/open.png" alt=""><span class="fb" data-n="1" style="left:-2.6%;top:85.1%"></span>
+    </div>
+    <ol class="steps" data-start="3">
+      <li>Положите вал с рулоном в держатель. Лента сходит с рулона <b>сверху, этикетками вверх</b>.</li>
+      <li>Пропустите ленту под направляющей и протяните над резиновым валом.</li>
+      <li>Сдвиньте направляющую к краю ленты — до лёгкого касания, не зажимая.</li>
+    </ol>
+    <div class="figw" style="width:66%">
+      <img src="img/inside.png" alt=""><span class="fb" data-n="1" style="left:75.1%;top:21.8%"></span><span class="fb" data-n="2" style="left:26.5%;top:54.3%"></span><span class="fb" data-n="3" style="left:68.2%;top:67.6%"></span>
+    </div>
+    <div class="legend" style="margin-top:.4mm">
+      <div><em>1</em>Крышка</div><div><em>3</em>Держатель рулона</div>
+      <div><em>2</em>Направляющая</div>
+    </div>
+    <ol class="steps" data-start="6" style="margin-top:1.6mm">
+      <li>Придерживая крышку, медленно опустите её и прижмите до щелчка.</li>
+    </ol>
+    <div class="tip">После установки рулона другого размера сделайте <b>калибровку</b> — см. стр. 4.</div>
+    <div class="foot"><span>3</span></div>
+  </div>
+
+  <!-- стр. 4 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Кнопка и драйвер</span></div>
+    <h2>Кнопка FEED и индикатор</h2>
+    <div class="sub">FEED — единственная кнопка, сверху на крышке принтера (2 на стр. 1)</div>
+    <table class="tbl">
+      <tr><td>Включение</td><td>Выключатель сзади — в положение <b class="nw">I (ВКЛ.)</b>.</td></tr>
+      <tr><td>Калибровка</td><td>Рулон установлен. На выключенном принтере зажмите <span class="k">FEED</span> и включите принтер. Когда прозвучит сигнал — отпустите кнопку.</td></tr>
+      <tr><td>Подача</td><td>Короткое нажатие <span class="k">FEED</span> — лента до начала следующей этикетки.</td></tr>
+      <tr><td>Пауза</td><td>Нажмите <span class="k">FEED</span> во время печати — индикатор мигает синим. Повторное нажатие продолжит печать.</td></tr>
+      <tr><td>Самотест</td><td>Удерживайте <span class="k">FEED</span> 6 секунд и отпустите после <b>двух</b> сигналов — напечатается страница настроек.</td></tr>
+      <tr><td>Индикатор</td><td>Горит — принтер включён. Мигает — пауза. Сигнал ошибки — нет бумаги, закончилась лента или неисправность.</td></tr>
+    </table>
+    <div class="gap" style="height:1.6mm"></div>
+    <h2>Установка драйвера</h2>
+    <div class="sub">Windows 7–11</div>
+    <ol class="steps">
+      <li>Скачайте установщик драйвера на <span class="site">4barcode.ru/v4rev2</span> и запустите его.</li>
+      <li>Когда он начнёт искать устройство, подключите принтер по USB и включите его.</li>
+      <li>Установщик определит <b class="nw">Xprinter XP-428A</b> — нажимайте «Далее» до конца.</li>
+    </ol>
+    <p class="sub" style="margin:1.4mm 0 0">По Bluetooth: в установщике выберите тип подключения «Bluetooth», принтер <b class="nw">Printer001</b> или <b class="nw">XP-428A</b>, PIN-код <b>0000</b>.</p>
+    <div class="foot"><span>4</span></div>
+  </div>
+
+  <!-- стр. 5 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Размер и программы</span></div>
+    <h2>Размер этикетки</h2>
+    <div class="sub">Windows 7–11</div>
+    <ol class="steps">
+      <li>Нажмите <span class="k">Win</span>+<span class="k">S</span> и откройте «Принтеры и сканеры».</li>
+      <li>Выберите <b class="nw">Xprinter XP-428A</b> <svg class="arr" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h13M10 1.5 14 5l-4 3.5"/></svg> «Настройка печати».</li>
+      <li>Вкладка «Параметры страницы» <svg class="arr" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h13M10 1.5 14 5l-4 3.5"/></svg> «Новая».</li>
+      <li>Имя — например «100×150», ширина и высота этикетки в мм <svg class="arr" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h13M10 1.5 14 5l-4 3.5"/></svg> «ОК».</li>
+      <li>Вкладка «Графика» <svg class="arr" viewBox="0 0 16 10" aria-hidden="true"><path d="M1 5h13M10 1.5 14 5l-4 3.5"/></svg> «Нет», иначе штрихкоды печатаются волнами.</li>
+      <li>«Применить» и «ОК».</li>
+    </ol>
+    <div class="tip">Размер должен <b>точно</b> совпадать с этикеткой. PDF-этикетки маркетплейсов печатайте из Google Chrome с масштабом «По размеру бумаги».</div>
+    <div class="gap" style="height:2mm"></div>
+    <h2>Печать с телефона</h2>
+    <div class="sub">Приложение 4BarCode по Bluetooth, PIN-код 0000</div>
+    <div class="qrs" style="margin-top:1.4mm">
+      <figure><img src="img/qr_android.svg" alt=""><figcaption><b>Android</b><br>Google Play</figcaption></figure>
+      <figure><img src="img/qr_ios.svg" alt=""><figcaption><b>iPhone</b><br>App Store</figcaption></figure>
+    </div>
+    <p>На компьютере: <b>BarTender UltraLite</b> — на <span class="site">4barcode.ru/v4rev2</span>, онлайн-редактор — <span class="site">4barcode.ru/editor</span></p>
+    <div class="foot"><span>5</span></div>
+  </div>
+
+  <!-- стр. 6 -->
+  <div class="panel page">
+    <div class="run"><span>Xprinter V4 rev.2</span><span>Уход</span></div>
+    <h2>Очистка термоголовки</h2>
+    <div class="warn" style="margin-top:0">Очищайте термоголовку <strong>после каждого отпечатанного рулона</strong> — так она дольше служит и печатает чётко.</div>
+    <p><b>Чем:</b> спиртовой ваткой (палочкой или салфеткой, смоченной спиртом) или специальным чистящим карандашом для термоголовок.</p>
+    <ol class="steps">
+      <li>Выключите принтер и откройте крышку. Если он только что печатал, подождите 2–3 минуты — головка горячая.</li>
+      <li>Протрите термоголовку по всей ширине, а также резиновый вал и датчики.</li>
+      <li>Дождитесь, пока спирт высохнет, и закройте крышку.</li>
+    </ol>
+    <h2 style="margin-top:2.4mm">Если что-то не так</h2>
+    <table class="tbl">
+      <tr><td>Не горит индикатор</td><td>Проверьте адаптер, кабель и выключатель.</td></tr>
+      <tr><td>Пустые этикетки</td><td>Лента вставлена этикетками вниз или этикетки не термо.</td></tr>
+      <tr><td>Бледная печать</td><td>Почистите термоголовку, увеличьте плотность в драйвере.</td></tr>
+      <tr><td>Пропуск этикеток</td><td>Калибровка; проверьте размер в драйвере.</td></tr>
+      <tr><td>Лента мнётся</td><td>Придвиньте направляющую, плотно закройте крышку.</td></tr>
+    </table>
+    <h3>Меры предосторожности</h3>
+    <ul class="dots">
+      <li>Не касайтесь термоголовки руками, не чистите её металлом и растворителями.</li>
+      <li>Только комплектный адаптер. Не печатайте без бумаги, не разбирайте принтер.</li>
+    </ul>
+    <div class="foot"><span>6</span></div>
+  </div>
+</section>
+
+<script>
+/* Кружки с номерами и значками. Цифры — контуры Rubik Bold (а не текст): браузер округляет
+   положение текста до пикселя (0,26 мм), и знак гулял бы в кружке. Контур ставится по центру
+   своих «чернил» точно. Данные: [ширина, xmin, ymin, xmax, ymax, путь] в единицах шрифта (1000 на кегль). */
+var GLYPHS = {"0": [680, 51, -10, 628, 710, "M339 -10Q267 -10 214.5 10.5Q162 31 127.0 67.0Q92 103 74.0 151.0Q56 199 53 254Q52 281 51.5 315.5Q51 350 51.5 385.5Q52 421 53 449Q56 504 74.5 551.5Q93 599 128.5 634.5Q164 670 216.5 690.0Q269 710 339 710Q410 710 462.5 690.0Q515 670 550.0 634.5Q585 599 604.0 551.5Q623 504 626 449Q627 421 627.5 385.5Q628 350 627.5 315.5Q627 281 626 254Q623 199 604.5 151.0Q586 103 551.5 67.0Q517 31 464.5 10.5Q412 -10 339 -10ZM339 135Q391 135 414.5 168.5Q438 202 439 259Q441 288 441.5 320.0Q442 352 441.5 384.0Q441 416 439 443Q438 498 414.5 532.0Q391 566 339 567Q288 566 264.5 532.0Q241 498 239 443Q239 416 238.5 384.0Q238 352 238.5 320.0Q239 288 239 259Q241 202 265.0 168.5Q289 135 339 135Z"], "1": [497, 16, 0, 432, 700, "M277 0Q267 0 259.5 7.5Q252 15 252 25V501L115 396Q106 389 96.5 391.0Q87 393 80 402L21 479Q15 488 16.5 498.5Q18 509 28 515L258 693Q264 697 269.5 698.5Q275 700 282 700H407Q418 700 425.0 693.0Q432 686 432 675V25Q432 15 425.0 7.5Q418 0 407 0Z"], "2": [650, 41, 0, 606, 713, "M67 0Q56 0 48.5 7.5Q41 15 41 25V96Q41 103 45.0 117.5Q49 132 66 145L170 247Q250 308 301.5 350.5Q353 393 378.0 426.0Q403 459 403 488Q403 522 385.5 544.5Q368 567 325 567Q296 567 277.0 554.5Q258 542 247.5 522.0Q237 502 233 481Q229 468 219.5 463.0Q210 458 199 458H74Q65 458 59.0 464.0Q53 470 53 479Q54 527 73.5 569.5Q93 612 128.5 644.0Q164 676 213.5 694.5Q263 713 325 713Q410 713 469.5 685.5Q529 658 560.0 609.5Q591 561 591 496Q591 447 569.5 404.5Q548 362 508.5 323.5Q469 285 415 244L323 151H580Q591 151 598.5 144.0Q606 137 606 126V25Q606 15 598.5 7.5Q591 0 580 0Z"], "3": [659, 32, -10, 619, 700, "M325 -10Q248 -10 192.5 8.5Q137 27 102.0 56.5Q67 86 50.0 119.5Q33 153 32 184Q32 193 38.5 199.0Q45 205 54 205H185Q196 205 203.0 200.5Q210 196 216 186Q224 167 239.5 155.0Q255 143 277.0 138.5Q299 134 325 134Q376 134 404.5 157.5Q433 181 433 222Q433 265 406.0 283.5Q379 302 329 302H218Q207 302 200.0 309.0Q193 316 193 327V383Q193 395 198.0 404.0Q203 413 209 417L373 556H95Q85 556 77.5 563.0Q70 570 70 581V675Q70 686 77.5 693.0Q85 700 95 700H555Q566 700 573.5 693.0Q581 686 581 675V590Q581 579 576.0 570.5Q571 562 565 557L413 416L420 414Q478 407 522.5 384.0Q567 361 593.0 318.5Q619 276 619 211Q619 143 580.5 93.5Q542 44 476.0 17.0Q410 -10 325 -10Z"], "4": [683, 28, 0, 652, 700, "M389 0Q379 0 371.5 7.5Q364 15 364 25V138H53Q43 138 35.5 145.0Q28 152 28 163V258Q28 267 31.5 274.5Q35 282 39 289L330 683Q343 700 367 700H513Q523 700 530.5 693.0Q538 686 538 675V287H626Q638 287 645.0 279.5Q652 272 652 262V163Q652 152 644.5 145.0Q637 138 627 138H538V25Q538 15 530.5 7.5Q523 0 513 0ZM200 280H368V516Z"], "5": [646, 33, -11, 610, 700, "M320 -11Q226 -11 163.0 18.5Q100 48 67.5 95.5Q35 143 33 198Q33 207 39.0 213.0Q45 219 54 219H188Q201 219 208.5 214.0Q216 209 220 200Q229 177 244.0 162.0Q259 147 278.0 140.0Q297 133 321 133Q349 133 373.0 145.0Q397 157 411.5 180.5Q426 204 426 237Q426 267 412.5 289.0Q399 311 375.5 324.0Q352 337 321 337Q297 337 282.0 331.5Q267 326 257.0 318.0Q247 310 239.0 304.5Q231 299 221 299H90Q81 299 74.5 305.5Q68 312 68 321L104 670Q106 685 115.0 692.5Q124 700 137 700H538Q549 700 556.5 693.0Q564 686 564 675V581Q564 570 556.5 563.0Q549 556 538 556H248L235 427Q257 441 286.5 451.0Q316 461 368 461Q415 461 458.5 444.5Q502 428 536.5 398.0Q571 368 590.5 326.5Q610 285 610 233Q610 162 575.5 107.0Q541 52 476.0 20.5Q411 -11 320 -11Z"], "6": [651, 33, -10, 622, 700, "M331 -10Q242 -10 175.0 22.0Q108 54 70.5 110.5Q33 167 33 240Q33 271 42.5 301.5Q52 332 66.0 359.5Q80 387 94.0 408.5Q108 430 117 443L293 680Q298 685 306.0 692.5Q314 700 329 700H462Q471 700 477.0 693.5Q483 687 483 678Q483 674 482.0 670.5Q481 667 479 665L344 481Q350 483 358.5 483.5Q367 484 374 484Q419 482 463.0 464.0Q507 446 543.0 415.0Q579 384 600.5 340.5Q622 297 622 244Q622 174 586.0 116.5Q550 59 484.5 24.5Q419 -10 331 -10ZM329 134Q358 134 383.0 146.5Q408 159 423.5 183.0Q439 207 439 241Q439 276 424.0 299.5Q409 323 384.0 335.0Q359 347 329 347Q299 347 273.5 335.0Q248 323 233.0 299.5Q218 276 218 241Q218 207 233.5 183.0Q249 159 274.0 146.5Q299 134 329 134Z"], "7": [573, 28, 0, 547, 700, "M141 0Q132 0 126.0 6.5Q120 13 120 22Q120 26 122 31L353 549H54Q43 549 35.5 556.5Q28 564 28 575V675Q28 686 35.5 693.0Q43 700 54 700H521Q533 700 540.0 693.0Q547 686 547 675V586Q547 571 544.0 561.0Q541 551 536 541L305 24Q302 18 294.0 9.0Q286 0 270 0Z"], "8": [677, 45, -10, 632, 710, "M338 -10Q264 -10 208.5 7.5Q153 25 117.0 55.0Q81 85 63.0 125.0Q45 165 45 210Q45 265 72.5 307.0Q100 349 142 372Q107 395 88.5 429.5Q70 464 70 510Q70 566 99.0 611.0Q128 656 187.0 683.0Q246 710 338 710Q429 710 488.0 683.5Q547 657 575.5 612.0Q604 567 604 511Q604 466 586.0 430.5Q568 395 534 372Q579 350 605.5 307.0Q632 264 632 209Q632 149 599.5 99.0Q567 49 502.0 19.5Q437 -10 338 -10ZM338 118Q370 118 395.5 129.0Q421 140 436.0 160.5Q451 181 451 210Q451 239 436.0 259.0Q421 279 395.5 290.0Q370 301 338 301Q306 301 280.0 290.0Q254 279 239.0 259.0Q224 239 224 210Q224 181 239.0 160.5Q254 140 280.0 129.0Q306 118 338 118ZM338 422Q366 422 389.0 432.5Q412 443 425.0 460.5Q438 478 438 502Q438 526 425.5 544.0Q413 562 390.0 572.0Q367 582 338 582Q309 582 286.5 572.0Q264 562 251.0 544.0Q238 526 238 502Q238 478 251.0 460.0Q264 442 286.5 432.0Q309 422 338 422Z"], "9": [641, 29, 0, 608, 710, "M174 0Q165 0 159.0 6.5Q153 13 153 22Q153 27 154.5 30.0Q156 33 157 35L298 228Q284 225 269 225Q224 228 181.0 245.5Q138 263 103.5 293.5Q69 324 49.0 366.0Q29 408 29 460Q29 508 47.0 552.5Q65 597 101.0 632.5Q137 668 190.5 689.0Q244 710 315 710Q387 710 441.5 691.5Q496 673 533.0 639.5Q570 606 589.0 561.5Q608 517 608 467Q608 421 591.5 382.0Q575 343 551.5 308.5Q528 274 503 239L343 20Q339 15 331.0 7.5Q323 0 307 0ZM317 357Q347 357 371.0 369.5Q395 382 409.0 405.0Q423 428 423 461Q423 494 409.0 517.5Q395 541 371.0 553.5Q347 566 317 566Q288 566 264.0 553.5Q240 541 226.0 517.5Q212 494 212 461Q212 428 226.0 405.0Q240 382 264.0 369.5Q288 357 317 357Z"], "i": [286, 58, 0, 228, 735, "M84 0Q73 0 66.0 7.5Q59 15 59 25V495Q59 506 66.0 513.0Q73 520 84 520H202Q213 520 220.0 513.0Q227 506 227 495V25Q227 15 220.0 7.5Q213 0 202 0ZM83 595Q72 595 65.0 602.0Q58 609 58 620V710Q58 720 65.0 727.5Q72 735 83 735H203Q213 735 220.5 727.5Q228 720 228 710V620Q228 609 220.5 602.0Q213 595 203 595Z"], "!": [291, 59, 0, 232, 700, "M88 221Q77 221 70.0 228.5Q63 236 63 246V675Q63 686 70.0 693.0Q77 700 88 700H203Q214 700 221.0 693.0Q228 686 228 675V246Q228 236 221.0 228.5Q214 221 203 221ZM84 0Q73 0 66.0 7.5Q59 15 59 25V148Q59 159 66.0 166.5Q73 174 84 174H207Q217 174 224.5 166.5Q232 159 232 148V25Q232 15 224.5 7.5Q217 0 207 0Z"]};
+var PT = 25.4 / 72;
+function circle(txt, o) {   // o: { d: диаметр мм, pt: кегль, fill: true — белый знак на чёрном, sw: толщина обводки мм }
+  var x = 0, xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9, parts = '';
+  String(txt).split('').forEach(function (ch) {
+    var g = GLYPHS[ch];
+    xmin = Math.min(xmin, x + g[1]); xmax = Math.max(xmax, x + g[3]); ymin = Math.min(ymin, g[2]); ymax = Math.max(ymax, g[4]);
+    parts += '<path transform="translate(' + x + ' 0)" d="' + g[5] + '"/>';
+    x += g[0];
+  });
+  var s = o.pt * PT / 1000, r = o.d / 2, sw = o.sw || 0.25;
+  var tx = r - (xmin + xmax) / 2 * s, ty = r + (ymin + ymax) / 2 * s;
+  return '<svg class="circ" viewBox="0 0 ' + o.d + ' ' + o.d + '" width="' + o.d + 'mm" height="' + o.d + 'mm">' +
+    (o.fill ? '<circle cx="' + r + '" cy="' + r + '" r="' + r + '" fill="#141414"/>'
+            : '<circle cx="' + r + '" cy="' + r + '" r="' + (r - sw / 2) + '" fill="#fff" stroke="#141414" stroke-width="' + sw + '"/>') +
+    '<g fill="' + (o.fill ? '#fff' : '#141414') + '" transform="translate(' + tx + ' ' + ty + ') scale(' + s + ' ' + (-s) + ')">' + parts + '</g></svg>';
+}
+document.querySelectorAll('ol.steps').forEach(function (ol) {
+  var s0 = +(ol.getAttribute('data-start') || 1);
+  [].forEach.call(ol.children, function (li, i) { li.insertAdjacentHTML('afterbegin', circle(s0 + i, { d: 3.4, pt: 5.6 })); });
+});
+document.querySelectorAll('.legend em').forEach(function (em) { em.innerHTML = circle(em.textContent.trim(), { d: 3.6, pt: 5.8, fill: true }); });
+// номера выносок: один SVG-слой поверх рисунка в его миллиметрах — внутри SVG координаты не округляются до пикселя
+window.addEventListener('load', function () {
+  document.querySelectorAll('.figw').forEach(function (fw) {
+    var r = fw.querySelector('img').getBoundingClientRect(), w = r.width * 25.4 / 96, h = r.height * 25.4 / 96, inner = '';
+    fw.querySelectorAll('.fb').forEach(function (b) {
+      var x = parseFloat(b.style.left) / 100 * w, y = parseFloat(b.style.top) / 100 * h;
+      inner += circle(b.getAttribute('data-n'), { d: 3.2, pt: 5.4, fill: true })
+        .replace('<svg class="circ"', '<svg x="' + (x - 1.6) + '" y="' + (y - 1.6) + '"')
+        .replace(/width="[\d.]+mm" height="[\d.]+mm"/, 'width="3.2" height="3.2"');
+      b.remove();
+    });
+    fw.insertAdjacentHTML('beforeend', '<svg class="fbl" viewBox="0 0 ' + w + ' ' + h + '" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible">' + inner + '</svg>');
+  });
+});
+document.querySelectorAll('.foot span').forEach(function (sp) { sp.innerHTML = circle(sp.textContent.trim(), { d: 4.4, pt: 7, fill: true }); });
+document.querySelectorAll('.tip').forEach(function (t) { t.insertAdjacentHTML('afterbegin', circle('i', { d: 3.6, pt: 6, fill: true })); });
+document.querySelectorAll('.warn').forEach(function (t) { t.insertAdjacentHTML('afterbegin', circle('!', { d: 3.6, pt: 6.4, fill: true })); });
+</script>
+</body>
+</html>
