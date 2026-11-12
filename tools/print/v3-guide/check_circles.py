@@ -14,7 +14,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 MM = 72 / 25.4
 DPI = 2400
 
-doc = pymupdf.open(HERE / "Xprinter_V3_guide.pdf")
+doc = pymupdf.open(HERE / "Xprinter_V3rev2_guide.pdf")
 worst = 0
 for pno, page in enumerate(doc):
     seen = []

@@ -1,7 +1,7 @@
 """Собирает PDF бумажной инструкции Xprinter V3 из guide.html (Edge через Playwright).
 
 Запуск:  python tools/print/v3-guide/build.py
-Результат: tools/print/v3-guide/Xprinter_V3_guide.pdf и превью preview-1.png, preview-2.png.
+Результат: tools/print/v3-guide/Xprinter_V3rev2_guide.pdf и превью preview-1.png, preview-2.png.
 Проверяет, что текст ни на одной полосе не вылез за её границы.
 """
 import pathlib
@@ -10,7 +10,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 HERE = pathlib.Path(__file__).resolve().parent
-OUT = HERE / "Xprinter_V3_guide.pdf"
+OUT = HERE / "Xprinter_V3rev2_guide.pdf"
 
 with sync_playwright() as p:
     br = p.chromium.launch(channel="msedge")
