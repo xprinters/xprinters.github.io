@@ -12,6 +12,11 @@ model:
 cloud: https://cloud.mail.ru/public/uw49/fVe11mmQd
 ---
 
+!!! info "V3 или V3 rev.2?"
+
+    Эта страница — для V3 с прошивкой **4BARCODE**: установщик драйвера находит принтер как **4BARCODE 3B-Q361U**.
+    Если установщик показывает **Xprinter XP-Q361U** или на обложке инструкции указано **rev.2** — вам на страницу [Xprinter V3 rev.2](../v3rev2/index.md).
+
 ## Драйвер
 
 === ":fontawesome-brands-windows: Windows"
