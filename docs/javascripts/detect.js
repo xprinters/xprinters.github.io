@@ -21,7 +21,7 @@
   var NAME_RULES = [
     [/365B/i, "xp-365b"], [/2083B|D362B/i, "v1bt"], [/XP-?[QT]371U/i, "v2rev2"], [/371U/i, "v2"],
     [/XP-?[QT]361U/i, "v3rev2"], [/361U/i, "v3"], [/2064C/i, "v4"], [/428A/i, "v4rev2"], [/2054N|D465B/i, "mini"],
-    [/P322/i, "pocket"], [/P8[34]/i, "a4pro"]
+    [/P322/i, "pocket"], [/P8[34]/i, "a4pro"], [/BP1/i, "a4"]
   ];
   // Гипотеза (подтверждена на Pocket: VID 0x2D37, PID 0x5BB5): Xprinter ставит PID
   // равным 4 hex-символам в конце Hardware ID Windows. Сверять на каждой новой модели.
@@ -40,7 +40,7 @@
   var MODELS = {
     "xp-365b": "Xprinter XP-365B", "v1bt": "Xprinter V1BT", "v2": "Xprinter V2", "v2rev2": "Xprinter V2 rev.2",
     "v3": "Xprinter V3", "v3rev2": "Xprinter V3 rev.2", "v4": "Xprinter V4", "v4rev2": "Xprinter V4 rev.2", "mini": "Xprinter Mini",
-    "pocket": "Xprinter Pocket", "a4pro": "A4PRO / A4 Tattoo"
+    "pocket": "Xprinter Pocket", "a4pro": "A4PRO / A4 Tattoo", "a4": "Xprinter A4"
   };
 
   var log = [];
@@ -84,11 +84,12 @@
 
   // Пак драйверов: по прошивке (производитель в USB, Bluetooth-имя XP-…), иначе по модели.
   // Прошивка 4BARCODE требует пак 4BARCODE, Xprinter — пак Xprinter, A4PRO (чип Jieli) — Xlife.
-  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v3rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife" };
-  var PACK_TITLES = { xprinter: "Xprinter", "4barcode": "4BARCODE", xlife: "Xlife" };
+  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v3rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife", "a4": "xlife-bp1" };
+  var PACK_TITLES = { xprinter: "Xprinter", "4barcode": "4BARCODE", xlife: "Xlife", "xlife-bp1": "Xlife" };
 
   function packFor(slug, hint) {
     hint = hint || "";
+    if (slug === "a4") return "xlife-bp1";
     if (slug === "a4pro" || /xlife|jieli/i.test(hint)) return "xlife";
     if (/4barcode/i.test(hint)) return "4barcode";
     if (/xprinter|(^|\s)XP-/i.test(hint)) return "xprinter";
@@ -98,13 +99,15 @@
   function driverSteps(pack) {
     var ol = el("ol");
     ol.appendChild(el("li", null, "Кнопка откроет файл в Облаке Mail.ru — нажмите там «Скачать»."));
-    if (pack === "xlife") {
+    if (/^xlife/.test(pack)) {
       ol.appendChild(el("li", null, "Запустите скачанный файл и пройдите установку до конца. Принтер должен быть подключён по USB и включён."));
     } else {
       ol.appendChild(el("li", null, "Запустите файл: он распакует драйвер и откроет мастер установки."));
       ol.appendChild(el("li", null, "Выберите «Установить драйверы принтера» и подключение USB — мастер сам найдёт включённый принтер. Нажимайте «Далее» до конца."));
     }
-    ol.appendChild(el("li", null, "Задайте размер этикетки: «Принтеры и сканеры» → принтер → «Настройки печати» → «Параметры страницы»."));
+    ol.appendChild(el("li", null, pack === "xlife-bp1"
+      ? "При печати выберите размер бумаги, как у вставленной (A4, A5…), и масштаб «По размеру страницы»."
+      : "Задайте размер этикетки: «Принтеры и сканеры» → принтер → «Настройки печати» → «Параметры страницы»."));
     return ol;
   }
 
