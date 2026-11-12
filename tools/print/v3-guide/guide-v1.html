@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Xprinter V3 — руководство пользователя (прошивка Xprinter)</title>
+<!--
+  Бумажная инструкция Xprinter V3 (XP-Q361U, прошивка Xprinter).
+  Формат и раскладка — как у прежнего макета: 2 листа 209,9 × 284,7 мм, на каждом 4 полосы ≈ 105 × 142 мм.
+    Лист 1: [задняя обложка][обложка] / [стр. 1][стр. 2]
+    Лист 2: [стр. 3][стр. 4] / [стр. 5][стр. 6]
+  PDF для типографии: python tools/print/v3-guide/build.py
+  Иллюстрации — img/ (вырезаны из прежнего макета с разрешением 600 dpi), QR на 4BarCode — img/qr_*.svg.
+-->
+<style>
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Regular.ttf"); font-weight: 400; }
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Bold.ttf"); font-weight: 700; }
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-Italic.ttf"); font-weight: 400; font-style: italic; }
+  @font-face { font-family: "Rubik"; src: url("../../../docs/editor/fonts/Rubik-BoldItalic.ttf"); font-weight: 700; font-style: italic; }
+  @font-face { font-family: "Cousine"; src: url("../../../docs/editor/fonts/Cousine-Bold.ttf"); font-weight: 700; }
+
+  @page { size: 209.9mm 284.7mm; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Rubik", sans-serif; color: #111; font-size: 7.2pt; line-height: 1.32; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .sheet { width: 209.9mm; height: 284.7mm; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; page-break-after: always; overflow: hidden; }
+  .sheet:last-child { page-break-after: auto; }
+  .panel { position: relative; padding: 7mm 6.5mm 11mm; overflow: hidden; }
+  .num { position: absolute; left: 50%; bottom: 4.5mm; transform: translateX(-50%); width: 4.6mm; height: 4.6mm; border-radius: 50%;
+         background: #111; color: #fff; font-weight: 700; font-size: 6.5pt; display: flex; align-items: center; justify-content: center; }
+
+  h2 { font-size: 10pt; margin: 0 0 1.4mm; font-weight: 700; }
+  h3 { font-size: 7.8pt; margin: 3mm 0 1mm; font-weight: 700; }
+  h3 small { font-weight: 400; color: #555; font-size: 6.4pt; }
+  p { margin: 0 0 1.2mm; }
+  ol, ul { margin: 0 0 1.2mm; padding-left: 4.2mm; }
+  li { margin: 0 0 .45mm; }
+  .note { color: #444; font-style: italic; }
+  .k { display: inline-block; font-family: "Cousine", monospace; font-weight: 700; font-size: 5.6pt; line-height: 1; padding: .35mm .7mm; border: .25mm solid #111; border-radius: .6mm; vertical-align: .2mm; }
+  .site { font-weight: 700; white-space: nowrap; }
+  b { white-space: nowrap; }
+  .tip { margin-top: 2mm; padding: 1.6mm 2mm; border-left: .8mm solid #111; background: #f1f1f1; }
+  img { display: block; }
+
+  /* ---------- задняя обложка ---------- */
+  .back { display: flex; flex-direction: column; text-align: center; padding-top: 12mm; }
+  .back .lbl { font-size: 7.4pt; text-transform: uppercase; letter-spacing: .12em; color: #444; }
+  .back .big { font-size: 25pt; font-weight: 700; letter-spacing: -.01em; margin: 1.5mm 0 3mm; }
+  .back ul { list-style: none; padding: 0; margin: 0 auto; text-align: left; font-size: 8pt; line-height: 1.55; }
+  .back ul li::before { content: "—  "; }
+  .back .sup { margin-top: 5mm; font-size: 7.6pt; }
+  .back .maker { margin-top: auto; font-size: 6.4pt; line-height: 1.45; color: #222; }
+  .back .maker p { margin-bottom: 1.6mm; }
+
+  /* ---------- обложка ---------- */
+  .cover { padding: 0; display: grid; grid-template-columns: 13.5mm 2.2mm 1.2mm 2.2mm 1fr; }
+  .spine { background: #1a1a1a; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .spine span { writing-mode: vertical-rl; font-weight: 700; font-size: 17pt; letter-spacing: .04em; white-space: nowrap; }
+  .stripe { background: #d3d3d3; }
+  .gap { background: #fff; }
+  .cbox { margin: 3mm 3mm 3mm 3.5mm; border: .4mm solid #111; display: flex; flex-direction: column; }
+  .badge { align-self: flex-end; background: #111; color: #fff; font-weight: 700; font-size: 10pt; padding: 1mm 3mm; }
+  .ctitle { text-align: center; font-size: 17pt; font-weight: 700; line-height: 1.1; margin: 2.5mm 0 0; }
+  .cimg { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 1mm 6mm; }
+  .cimg img { max-width: 100%; max-height: 100%; }
+  .csite { border-top: .4mm solid #111; display: flex; align-items: center; gap: 2.5mm; padding: 2mm 3mm; }
+  .csite img { width: 8mm; height: 8mm; flex: 0 0 auto; }
+  .csite div { font-size: 7.4pt; line-height: 1.25; }
+  .csite b { display: block; font-size: 15pt; letter-spacing: -.01em; line-height: 1.15; }
+  .ceco { border-top: .4mm solid #111; text-align: center; font-size: 6.4pt; padding: 1.4mm 2mm; display: flex; align-items: center; justify-content: center; gap: 1.5mm; }
+  .ceco img { height: 3.2mm; }
+  .cread { border-top: .4mm solid #111; text-align: center; font-size: 7.6pt; padding: 1.6mm 2mm; }
+
+  /* ---------- страницы ---------- */
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 0 4mm; margin-top: 1.5mm; }
+  .legend div { margin-bottom: .5mm; }
+  .legend i { color: #555; font-size: 6.2pt; }
+  .modes img { width: 94%; margin: .6mm auto 1mm; }
+  .qrs { display: flex; justify-content: space-around; margin: 2.5mm 0 2mm; text-align: center; }
+  .qrs figure { margin: 0; width: 27mm; }
+  .qrs img { width: 21mm; height: 21mm; margin: 0 auto 1.2mm; }
+  .qrs figcaption { font-size: 6.6pt; line-height: 1.25; }
+</style>
+</head>
+<body>
+
+<!-- ===================== ЛИСТ 1 ===================== -->
+<section class="sheet">
+
+  <!-- задняя обложка -->
+  <div class="panel back">
+    <div class="lbl">Сайт поддержки</div>
+    <div class="big">4barcode.ru</div>
+    <ul>
+      <li>драйверы для Windows и macOS</li>
+      <li>программы для печати этикеток</li>
+      <li>онлайн-редактор этикеток</li>
+      <li>видеоинструкции</li>
+      <li>решение частых проблем</li>
+      <li>техническая поддержка</li>
+    </ul>
+    <p class="sup">Страница вашего принтера: <span class="site">4barcode.ru/v3</span></p>
+    <div class="maker">
+      <p>Производитель: Джухай Глобал Технолоджи ко. ЛТД<br>ZHUHAI GLOBAL TECHNOLOGY CO., LTD<br>
+         Адрес: Китай, провинция Гуандун, город Чжухай, район Сянгжоу,<br>Цианьшан промышленный парк, Хуавей шоссе, 613, строение 1, блок 5F, С</p>
+      <p>Гарантийный срок — 12 мес.<br>Сделано в Китае.</p>
+    </div>
+  </div>
+
+  <!-- обложка -->
+  <div class="panel cover">
+    <div class="spine"><span>ТЕРМОПРИНТЕР ЭТИКЕТОК</span></div>
+    <div class="stripe"></div><div class="gap"></div><div class="stripe"></div>
+    <div class="cbox">
+      <div class="badge">XPRINTER V3</div>
+      <div class="ctitle">Руководство<br>пользователя</div>
+      <div class="cimg"><img src="img/cover_printer.png" alt=""></div>
+      <div class="csite"><img src="img/warn.png" alt="">
+        <div>Драйверы, программы и видеоинструкции:<b>4barcode.ru</b></div></div>
+      <div class="ceco">Рекомендуем термоэтикетки с защитным слоем бренда EcoTop <img src="img/ecotop_word.png" alt="EcoTop"></div>
+      <div class="cread">Пожалуйста, ознакомьтесь с инструкцией<br>перед использованием принтера</div>
+    </div>
+  </div>
+
+  <!-- стр. 1 -->
+  <div class="panel">
+    <h2>Комплектация</h2>
+    <ol>
+      <li>Термопринтер</li>
+      <li>Сетевой адаптер питания</li>
+      <li>Кабель USB</li>
+      <li>Держатель рулона</li>
+      <li>Руководство пользователя</li>
+    </ol>
+    <h2 style="margin-top:3mm">Внешний вид</h2>
+    <img src="img/views.png" alt="" style="width:100%">
+    <div class="legend">
+      <div>1 — Разъём питания</div><div>6 — Кнопка открытия крышки</div>
+      <div>2 — Разъём RJ-12 <i>(ден. ящик)</i></div><div>7 — Кнопка PAUSE</div>
+      <div>3 — Кнопка ВКЛ/ВЫКЛ</div><div>8 — Индикатор готовности</div>
+      <div>4 — Разъём USB</div><div>9 — Индикатор ошибки</div>
+      <div>5 — Откидная крышка</div><div>10 — Кнопка FEED</div>
+    </div>
+    <div class="num">1</div>
+  </div>
+
+  <!-- стр. 2 -->
+  <div class="panel">
+    <h2>Установка ленты</h2>
+    <ol>
+      <li>Откройте крышку, вставьте держатель в центр втулки рулона. Ограничитель рулона — справа.</li>
+      <li>Положите держатель с рулоном в отсек для бумаги.</li>
+      <li>Придвиньте ограничитель к рулону с небольшим запасом — рулон должен свободно вращаться.</li>
+      <li>Пропустите ленту через левую направляющую (зелёного цвета) — в ней датчик бумаги.</li>
+      <li>Правый бегунок сдвиньте влево, чтобы лента проходила, но не слишком плотно.</li>
+      <li>Вытяните ленту за корпус примерно на 1 см.</li>
+      <li>Закройте крышку до щелчка.</li>
+    </ol>
+    <img src="img/roll.png" alt="" style="width:78%; margin:.5mm auto">
+    <h3>Примечание</h3>
+    <p>Принтер печатает на <b>термоэтикетках</b> (не путать с термотрансферными) и на кассовой ленте. Кассовая лента устанавливается без держателя рулона.</p>
+    <p>Ширина этикетки — до 75 мм, кассовой ленты — до 80 мм. Внешний диаметр рулона — не более 85 мм.</p>
+    <p>Лента сходит с рулона <b>снизу, этикетками вниз</b> — печатающая головка находится внизу.</p>
+    <div class="num">2</div>
+  </div>
+</section>
+
+<!-- ===================== ЛИСТ 2 ===================== -->
+<section class="sheet">
+
+  <!-- стр. 3 -->
+  <div class="panel">
+    <h2>Работа принтера</h2>
+    <p>При каждом включении и при закрытии крышки на включённом принтере проходит автоматическая калибровка датчика зазора — выходит одна-несколько этикеток. Чтобы не терять их, после калибровки нажмите <span class="k">PAUSE</span> — этикетка вернётся внутрь.</p>
+    <p>По умолчанию принтер работает в режиме печати этикеток. Чтобы переключить режим (например, на печать чеков — RECEIPT):</p>
+    <ol>
+      <li>Выключите принтер.</li>
+      <li>Проверьте, что рулон установлен правильно и крышка закрыта.</li>
+      <li>Зажмите <span class="k">PAUSE</span> и включите принтер. Когда он напечатает текущий режим, отпустите кнопку.</li>
+    </ol>
+    <div class="modes"><img src="img/modes.png" alt=""></div>
+    <ol start="4">
+      <li>Чтобы сменить режим, нажмите <span class="k">FEED</span> — принтер напечатает новый режим.</li>
+      <li><b>Выключите и снова включите принтер</b>, иначе настройка не сохранится.</li>
+    </ol>
+    <h2 style="margin-top:2mm">Установка драйвера</h2>
+    <p class="note">По USB: Windows, Ubuntu*, macOS*, Android*. По Bluetooth (модификация с Bluetooth-модулем): Windows, Android, iOS.</p>
+    <h3>USB-подключение <small>(Windows 7–11)</small></h3>
+    <ol>
+      <li>Скачайте установщик драйвера на сайте <span class="site">4barcode.ru/v3</span> и запустите его.</li>
+      <li>Когда установщик начнёт искать устройство по USB, подключите принтер к компьютеру и включите его.</li>
+      <li>Установщик определит принтер как <b>Xprinter XP-Q361U</b>. Нажимайте «Далее» до конца установки.</li>
+    </ol>
+    <div class="num">3</div>
+  </div>
+
+  <!-- стр. 4 -->
+  <div class="panel">
+    <h3 style="margin-top:0">Bluetooth-подключение <small>(Windows 7–11)</small></h3>
+    <ol>
+      <li>Включите принтер.</li>
+      <li>Запустите установщик драйвера и на экране выбора типа подключения выберите «Bluetooth».</li>
+      <li>Напротив появится кнопка «Мастер добавления устройства…» — нажмите её.</li>
+      <li>Запустится поиск устройств — выберите <b>Printer001</b> или <b>XP-Q361U</b>.</li>
+      <li>В окне PIN-кода введите <b>0000</b> и нажмите «Далее».</li>
+      <li>Вы снова в окне выбора типа подключения — нажмите «Далее».</li>
+      <li>В окне выбора Bluetooth-устройства выберите <b>Printer001</b> (или <b>XP-Q361U</b>).</li>
+      <li>В списке моделей выберите <b>Xprinter XP-Q361U</b> и нажмите «Далее».</li>
+      <li>Следуйте указаниям установщика до конца.</li>
+    </ol>
+    <h2 style="margin-top:2.5mm">Размер этикетки <small style="font-weight:400;font-size:6.4pt;color:#555">(Windows 7–11)</small></h2>
+    <ol>
+      <li>Нажмите <span class="k">Win</span>+<span class="k">S</span> — откроется поиск.</li>
+      <li>Введите «Принтеры и сканеры» и откройте найденное.</li>
+      <li>Найдите принтер <b>Xprinter XP-Q361U</b>, нажмите на него и выберите «Настройка печати».</li>
+      <li>Откройте вкладку «Параметры страницы» и нажмите «Новая».</li>
+      <li>В строке «Имя» введите название, например «58×40».</li>
+      <li>Укажите ширину и высоту этикетки в миллиметрах.</li>
+      <li>Нажмите «ОК».</li>
+      <li>На вкладке «Графика» выберите «Нет» — иначе штрихкоды печатаются волнами.</li>
+      <li>Нажмите «Применить» и «ОК».</li>
+    </ol>
+    <div class="tip">Размер должен <b>точно</b> совпадать с этикеткой — измерьте её линейкой. PDF-этикетки маркетплейсов печатайте из Google Chrome с масштабом «По размеру бумаги». Видео — на <span class="site">4barcode.ru/v3</span></div>
+    <div class="num">4</div>
+  </div>
+
+  <!-- стр. 5 -->
+  <div class="panel">
+    <h2>Печать с телефона</h2>
+    <p class="note">Для модификации с Bluetooth-модулем.</p>
+    <p>Для печати с телефона на Android или iPhone установите бесплатное приложение <b>4BarCode</b> — наведите камеру телефона на QR-код:</p>
+    <div class="qrs">
+      <figure><img src="img/qr_android.svg" alt=""><figcaption><b>Android</b><br>Google Play</figcaption></figure>
+      <figure><img src="img/qr_ios.svg" alt=""><figcaption><b>iPhone</b><br>App Store</figcaption></figure>
+    </div>
+    <ul>
+      <li>При первом подключении приложение запросит PIN-код — введите <b>0000</b>. На iPhone PIN может не запрашиваться.</li>
+      <li>В приложении есть видеоинструкции по работе с ним.</li>
+    </ul>
+    <h2 style="margin-top:3mm">Свои этикетки на компьютере</h2>
+    <h3 style="margin-top:1mm">BarTender UltraLite <small>(Windows)</small></h3>
+    <p>Скачайте BarTender на странице <span class="site">4barcode.ru/v3</span> (раздел «Программы для этикеток»). При активации введите ключ из файла «КЛЮЧ_ЛИЦЕНЗИИ» — включится бесплатная бессрочная редакция UltraLite.</p>
+    <h3>Редактор этикеток в браузере</h3>
+    <p>Без установки и регистрации: штрихкоды, QR-коды, знаки EAC, готовый PDF в размер этикетки — <span class="site">4barcode.ru/editor</span></p>
+    <div class="tip">Все видеоинструкции — установка драйвера, BarTender, печать с телефона — на странице <span class="site">4barcode.ru/v3</span></div>
+    <div class="num">5</div>
+  </div>
+
+  <!-- стр. 6 -->
+  <div class="panel">
+    <h2>Очистка термоголовки</h2>
+    <p>Очищайте печатающую термоголовку <strong>после каждого отпечатанного рулона</strong> — так она дольше служит и печатает чётко. Внеочередная очистка нужна, если:</p>
+    <ul>
+      <li>печать стала бледной или нечёткой;</li>
+      <li>на этикетке появилась белая вертикальная полоса;</li>
+      <li>подача ленты стала шумной.</li>
+    </ul>
+    <p><b>Чем:</b> спиртовой ваткой (палочкой или салфеткой, смоченной спиртом) или специальным чистящим карандашом для термоголовок.</p>
+    <ol>
+      <li>Выключите принтер, откройте крышку и выньте рулон. Если принтер только что печатал, подождите 1 минуту — головка горячая.</li>
+      <li>Протрите термоголовку по всей ширине — тёмную полосу термоэлементов.</li>
+      <li>Дождитесь, пока спирт высохнет, вставьте рулон и закройте крышку.</li>
+    </ol>
+    <h2 style="margin-top:3mm">Меры предосторожности</h2>
+    <ol>
+      <li>Ставьте принтер на устойчивую поверхность, вдали от влаги, жары и грязи.</li>
+      <li>Используйте только комплектный адаптер питания и розетку с заземлением. Кабели подключайте при выключенном принтере.</li>
+      <li>Если принтер долго не используется, отключите адаптер от сети.</li>
+      <li>Не допускайте попадания внутрь воды и посторонних предметов.</li>
+      <li>Не печатайте без бумаги — это повреждает термоголовку.</li>
+      <li>Не касайтесь термоголовки руками, не чистите её металлом, абразивами, бензином или ацетоном.</li>
+      <li>Используйте качественные этикетки и не разбирайте принтер самостоятельно.</li>
+    </ol>
+    <div class="num">6</div>
+  </div>
+</section>
+
+</body>
+</html>
