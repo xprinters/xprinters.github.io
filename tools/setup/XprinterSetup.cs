@@ -79,7 +79,7 @@ namespace XprinterSetup
             { "4BARCODE4B-2083B", "v1bt" }, { "XprinterXP-D362B", "v1bt" },
             { "4BARCODE3B-T371U", "v2" }, { "4BARCODE3B-Q371U", "v2" },
             { "XprinterXP-T371U", "v2rev2" }, { "XprinterXP-Q371U", "v2rev2" },
-            { "4BARCODE3B-Q361U", "v3" }, { "XprinterXP-Q361U", "v3rev2" },
+            { "4BARCODE3B-Q361U", "v3" }, { "XprinterXP-Q361U", "v3" },
             { "4BARCODE4B-2064C", "v4" }, { "XprinterXP-428A", "v4rev2" },
             { "4BARCODE4B-2054N", "mini" }, { "XprinterXP-D465B", "mini" },
             { "XprinterXP-P322B", "pocket" },
@@ -89,7 +89,7 @@ namespace XprinterSetup
         public static readonly Dictionary<string, string> Names = new Dictionary<string, string>
         {
             { "xp-365b", "Xprinter XP-365B" }, { "v1bt", "Xprinter V1BT" }, { "v2", "Xprinter V2" }, { "v2rev2", "Xprinter V2 rev.2" },
-            { "v3", "Xprinter V3" }, { "v3rev2", "Xprinter V3 rev.2" }, { "v4", "Xprinter V4" }, { "v4rev2", "Xprinter V4 rev.2" },
+            { "v3", "Xprinter V3" }, { "v4", "Xprinter V4" }, { "v4rev2", "Xprinter V4 rev.2" },
             { "mini", "Xprinter Mini" },
             { "pocket", "Xprinter Pocket" }, { "a4pro", "A4PRO / A4 Tattoo" },
         };

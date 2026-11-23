@@ -4,7 +4,7 @@
 знака его контур из того же файла шрифта (docs/editor/fonts). Картинки и графика не меняются.
 Затем сравнивает растр исходного и нового файла: внешне они должны совпадать.
 
-Запуск:  python tools/print/v3-guide/outline.py
+Запуск:  python tools/print/a4-guide/outline.py
 Результат: Xprinter_A4_guide_curves.pdf
 """
 import pathlib

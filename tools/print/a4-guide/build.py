@@ -1,7 +1,7 @@
 """Собирает PDF бумажной инструкции Xprinter A4 из guide.html (Edge через Playwright).
 
-Запуск:  python tools/print/v3-guide/build.py
-Результат: tools/print/v3-guide/Xprinter_A4_guide.pdf и превью preview-1.png, preview-2.png.
+Запуск:  python tools/print/a4-guide/build.py
+Результат: tools/print/a4-guide/Xprinter_A4_guide.pdf и превью preview-1.png, preview-2.png.
 Проверяет, что текст ни на одной полосе не вылез за её границы.
 """
 import pathlib

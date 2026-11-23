@@ -2,7 +2,7 @@
 
 Ищет в PDF круги диаметром 3–5 мм, рендерит каждый крупно и сравнивает центр «чернил»
 знака внутри круга с центром самого круга. Печатает смещение в сотых долях мм.
-Запуск:  python tools/print/v3-guide/check_circles.py
+Запуск:  python tools/print/a4-guide/check_circles.py
 """
 import pathlib
 import sys

@@ -24,7 +24,6 @@ description: Где посмотреть модель термопринтера
 | Xprinter V2 | 4BARCODE 3B-T371U / 3B-Q371U |
 | Xprinter V2 rev.2 | Xprinter XP-Q371U / XP-T371U |
 | Xprinter V3 | 4BARCODE 3B-Q361U / 3B-T361U |
-| Xprinter V3 rev.2 | Xprinter XP-Q361U |
 | Xprinter V1BT | 4BARCODE 4B-2083B |
 | Xprinter V4 | 4BARCODE 4B-2064C |
 | Xprinter V4 rev.2 | Xprinter XP-428A |
