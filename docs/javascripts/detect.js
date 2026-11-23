@@ -21,7 +21,7 @@
   var NAME_RULES = [
     [/365B/i, "xp-365b"], [/2083B|D362B/i, "v1bt"], [/XP-?[QT]371U/i, "v2rev2"], [/371U/i, "v2"],
     [/361U/i, "v3"], [/2064C/i, "v4"], [/428A/i, "v4rev2"], [/2054N|D465B/i, "mini"],
-    [/P322/i, "pocket"], [/P8[34]/i, "a4pro"], [/BP1/i, "a4"]
+    [/P322/i, "pocket"], [/P8[34]/i, "a4pro"], [/BP1/i, "a4"], [/K82/i, "k82"]
   ];
   // Гипотеза (подтверждена на Pocket: VID 0x2D37, PID 0x5BB5): Xprinter ставит PID
   // равным 4 hex-символам в конце Hardware ID Windows. Сверять на каждой новой модели.
@@ -40,7 +40,7 @@
   var MODELS = {
     "xp-365b": "Xprinter XP-365B", "v1bt": "Xprinter V1BT", "v2": "Xprinter V2", "v2rev2": "Xprinter V2 rev.2",
     "v3": "Xprinter V3", "v4": "Xprinter V4", "v4rev2": "Xprinter V4 rev.2", "mini": "Xprinter Mini",
-    "pocket": "Xprinter Pocket", "a4pro": "A4PRO / A4 Tattoo", "a4": "Xprinter A4"
+    "pocket": "Xprinter Pocket", "a4pro": "A4PRO / A4 Tattoo", "a4": "Xprinter A4", "k82": "Xprinter A4 Tattoo"
   };
 
   var log = [];
@@ -84,12 +84,12 @@
 
   // Пак драйверов: по прошивке (производитель в USB, Bluetooth-имя XP-…), иначе по модели.
   // Прошивка 4BARCODE требует пак 4BARCODE, Xprinter — пак Xprinter, A4PRO (чип Jieli) — Xlife.
-  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife", "a4": "xlife-bp1" };
+  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife", "a4": "xlife-bp1", "k82": "xlife-bp1" };
   var PACK_TITLES = { xprinter: "Xprinter", "4barcode": "4BARCODE", xlife: "Xlife", "xlife-bp1": "Xlife" };
 
   function packFor(slug, hint) {
     hint = hint || "";
-    if (slug === "a4") return "xlife-bp1";
+    if (slug === "a4" || slug === "k82") return "xlife-bp1";
     if (slug === "a4pro" || /xlife|jieli/i.test(hint)) return "xlife";
     if (/4barcode/i.test(hint)) return "4barcode";
     if (/xprinter|(^|\s)XP-/i.test(hint)) return "xprinter";
