@@ -19,16 +19,11 @@ SRC = HERE.parent.parent.parent / "tmp" / "K82-A4L-User Manual_notext.pdf"
 MM = 72 / 25.4
 PAD = 0.4   # поле вокруг рисунка после обрезки, мм
 
-# Заправка: на заводских рисунках сверху виден белый лист, а вставлять нужно синим листом
-# вверх — иначе печати не будет или она будет нечёткой. Сиреневый лист перекрашиваем в синий.
-LAVENDER = (219, 221, 239)
-BLUE = (75, 74, 124)          # синий копировальный лист из того же макета
 # Логотип BLACK • SAMURAI на крышке принтера на обложке (на заводе наносится шелкографией).
 # Кладётся по плоскости крышки: центр, направление вдоль крышки и поперёк — от задней кромки к передней
 # (снято с квадратной кнопки питания), squash — сжатие поперёк крышки в этой проекции (px рисунка при 600 dpi).
 LOGO = HERE.parent.parent.parent / "tmp" / "bl_logo_tattoo.pdf"
 LOGO_ON = {"cover": dict(center=(715, 238), along=(920, 304), across=(-70, 32), length=560, squash=0.85)}
-RECOLOR = {"st4": (249, 179, 296, 241), "man2": None, "man3": None}   # рамка стрелки (px при 600 dpi) — стрелку белым
 
 # имя: (страница, грубая рамка x0,y0,x1,y1 мм)
 FIGS = {
@@ -81,29 +76,6 @@ def whiteout(page, g):
     sh.commit(overlay=True)
 
 
-def recolor(path, arrow):
-    """Сиреневый лист — в синий, с переходами к чёрным линиям и к белому фону."""
-    from PIL import Image, ImageFilter
-    im = Image.open(path).convert("RGB")
-    a = np.asarray(im).astype(float)
-    L, B, W = np.array(LAVENDER, float), np.array(BLUE, float), np.array([255.0] * 3)
-    pure = (np.abs(a - L).sum(axis=2) < 6)
-    near = np.asarray(Image.fromarray((pure * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7))) > 0
-    out = a.copy()
-    for base in (np.array([0.0] * 3), W):     # переход к линии (чёрное) и к фону (белое)
-        d = L - base
-        t = np.clip(((a - base) @ d) / (d @ d), 0, 1)
-        proj = base + t[..., None] * d
-        hit = near & (np.linalg.norm(a - proj, axis=2) < 14)
-        out[hit] = (base + t[..., None] * (B - base))[hit]
-    if arrow:   # серая стрелка на синем не видна — делаем её белой
-        x0, y0, x1, y1 = arrow
-        reg = out[y0:y1, x0:x1]; src = a[y0:y1, x0:x1]
-        grey = (src.max(axis=2) - src.min(axis=2) < 10) & (src.mean(axis=2) > 40) & (src.mean(axis=2) < 200)
-        reg[grey] = 255
-    Image.fromarray(out.round().astype(np.uint8)).save(path)
-
-
 def put_logo(path, center, along, across, length, squash=1.0):
     """Векторный логотип растрируется в 1200 dpi и кладётся аффинно по плоскости крышки."""
     from PIL import Image
@@ -141,8 +113,6 @@ def main():
         page.get_pixmap(dpi=600, clip=pymupdf.Rect(*(v * MM for v in b)), alpha=False).save(HERE / "img" / (name + ".png"))
         if name in LOGO_ON:
             put_logo(HERE / "img" / (name + ".png"), **LOGO_ON[name])
-        if name in RECOLOR:
-            recolor(HERE / "img" / (name + ".png"), RECOLOR[name])
     (HERE / "img" / "figs.json").write_text(json.dumps(boxes, indent=1), encoding="utf-8")
     for n, b in boxes.items():
         print("%-12s %s  %.1f x %.1f мм" % (n, b, b[2] - b[0], b[3] - b[1]))
