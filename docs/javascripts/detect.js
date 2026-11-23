@@ -15,13 +15,13 @@
     "4BARCODE|4B-2064C": "v4", "XPRINTER|XP-428A": "v4rev2",
     "4BARCODE|4B-2054N": "mini", "XPRINTER|XP-D465B": "mini",
     "XPRINTER|XP-P322B": "pocket",
-    "XLIFE|P83": "a4pro", "XLIFE|P83C": "a4pro", "XLIFE|P84": "a4pro"
+    "XLIFE|P83": "a4pro", "XLIFE|P83C": "a4pro", "XLIFE|P84": "p84"
   };
   // Запасной вариант: модель встречается в названии USB-устройства или Bluetooth-имени
   var NAME_RULES = [
     [/365B/i, "xp-365b"], [/2083B|D362B/i, "v1bt"], [/XP-?[QT]371U/i, "v2rev2"], [/371U/i, "v2"],
     [/361U/i, "v3"], [/2064C/i, "v4"], [/428A/i, "v4rev2"], [/2054N|D465B/i, "mini"],
-    [/P322/i, "pocket"], [/P8[34]/i, "a4pro"], [/BP1/i, "a4"], [/K82/i, "k82"]
+    [/P322/i, "pocket"], [/P83/i, "a4pro"], [/P84/i, "p84"], [/BP1/i, "a4"], [/K82/i, "k82"]
   ];
   // Гипотеза (подтверждена на Pocket: VID 0x2D37, PID 0x5BB5): Xprinter ставит PID
   // равным 4 hex-символам в конце Hardware ID Windows. Сверять на каждой новой модели.
@@ -34,13 +34,13 @@
   };
   // PID от Hardware ID прошивки Xprinter (остальные в PIDS — прошивка 4BARCODE)
   var XPRINTER_PIDS = [0x6494, 0x99C4, 0x6414, 0x64D8, 0xA489, 0x4290, 0xDDC7, 0x5BB5];
-  // A4PRO / A4 Tattoo (Xlife) по USB не называет модель: чип Jieli, «USB Composite
-  // Device», PID 0xD033. Принтер на Jieli у нас один, поэтому VID + класс 07 = A4PRO.
+  // A4PRO и Tattoo P84 (Xlife) по USB не называют модель: чип Jieli, «USB Composite
+  // Device», PID 0xD033. Их не различить, поэтому VID + класс 07 = A4PRO (драйвер у них общий).
   var JIELI_VID = 0x2D84;
   var MODELS = {
     "xp-365b": "Xprinter XP-365B", "v1bt": "Xprinter V1BT", "v2": "Xprinter V2", "v2rev2": "Xprinter V2 rev.2",
     "v3": "Xprinter V3", "v4": "Xprinter V4", "v4rev2": "Xprinter V4 rev.2", "mini": "Xprinter Mini",
-    "pocket": "Xprinter Pocket", "a4pro": "A4PRO / A4 Tattoo", "a4": "Xprinter A4", "k82": "Xprinter A4 Tattoo"
+    "pocket": "Xprinter Pocket", "a4pro": "Xprinter A4PRO (P83)", "p84": "Xprinter Tattoo P84", "a4": "Xprinter A4 (BP1)", "k82": "Xprinter Tattoo K82"
   };
 
   var log = [];
@@ -84,13 +84,13 @@
 
   // Пак драйверов: по прошивке (производитель в USB, Bluetooth-имя XP-…), иначе по модели.
   // Прошивка 4BARCODE требует пак 4BARCODE, Xprinter — пак Xprinter, A4PRO (чип Jieli) — Xlife.
-  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife", "a4": "xlife-bp1", "k82": "xlife-bp1" };
+  var DEFAULT_PACK = { "xp-365b": "xprinter", "v2rev2": "xprinter", "v4rev2": "xprinter", "pocket": "xprinter", "a4pro": "xlife", "p84": "xlife", "a4": "xlife-bp1", "k82": "xlife-bp1" };
   var PACK_TITLES = { xprinter: "Xprinter", "4barcode": "4BARCODE", xlife: "Xlife", "xlife-bp1": "Xlife" };
 
   function packFor(slug, hint) {
     hint = hint || "";
     if (slug === "a4" || slug === "k82") return "xlife-bp1";
-    if (slug === "a4pro" || /xlife|jieli/i.test(hint)) return "xlife";
+    if (slug === "a4pro" || slug === "p84" || /xlife|jieli/i.test(hint)) return "xlife";
     if (/4barcode/i.test(hint)) return "4barcode";
     if (/xprinter|(^|\s)XP-/i.test(hint)) return "xprinter";
     return DEFAULT_PACK[slug] || "4barcode";
@@ -329,7 +329,7 @@
     r.appendChild(bar);
     if (hasUsb) {
       r.appendChild(el("p", { "class": "xpd-hint" },
-        "В окне выбора будут только принтеры. A4PRO и A4 Tattoo там называются «USB Composite Device»."));
+        "В окне выбора будут только принтеры. A4PRO и Tattoo P84 там называются «USB Composite Device»."));
     }
     if (!hasUsb && !hasBt) {
       r.appendChild(el("p", null, "Ваш браузер не умеет искать устройства. Откройте страницу в Google Chrome или Microsoft Edge на компьютере."));

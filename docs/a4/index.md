@@ -4,7 +4,8 @@ seo_title: "Портативный термопринтер Xprinter A4 (BP1) �
 description: Драйверы для Windows, macOS, Linux и ChromeOS, приложение XLife Pro и инструкция для портативного A4 термопринтера Xprinter A4 (BP1)
 model:
   order: 7
-  name: Xprinter A4
+  group: a4
+  name: Xprinter A4 (BP1)
   image: assets/models/a4.png
   interfaces: [USB + Bluetooth]
   note: Портативный термопринтер A4, заводская модель BP1. Печать без картриджей, на термобумаге шириной до 216 мм.

@@ -29,7 +29,10 @@ description: Где посмотреть модель термопринтера
 | Xprinter V4 rev.2 | Xprinter XP-428A |
 | Xprinter Mini | 4BARCODE 4B-2054N |
 | Xprinter Pocket | XP-P322B |
-| A4PRO / A4 Tattoo | Xlife P83 / P84 |
+| Xprinter A4 | BP1 |
+| Xprinter A4PRO | Xlife P83 |
+| Xprinter Tattoo P84 | Xlife P84 |
+| Xprinter Tattoo K82 | K82 |
 
 На этой же наклейке в строке «Интерфейс» видно, есть ли у принтера Bluetooth.
 

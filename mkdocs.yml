@@ -103,18 +103,22 @@ nav:
   - Главная: index.md
   - Принтеры:
       - models/index.md
-      - Xprinter XP-365B: xp-365b/index.md
-      - Xprinter V2: v2/index.md
-      - Xprinter V2 rev.2: v2rev2/index.md
-      - Xprinter V3: v3/index.md
-      - Xprinter V4: v4/index.md
-      - Xprinter V4 rev.2: v4rev2/index.md
-      - Xprinter Mini: mini/index.md
-      - Xprinter V1BT: v1bt/index.md
-      - A4PRO / A4 Tattoo: a4pro/index.md
-      - Xprinter A4: a4/index.md
-      - Xprinter A4 Tattoo: k82/index.md
-      - Xprinter Pocket: pocket/index.md
+      - Принтеры этикеток и чеков:
+          - Xprinter XP-365B: xp-365b/index.md
+          - Xprinter V2: v2/index.md
+          - Xprinter V2 rev.2: v2rev2/index.md
+          - Xprinter V3: v3/index.md
+          - Xprinter V4: v4/index.md
+          - Xprinter V4 rev.2: v4rev2/index.md
+          - Xprinter Mini: mini/index.md
+          - Xprinter V1BT: v1bt/index.md
+          - Xprinter Pocket: pocket/index.md
+      - A4 термопринтеры:
+          - Xprinter A4 (BP1): a4/index.md
+          - Xprinter A4PRO (P83): a4pro/index.md
+      - Тату-принтеры:
+          - Xprinter Tattoo P84: p84/index.md
+          - Xprinter Tattoo K82: k82/index.md
   - Определить принтер: detect/index.md
   - Гайды:
       - guides/index.md
@@ -133,5 +137,5 @@ nav:
       - BarTender: faq/bartender.md
       - Чеки, 1С и программы: faq/pos.md
       - Неисправности и гарантия: faq/hardware.md
-      - A4PRO и тату-принтеры: faq/tattoo.md
+      - A4PRO и Tattoo P84: faq/tattoo.md
   - Поддержка: support.md

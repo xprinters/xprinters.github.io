@@ -1,7 +1,7 @@
-"""Собирает PDF бумажной инструкции Xprinter A4 Tattoo из guide.html (Edge через Playwright).
+"""Собирает PDF бумажной инструкции Xprinter Tattoo K82 из guide.html (Edge через Playwright).
 
 Запуск:  python tools/print/k82-guide/build.py
-Результат: tools/print/k82-guide/Xprinter_A4_Tattoo_guide.pdf и превью preview-1.png, preview-2.png.
+Результат: tools/print/k82-guide/Xprinter_Tattoo_K82_guide.pdf и превью preview-1.png, preview-2.png.
 Проверяет, что текст ни на одной полосе не вылез за её границы.
 """
 import pathlib
@@ -10,7 +10,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 HERE = pathlib.Path(__file__).resolve().parent
-OUT = HERE / "Xprinter_A4_Tattoo_guide.pdf"
+OUT = HERE / "Xprinter_Tattoo_K82_guide.pdf"
 
 with sync_playwright() as p:
     br = p.chromium.launch(channel="msedge")

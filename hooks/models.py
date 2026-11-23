@@ -10,7 +10,9 @@
 2. На страницу модели (в шапке есть блок `model:`) автоматически
    добавляется заголовок с фото, интерфейсами и кнопкой «Все файлы».
 
-3. Метка <!-- models --> заменяется сеткой карточек всех моделей.
+3. Метка <!-- models --> заменяется сетками карточек всех моделей по группам
+   (поле `group` в блоке `model:`, см. GROUPS; без поля — принтеры этикеток).
+   Перед каждой сеткой — заголовок группы уровня ### (<!-- models ## --> — уровня ##).
    Карточки собираются из шапок страниц, поэтому новая модель
    появляется на главной сама — достаточно создать её страницу.
 """
@@ -22,6 +24,12 @@ import urllib.parse
 from mkdocs.utils.meta import get_data
 
 CLOUD_ROOT = "https://cloud.mail.ru/public/"
+GROUPS = [
+    ("labels", "Принтеры этикеток и чеков"),
+    ("a4", "A4 термопринтеры"),
+    ("tattoo", "Тату-принтеры"),
+]
+MODELS_MARK = re.compile(r"<!-- models(?: (#+))? -->")
 CLOUD_LINK = re.compile(r"\]\((?:<cloud:([^>]*)>|cloud:([^)\s]*))\)")
 
 
@@ -58,10 +66,24 @@ def _model_pages(files):
     return models
 
 
-def _models_grid(page, files):
+def _models_grid(page, files, level="###"):
     pre = _prefix(page)
-    cards = []
+    groups = {key: [] for key, _ in GROUPS}
     for model, f in _model_pages(files):
+        group = model.get("group", "labels")
+        if group not in groups:
+            raise ValueError(f"{f.src_uri}: неизвестная группа модели «{group}»")
+        groups[group].append((model, f))
+    out = []
+    for key, title in GROUPS:
+        if groups[key]:
+            out.append(f"{level} {title}\n\n" + _cards(pre, groups[key]))
+    return "\n\n".join(out)
+
+
+def _cards(pre, models):
+    cards = []
+    for model, f in models:
         name = html.escape(model["name"])
         cards.append(
             f'<a class="xp-model" href="{pre}{f.url}">'
@@ -104,8 +126,7 @@ def on_page_markdown(markdown, page, config, files):
         lambda m: "](" + _cloud_url(base, m.group(1) if m.group(1) is not None else m.group(2)) + ")",
         markdown,
     )
-    if "<!-- models -->" in markdown:
-        markdown = markdown.replace("<!-- models -->", _models_grid(page, files))
+    markdown = MODELS_MARK.sub(lambda m: _models_grid(page, files, m.group(1) or "###"), markdown)
     if isinstance(page.meta.get("model"), dict):
         markdown = _model_header(page) + markdown
     return markdown

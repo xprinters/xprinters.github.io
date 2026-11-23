@@ -1,10 +1,11 @@
 ---
-title: Xprinter A4 Tattoo
-seo_title: "Тату-принтер Xprinter A4 Tattoo (K82) — приложение Tattoo Go, драйвер, инструкция"
-description: Приложение Tattoo Go, драйверы для Windows, macOS, Linux и ChromeOS и инструкция для портативного тату-принтера Xprinter A4 Tattoo (K82)
+title: Xprinter Tattoo K82
+seo_title: "Тату-принтер Xprinter Tattoo K82 — приложение Tattoo Go, драйвер, инструкция"
+description: Приложение Tattoo Go, драйверы для Windows, macOS, Linux и ChromeOS и инструкция для портативного тату-принтера Xprinter Tattoo K82
 model:
-  order: 7
-  name: Xprinter A4 Tattoo
+  order: 9
+  group: tattoo
+  name: Xprinter Tattoo K82
   image: assets/models/k82.png
   interfaces: [USB + Bluetooth]
   note: Портативный тату-принтер, заводская модель K82. Печатает трафареты на трансферной бумаге A4 и Letter без краски и картриджей.

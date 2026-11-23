@@ -83,7 +83,7 @@ namespace XprinterSetup
             { "4BARCODE4B-2064C", "v4" }, { "XprinterXP-428A", "v4rev2" },
             { "4BARCODE4B-2054N", "mini" }, { "XprinterXP-D465B", "mini" },
             { "XprinterXP-P322B", "pocket" },
-            { "XlifeP83", "a4pro" }, { "XlifeP83C", "a4pro" }, { "XlifeP84", "a4pro" },
+            { "XlifeP83", "a4pro" }, { "XlifeP83C", "a4pro" }, { "XlifeP84", "p84" },
         };
 
         public static readonly Dictionary<string, string> Names = new Dictionary<string, string>
@@ -91,7 +91,7 @@ namespace XprinterSetup
             { "xp-365b", "Xprinter XP-365B" }, { "v1bt", "Xprinter V1BT" }, { "v2", "Xprinter V2" }, { "v2rev2", "Xprinter V2 rev.2" },
             { "v3", "Xprinter V3" }, { "v4", "Xprinter V4" }, { "v4rev2", "Xprinter V4 rev.2" },
             { "mini", "Xprinter Mini" },
-            { "pocket", "Xprinter Pocket" }, { "a4pro", "A4PRO / A4 Tattoo" },
+            { "pocket", "Xprinter Pocket" }, { "a4pro", "Xprinter A4PRO (P83)" }, { "p84", "Xprinter Tattoo P84" },
         };
     }
 

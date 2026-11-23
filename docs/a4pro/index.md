@@ -1,14 +1,18 @@
 ---
-title: A4PRO / A4 Tattoo
-seo_title: "Тату-принтер A4PRO и A4 Tattoo (P83, P84) — драйвер, приложение"
-description: Драйверы и инструкции для A4PRO / A4 Tattoo
+title: Xprinter A4PRO
+seo_title: "Портативный A4 термопринтер Xprinter A4PRO (P83) — драйвер, приложение"
+description: Драйверы, приложение и видеоинструкции для портативного A4 термопринтера Xprinter A4PRO (P83)
 model:
   order: 7
-  name: A4PRO / A4 Tattoo
+  group: a4
+  name: Xprinter A4PRO (P83)
   image: assets/models/a4pro.png
   interfaces: [USB + Bluetooth]
 cloud: https://cloud.mail.ru/public/MEL2/yj2suHKu5
 ---
+
+!!! info "A4PRO или Tattoo P84?"
+    Эта страница — для A4PRO (заводская модель P83). Для тату-принтера P84 — страница [Xprinter Tattoo P84](../p84/index.md): драйвер тот же, приложение другое.
 
 ## Драйвер
 
@@ -23,6 +27,10 @@ cloud: https://cloud.mail.ru/public/MEL2/yj2suHKu5
     Драйвер `prt.xlife.drv_3.13.16`.
 
     [Скачать для macOS](cloud:MacOS){ .md-button .md-button--primary }
+
+## Приложение для телефона
+
+Приложение **XlifePRO**. Подключайтесь к принтеру из приложения, а не в настройках Bluetooth. Подробнее — в [частых проблемах](../faq/tattoo.md#приложение-для-телефона).
 
 ## Видеоинструкции
 

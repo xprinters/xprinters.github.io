@@ -1,11 +1,11 @@
 """Переводит текст PDF инструкции в кривые — файл для типографии.
 
-Берёт Xprinter_A4_Tattoo_guide.pdf (собран build.py), убирает текстовый слой и рисует на месте каждого
+Берёт Xprinter_Tattoo_K82_guide.pdf (собран build.py), убирает текстовый слой и рисует на месте каждого
 знака его контур из того же файла шрифта (docs/editor/fonts). Картинки и графика не меняются.
 Затем сравнивает растр исходного и нового файла: внешне они должны совпадать.
 
 Запуск:  python tools/print/k82-guide/outline.py
-Результат: Xprinter_A4_Tattoo_guide_curves.pdf
+Результат: Xprinter_Tattoo_K82_guide_curves.pdf
 """
 import pathlib
 import re
@@ -18,8 +18,8 @@ from fontTools.ttLib import TTFont
 
 HERE = pathlib.Path(__file__).resolve().parent
 FONTS = HERE.parent.parent.parent / "docs" / "editor" / "fonts"
-SRC = HERE / "Xprinter_A4_Tattoo_guide.pdf"
-OUT = HERE / "Xprinter_A4_Tattoo_guide_curves.pdf"
+SRC = HERE / "Xprinter_Tattoo_K82_guide.pdf"
+OUT = HERE / "Xprinter_Tattoo_K82_guide_curves.pdf"
 
 _fonts = {}
 
