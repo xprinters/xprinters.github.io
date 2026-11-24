@@ -5,7 +5,9 @@
 2. Разметка Schema.org (JSON-LD) в page.meta["jsonld"], её выводит overrides/main.html:
    * хлебные крошки (BreadcrumbList) — на всех страницах, кроме главной;
    * WebSite — на главной;
-   * FAQPage — на страницах «Частые проблемы»: вопрос — заголовок ##, ответ — текст под ним.
+   * FAQPage — на страницах «Частые проблемы»: вопрос — заголовок ##, ответ — текст под ним;
+     на других страницах с полем `faq: h3` в шапке — вопросы-заголовки ### (раздел «Частые вопросы»);
+   * WebApplication — на странице с полем `app:` в шапке (редактор этикеток): бесплатное веб-приложение.
 3. Картинка превью (og:image) — фото модели из шапки страницы или общая assets/og.png.
 
 SEO-заголовок страницы задаётся полем seo_title в шапке страницы (если нет — обычный title).
@@ -28,13 +30,14 @@ def _text(fragment):
     return re.sub(r"\s+", " ", t).strip()
 
 
-def _faq(content):
-    """Пары вопрос–ответ: <h2> и всё до следующего <h2>."""
-    parts = re.split(r'<h2 id="[^"]*">(.*?)</h2>', content, flags=re.S)
+def _faq(content, tag="h2"):
+    """Пары вопрос–ответ: заголовок <tag> и всё до следующего такого же или более крупного заголовка."""
+    parts = re.split(r'<%s id="[^"]*">(.*?)</%s>' % (tag, tag), content, flags=re.S)
     out = []
     for i in range(1, len(parts) - 1, 2):
         q = _text(re.sub(r'<a class="headerlink".*?</a>', "", parts[i]))
-        a = _text(parts[i + 1])
+        stop = r"<h[1-%s][ >]" % tag[1] + (r"|<details" if tag == "h3" else "")   # раздел вопросов кончается перед справкой
+        a = _text(re.split(stop, parts[i + 1])[0])
         if q and a:
             if len(a) > MAX_ANSWER:
                 a = a[:MAX_ANSWER].rsplit(" ", 1)[0] + "…"
@@ -43,8 +46,9 @@ def _faq(content):
 
 
 def on_page_content(html_, page, config, files):
-    if page.file.src_uri.startswith("faq/") and not page.is_index:
-        qa = _faq(html_)
+    tag = "h2" if page.file.src_uri.startswith("faq/") and not page.is_index else page.meta.get("faq")
+    if tag in ("h2", "h3"):
+        qa = _faq(html_, tag)
         if qa:
             page.meta["_faq"] = qa
     return html_
@@ -65,6 +69,13 @@ def on_page_context(context, page, config, nav):
         crumbs.append((page.meta.get("title") or page.title, page.canonical_url))
         ld.append({"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
             {"@type": "ListItem", "position": i + 1, "name": n, "item": u} for i, (n, u) in enumerate(crumbs)]})
+    app = page.meta.get("app")
+    if isinstance(app, dict):
+        ld.append({"@context": "https://schema.org", "@type": "WebApplication", "name": app["name"],
+                   "url": page.canonical_url, "inLanguage": "ru", "applicationCategory": app.get("category", "UtilitiesApplication"),
+                   "operatingSystem": "Windows, macOS, Linux (в браузере)", "browserRequirements": "Современный браузер",
+                   "description": page.meta.get("description", ""), "featureList": app.get("features", []),
+                   "isAccessibleForFree": True, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "RUB"}})
     if page.meta.get("_faq"):
         ld.append({"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": page.meta["_faq"]})
     page.meta["jsonld"] = ld
