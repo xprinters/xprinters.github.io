@@ -56,6 +56,7 @@ extra_javascript:
   - javascripts/share.js
   - javascripts/bookmark.js
   - javascripts/detect.js
+  - javascripts/assistant.js
 
 validation:
   links:
