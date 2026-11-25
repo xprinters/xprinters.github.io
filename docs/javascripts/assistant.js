@@ -407,14 +407,18 @@ function injectCSS() {
     "[data-md-color-scheme=slate] .bc-ai-head{background:linear-gradient(110deg,#1c3c8d,#2457be)}",
     "[data-md-color-scheme=slate] #bc-ai-panel{box-shadow:0 0 0 1px var(--xp-card-border,#60748f),0 10px 28px rgba(0,0,0,.55),0 24px 60px rgba(0,0,0,.5)}",
     "",
-    "#bc-ai-log{flex:1;overflow-y:auto;padding:17px;display:flex;flex-direction:column;gap:12px;",
+    "#bc-ai-log{flex:1;overflow-y:auto;padding:17px;display:flex;flex-direction:column;gap:4px;",
     "  background:var(--xp-card-bg,#f0f4f9)}",
     "[data-md-color-scheme=slate] #bc-ai-log{background:var(--md-default-bg-color--light,#0f172a)}",
+    ".bc-ai-wrap{display:flex;flex-direction:column;gap:3px}",
+    ".bc-ai-wrap-user{align-items:flex-end}",
+    ".bc-ai-wrap-bot{align-items:flex-start}",
+    ".bc-ai-time{font-size:11px;color:var(--md-default-fg-color--lighter,#94a3b8);padding:0 4px;margin-top:8px}",
     ".bc-ai-msg{max-width:94%;padding:12px 14px;border-radius:14px;font-size:14px;line-height:1.5;",
     "  word-wrap:break-word;font-family:var(--md-text-font-family,system-ui,sans-serif)}",
-    ".bc-ai-user{align-self:flex-end;background:var(--xp-accent-soft,#d9e8ff);",
+    ".bc-ai-user{background:var(--xp-accent-soft,#d9e8ff);",
     "  color:var(--md-default-fg-color);border-radius:14px 14px 5px 14px}",
-    ".bc-ai-bot{align-self:flex-start;background:var(--md-default-bg-color,#fff);",
+    ".bc-ai-bot{background:var(--md-default-bg-color,#fff);",
     "  border:1px solid var(--xp-card-border,#c7d2e2);border-radius:14px 14px 14px 5px;",
     "  color:var(--md-default-fg-color);animation:bc-ai-fadein .4s ease-out}",
     ".bc-ai-bot p{margin:.35em 0}",
@@ -648,11 +652,23 @@ function renderMd(text) {
   return html;
 }
 
+function formatTime() {
+  var d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
 function addBubble(role, html) {
+  var wrap = document.createElement("div");
+  wrap.className = "bc-ai-wrap " + (role === "user" ? "bc-ai-wrap-user" : "bc-ai-wrap-bot");
+  var time = document.createElement("span");
+  time.className = "bc-ai-time";
+  time.textContent = (role === "user" ? "Вы" : NAME) + ", " + formatTime();
+  wrap.appendChild(time);
   var el = document.createElement("div");
   el.className = "bc-ai-msg " + (role === "user" ? "bc-ai-user" : "bc-ai-bot");
   el.innerHTML = role === "user" ? escapeHtml(html) : html;
-  $log.appendChild(el);
+  wrap.appendChild(el);
+  $log.appendChild(wrap);
   $log.scrollTop = $log.scrollHeight;
   return el;
 }
