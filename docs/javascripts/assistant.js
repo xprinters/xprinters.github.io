@@ -427,6 +427,10 @@ function injectCSS() {
     ".bc-ai-bot a{color:var(--xp-accent,#2563eb)}",
     ".bc-ai-bot strong{font-weight:650}",
     ".bc-ai-typing{color:var(--md-default-fg-color--light,#64748b);font-style:italic}",
+    ".bc-ai-retry{display:block;margin:10px auto 0;padding:7px 18px;border:1px solid var(--xp-accent,#2563eb);",
+    "  border-radius:8px;background:transparent;color:var(--xp-accent,#2563eb);font-size:13px;",
+    "  font-weight:600;cursor:pointer;transition:background .15s,color .15s}",
+    ".bc-ai-retry:hover{background:var(--xp-accent,#2563eb);color:#fff}",
     "",
     ".bc-ai-foot{border-top:1px solid var(--xp-card-border,#e2e8f0);padding:12px 14px;",
     "  background:var(--md-default-bg-color,#fff);border-radius:0 0 20px 20px}",
@@ -721,11 +725,23 @@ async function sendMessage() {
     msgs.push({ role: "assistant", content: acc });
   } catch (e) {
     clearInterval(thinkingTimer);
-    var errText = e.name === "AbortError"
-      ? "⏳ Сервер не ответил вовремя. Возможно, соединение заблокировано вашим провайдером — попробуйте через мобильную сеть или VPN.\n\nИли напишите в [Telegram @xprintershop](https://t.me/xprintershop)."
-      : "⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в " +
-        "[Telegram @xprintershop](https://t.me/xprintershop).\n\n`" + e.message + "`";
+    var errText;
+    if (e.name === "AbortError") {
+      errText = "⏳ Сервер не ответил вовремя. Возможно, соединение заблокировано вашим провайдером — попробуйте через мобильную сеть или VPN.\n\nИли напишите в [Telegram @xprintershop](https://t.me/xprintershop).";
+    } else {
+      errText = "⚠️ Не удалось получить ответ. Нажмите **↻ Повторить** или напишите в [Telegram @xprintershop](https://t.me/xprintershop).";
+    }
     out.innerHTML = renderMd(errText);
+    var retryBtn = document.createElement("button");
+    retryBtn.className = "bc-ai-retry";
+    retryBtn.textContent = "↻ Повторить";
+    retryBtn.onclick = function () {
+      out.remove();
+      var last = msgs.pop();
+      if (last && last.role === "user") { $input.value = last.content; }
+      sendMessage();
+    };
+    out.appendChild(retryBtn);
   } finally {
     busy = false;
     $send.disabled = false;
