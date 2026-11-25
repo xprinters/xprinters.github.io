@@ -680,14 +680,36 @@ async function sendMessage() {
   var acc = "";
   var payload = JSON.stringify({ messages: msgs, model: MODEL, system: SYSTEM });
 
-  var thinkingSteps = ["думает…", "смотрю руководства…", "формирую ответ…", "почти готово…"];
-  var thinkingIdx = 0;
+  var thinkingPhases = [
+    { t: 0,  status: "думает…" },
+    { t: 4,  status: "смотрю руководства…" },
+    { t: 8,  status: "формирую ответ…" },
+    { t: 15, msg: "Да, я поняла ваш вопрос. Мне нужно уточнить пару деталей — скоро отвечу 🙂" },
+    { t: 22, status: "много обращений, подождите…" },
+    { t: 30, status: "стараюсь побыстрее…" },
+    { t: 38, msg: "Извините за ожидание — формирую подробный ответ, почти готово!" },
+  ];
+  var phaseIdx = 0;
+  var fakeBubbles = [];
+  var startTime = Date.now();
   var thinkingTimer = setInterval(function () {
-    thinkingIdx++;
-    if (thinkingIdx < thinkingSteps.length) {
-      out.innerHTML = '<span class="bc-ai-typing">' + thinkingSteps[thinkingIdx] + '</span>';
+    var elapsed = (Date.now() - startTime) / 1000;
+    while (phaseIdx < thinkingPhases.length && elapsed >= thinkingPhases[phaseIdx].t) {
+      var phase = thinkingPhases[phaseIdx];
+      if (phase.msg) {
+        out.innerHTML = renderMd(phase.msg);
+        fakeBubbles.push(out);
+        out = addBubble("bot", '<span class="bc-ai-typing">' + (phase.status || "") + '</span>');
+      } else if (phase.status) {
+        out.innerHTML = '<span class="bc-ai-typing">' + phase.status + '</span>';
+      }
+      phaseIdx++;
     }
-  }, 4000);
+  }, 1000);
+  function clearFakes() {
+    fakeBubbles.forEach(function (el) { el.remove(); });
+    fakeBubbles = [];
+  }
 
   var maxRetries = 3;
   for (var attempt = 0; attempt <= maxRetries; attempt++) {
@@ -705,6 +727,7 @@ async function sendMessage() {
       ]);
       clearTimeout(t);
       clearInterval(thinkingTimer);
+      clearFakes();
       var reader = resp.body.getReader();
       var dec = new TextDecoder();
       var firstChunk = true;
@@ -726,11 +749,11 @@ async function sendMessage() {
       clearTimeout(t);
       if (attempt < maxRetries && e.name !== "AbortError") {
         out.innerHTML = '<span class="bc-ai-typing">повторяю попытку (' + (attempt + 2) + '/' + (maxRetries + 1) + ')…</span>';
-        thinkingIdx = 0;
         acc = "";
         continue;
       }
       clearInterval(thinkingTimer);
+      clearFakes();
       out.innerHTML = renderMd("⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в [Telegram @xprintershop](https://t.me/xprintershop).");
       break;
     }
