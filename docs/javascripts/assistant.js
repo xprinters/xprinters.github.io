@@ -9,7 +9,10 @@ var SECRET = "4bai";
 var WORKER_URL = "https://barcode-assistant.4barcode.workers.dev";
 var MODEL = "4";
 var STORAGE_KEY = "bc_ai";
-var NAME = "Мия";
+var NAME = "Тейла";
+var NAME_ACC = "Тейлу";
+var IMG_AVA = "/images/teyla-avatar.webp";
+var IMG_PORT = "/images/teyla-portrait.webp";
 
 // ═══════════════════════ Системный промпт ═══════════════════════
 
@@ -263,7 +266,7 @@ var KNOWLEDGE = [
 
 var SYSTEM = PERSONA + "\n\n" + KNOWLEDGE;
 
-var GREETING = "Привет! Я " + NAME + ", помощник сайта 4barcode.ru. Расскажите, что случилось с принтером или что вы ищете — постараюсь помочь.";
+var GREETING = "Привет! Я " + NAME + ".\nПомогу настроить принтер, найти драйвер или решить проблему с печатью. Расскажите, что случилось.";
 
 // ═══════════════════════ Состояние ═══════════════════════
 
@@ -332,37 +335,48 @@ function injectCSS() {
   var style = document.createElement("style");
   style.id = "bc-ai-css";
   style.textContent = [
-    "#bc-ai-btn{position:fixed;right:20px;bottom:20px;width:52px;height:52px;border:none;",
-    "  border-radius:50%;background:var(--xp-accent-strong,#2563eb);color:#fff;font-size:24px;",
-    "  cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.18);z-index:2147483000;",
-    "  display:flex;align-items:center;justify-content:center;transition:transform .15s}",
-    "#bc-ai-btn:hover{transform:scale(1.08)}",
-    "#bc-ai-btn svg{width:26px;height:26px;fill:currentColor}",
+    "#bc-ai-btn{position:fixed;right:20px;bottom:20px;border:none;border-radius:40px;",
+    "  padding:5px 15px 5px 5px;display:flex;align-items:center;gap:9px;",
+    "  background:#245dea;color:#fff;font-weight:650;font-size:14px;",
+    "  cursor:pointer;box-shadow:0 6px 24px #245dea55;z-index:2147483000;transition:transform .15s;animation:bc-ai-pulse 2.5s ease-in-out infinite}",
+    "#bc-ai-btn:hover{transform:scale(1.04)}",
+    "#bc-ai-btn .bc-ai-btn-ava{width:43px;height:43px;border-radius:50%;object-fit:cover;object-position:50% 12%;border:2px solid #ffffff60;background:#e8f0fe}",
+    "#bc-ai-btn.bc-ai-open{display:none}",
     "",
-    "#bc-ai-panel{position:fixed;right:20px;bottom:84px;width:380px;max-width:calc(100vw - 32px);",
-    "  height:560px;max-height:calc(100vh - 110px);background:var(--md-default-bg-color,#fff);",
-    "  border:1px solid var(--xp-card-border,#e2e8f0);border-radius:14px;",
-    "  box-shadow:0 12px 40px rgba(0,0,0,.18);display:none;flex-direction:column;overflow:hidden;",
-    "  z-index:2147483000}",
+    "#bc-ai-panel{position:fixed;right:20px;bottom:84px;width:392px;max-width:calc(100vw - 32px);",
+    "  height:600px;max-height:calc(100vh - 110px);background:var(--md-default-bg-color,#fff);",
+    "  border-radius:20px;box-shadow:0 0 0 1px var(--xp-card-border,#9eafc8),0 8px 24px rgba(24,43,77,.15),0 22px 56px rgba(24,43,77,.19);",
+    "  display:none;flex-direction:column;overflow:visible;z-index:2147483000}",
     "#bc-ai-panel.open{display:flex}",
     "",
-    ".bc-ai-head{display:flex;align-items:center;gap:10px;padding:12px 14px;",
-    "  border-bottom:1px solid var(--xp-card-border,#e2e8f0)}",
-    ".bc-ai-ava{width:32px;height:32px;border-radius:8px;background:var(--xp-accent-strong,#2563eb);",
-    "  color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:0 0 auto}",
-    ".bc-ai-name{font-weight:650;font-size:14px;line-height:1.2;color:var(--md-default-fg-color)}",
-    ".bc-ai-sub{font-size:11px;color:var(--md-default-fg-color--light,#64748b)}",
-    ".bc-ai-close{margin-left:auto;background:none;border:none;",
-    "  color:var(--md-default-fg-color--light,#64748b);font-size:22px;cursor:pointer;padding:0 4px}",
+    ".bc-ai-head{background:linear-gradient(110deg,#1948bf,#2865e6);color:#fff;",
+    "  display:flex;gap:12px;align-items:center;padding:20px 120px 20px 20px;",
+    "  min-height:100px;position:relative;overflow:visible;isolation:isolate;flex-shrink:0;border-radius:20px 20px 0 0}",
+    ".bc-ai-ava{display:none}",
+    ".bc-ai-name{font-weight:700;font-size:19px;letter-spacing:-.3px;line-height:1.2;display:flex;align-items:center;gap:8px}",
+    ".bc-ai-online{font-size:11px;font-weight:500;color:#4ade80;letter-spacing:0}",
+    ".bc-ai-sub{font-size:12px;color:#e4edff;margin-top:3px}",
+    ".bc-ai-close{position:absolute;right:9px;top:10px;z-index:3;",
+    "  background:rgba(255,255,255,.12);border:none;color:#fff;",
+    "  width:29px;height:29px;border-radius:8px;font-size:20px;cursor:pointer;padding:0;",
+    "  display:flex;align-items:center;justify-content:center}",
+    ".bc-ai-close:hover{background:rgba(255,255,255,.22)}",
+    ".bc-ai-portrait{position:absolute;right:12px;bottom:0;width:150px;height:150px;",
+    "  object-fit:contain;z-index:1;pointer-events:none;transform:scaleX(-1)}",
     "",
-    "#bc-ai-log{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}",
-    ".bc-ai-msg{max-width:85%;padding:9px 12px;border-radius:14px;font-size:13.5px;line-height:1.55;",
+    "[data-md-color-scheme=slate] .bc-ai-head{background:linear-gradient(110deg,#1c3c8d,#2457be)}",
+    "[data-md-color-scheme=slate] #bc-ai-panel{box-shadow:0 0 0 1px var(--xp-card-border,#60748f),0 10px 28px rgba(0,0,0,.55),0 24px 60px rgba(0,0,0,.5)}",
+    "",
+    "#bc-ai-log{flex:1;overflow-y:auto;padding:17px;display:flex;flex-direction:column;gap:12px;",
+    "  background:var(--xp-card-bg,#f0f4f9)}",
+    "[data-md-color-scheme=slate] #bc-ai-log{background:var(--md-default-bg-color--light,#0f172a)}",
+    ".bc-ai-msg{max-width:94%;padding:12px 14px;border-radius:14px;font-size:14px;line-height:1.5;",
     "  word-wrap:break-word;font-family:var(--md-text-font-family,system-ui,sans-serif)}",
-    ".bc-ai-user{align-self:flex-end;background:var(--xp-accent-soft,#dbeafe);",
-    "  color:var(--md-default-fg-color);border-bottom-right-radius:4px}",
-    ".bc-ai-bot{align-self:flex-start;background:var(--xp-card-bg,#f8fafc);",
-    "  border:1px solid var(--xp-card-border,#e2e8f0);border-bottom-left-radius:4px;",
-    "  color:var(--md-default-fg-color)}",
+    ".bc-ai-user{align-self:flex-end;background:var(--xp-accent-soft,#d9e8ff);",
+    "  color:var(--md-default-fg-color);border-radius:14px 14px 5px 14px}",
+    ".bc-ai-bot{align-self:flex-start;background:var(--md-default-bg-color,#fff);",
+    "  border:1px solid var(--xp-card-border,#c7d2e2);border-radius:14px 14px 14px 5px;",
+    "  color:var(--md-default-fg-color);animation:bc-ai-fadein .4s ease-out}",
     ".bc-ai-bot p{margin:.35em 0}",
     ".bc-ai-bot p:first-child{margin-top:0}",
     ".bc-ai-bot p:last-child{margin-bottom:0}",
@@ -374,21 +388,29 @@ function injectCSS() {
     ".bc-ai-bot strong{font-weight:650}",
     ".bc-ai-typing{color:var(--md-default-fg-color--light,#64748b);font-style:italic}",
     "",
-    ".bc-ai-foot{border-top:1px solid var(--xp-card-border,#e2e8f0);padding:10px;display:flex;gap:8px;align-items:flex-end}",
-    "#bc-ai-input{flex:1;resize:none;max-height:100px;border:1px solid var(--xp-card-border,#e2e8f0);",
-    "  border-radius:10px;padding:8px 10px;font:inherit;font-size:13.5px;",
-    "  background:var(--md-default-bg-color,#fff);color:var(--md-default-fg-color);outline:none}",
-    "#bc-ai-input:focus{border-color:var(--xp-accent,#2563eb)}",
+    ".bc-ai-foot{border-top:1px solid var(--xp-card-border,#e2e8f0);padding:12px 14px;",
+    "  background:var(--md-default-bg-color,#fff);border-radius:0 0 20px 20px}",
+    ".bc-ai-input-row{display:flex;gap:8px;border:1px solid var(--xp-card-border,#c7d2e2);",
+    "  border-radius:13px;padding:6px;align-items:center}",
+    ".bc-ai-input-row:focus-within{border-color:var(--xp-accent,#2563eb)}",
+    "#bc-ai-input{flex:1;resize:none;max-height:100px;min-width:0;background:none;border:none;",
+    "  color:var(--md-default-fg-color);padding:5px;outline:none;font:inherit;font-size:14px}",
     "#bc-ai-input::placeholder{color:var(--md-default-fg-color--light,#64748b)}",
-    "#bc-ai-send{border:none;background:var(--xp-accent-strong,#2563eb);color:#fff;border-radius:10px;",
-    "  width:38px;height:38px;font-size:17px;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}",
+    "#bc-ai-send{border:none;background:var(--xp-accent-strong,#2563eb);color:#fff;border-radius:8px;",
+    "  padding:9px 12px;font-size:16px;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}",
     "#bc-ai-send:disabled{opacity:.45;cursor:default}",
-    "#bc-ai-send svg{width:18px;height:18px;fill:currentColor}",
-    ".bc-ai-note{font-size:10.5px;color:var(--md-default-fg-color--lighter,#94a3b8);text-align:center;padding:0 10px 7px}",
+    "#bc-ai-send svg{width:16px;height:16px;fill:currentColor}",
+    ".bc-ai-note{font-size:10px;color:var(--md-default-fg-color--lighter,#94a3b8);text-align:center;margin-top:9px}",
+    "",
+    "@keyframes bc-ai-fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}",
+    "@keyframes bc-ai-pulse{0%,100%{box-shadow:0 6px 24px #245dea55}50%{box-shadow:0 6px 24px #245dea88,0 0 0 10px #245dea28}}",
     "",
     "@media(max-width:30em){",
     "  #bc-ai-panel{right:0;bottom:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0}",
-    "  #bc-ai-btn{right:14px;bottom:14px;width:48px;height:48px}",
+    "  .bc-ai-head{border-radius:0}",
+    "  .bc-ai-foot{border-radius:0}",
+    "  #bc-ai-btn{right:14px;bottom:14px}",
+    "  .bc-ai-portrait{width:120px;height:120px;right:10px}",
     "}",
   ].join("\n");
   document.head.appendChild(style);
@@ -401,8 +423,9 @@ function buildWidget() {
 
   $launcher = document.createElement("button");
   $launcher.id = "bc-ai-btn";
-  $launcher.title = "Спросить " + NAME;
-  $launcher.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/><path d="M7 9h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z"/></svg>';
+  $launcher.title = "Спросить " + NAME_ACC;
+  $launcher.innerHTML = '<img class="bc-ai-btn-ava" src="' + IMG_PORT + '" alt="">' +
+    '<span class="bc-ai-btn-text">Спросить ' + NAME_ACC + '</span>';
   $launcher.onclick = togglePanel;
   document.body.appendChild($launcher);
 
@@ -412,16 +435,19 @@ function buildWidget() {
   $panel.setAttribute("aria-label", NAME + " — помощник 4barcode");
   $panel.innerHTML = [
     '<div class="bc-ai-head">',
-    '  <div class="bc-ai-ava">' + NAME[0] + '</div>',
-    '  <div><div class="bc-ai-name">' + NAME + '</div><div class="bc-ai-sub">Помощник 4barcode.ru</div></div>',
+    '  <img class="bc-ai-ava" src="' + IMG_AVA + '" alt="">',
+    '  <div><div class="bc-ai-name">' + NAME + '<span class="bc-ai-online">онлайн</span></div><div class="bc-ai-sub">ИИ-помощник 4barcode.ru</div></div>',
+    '  <img class="bc-ai-portrait" src="' + IMG_PORT + '" alt="">',
     '  <button class="bc-ai-close" id="bc-ai-close" aria-label="Закрыть">&times;</button>',
     '</div>',
     '<div id="bc-ai-log"></div>',
     '<div class="bc-ai-foot">',
-    '  <textarea id="bc-ai-input" rows="1" placeholder="Опишите проблему или что ищете…"></textarea>',
-    '  <button id="bc-ai-send" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>',
+    '  <div class="bc-ai-input-row">',
+    '    <textarea id="bc-ai-input" rows="1" placeholder="Опишите проблему…"></textarea>',
+    '    <button id="bc-ai-send" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>',
+    '  </div>',
+    '  <div class="bc-ai-note">Ответы генерирует ИИ — проверяйте важное</div>',
     '</div>',
-    '<div class="bc-ai-note">Ответы генерирует ИИ — проверяйте важное</div>',
   ].join("\n");
   document.body.appendChild($panel);
 
@@ -447,6 +473,7 @@ function togglePanel() {
   panelOpen = !panelOpen;
   if ($panel) {
     $panel.classList.toggle("open", panelOpen);
+    $launcher.classList.toggle("bc-ai-open", panelOpen);
     if (panelOpen) {
       if (!$log.children.length) addBubble("bot", renderMd(GREETING));
       $input.focus();
