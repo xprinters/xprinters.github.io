@@ -301,7 +301,25 @@ var busy = false;
 var msgs = [];
 var hasConversation = false;
 var feedbackGiven = false;
-var $launcher, $panel, $log, $input, $send, $feedback;
+var $launcher, $panel, $log, $input, $send, $feedback, $nudge, nudgeTimer;
+
+function playNudgeSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    g.connect(ctx.destination);
+    [880, 1047].forEach(function (freq, i) {
+      var o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = freq;
+      o.connect(g);
+      o.start(ctx.currentTime + i * 0.12);
+      o.stop(ctx.currentTime + i * 0.12 + 0.15);
+    });
+  } catch (e) {}
+}
 
 // ═══════════════════════ Активация ═══════════════════════
 
@@ -443,11 +461,25 @@ function injectCSS() {
     "@keyframes bc-ai-fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}",
     "@keyframes bc-ai-pulse{0%,100%{box-shadow:0 6px 24px #245dea55}50%{box-shadow:0 6px 24px #245dea88,0 0 0 10px #245dea28}}",
     "",
+    "#bc-ai-nudge{position:fixed;right:20px;bottom:78px;z-index:2147482999;",
+    "  background:var(--md-default-bg-color,#fff);color:var(--md-default-fg-color);",
+    "  border:1px solid var(--xp-accent,#2563eb);border-radius:14px;",
+    "  padding:10px 18px;font-size:14px;font-weight:500;",
+    "  box-shadow:0 4px 16px rgba(36,93,234,.18);",
+    "  opacity:0;transform:translateY(8px);pointer-events:none;",
+    "  transition:opacity .4s ease,transform .4s ease;white-space:nowrap}",
+    "#bc-ai-nudge.show{opacity:1;transform:none;pointer-events:auto;cursor:pointer}",
+    "#bc-ai-nudge::after{content:'';position:absolute;bottom:-7px;right:30px;",
+    "  width:14px;height:14px;background:var(--md-default-bg-color,#fff);",
+    "  border-right:1px solid var(--xp-accent,#2563eb);border-bottom:1px solid var(--xp-accent,#2563eb);",
+    "  transform:rotate(45deg)}",
+    "",
     "@media(max-width:30em){",
     "  #bc-ai-panel{right:0;bottom:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0}",
     "  .bc-ai-head{border-radius:0}",
     "  .bc-ai-foot{border-radius:0}",
     "  #bc-ai-btn{right:14px;bottom:14px}",
+    "  #bc-ai-nudge{right:14px;bottom:72px}",
     "  .bc-ai-portrait{width:120px;height:120px;right:10px}",
     "}",
   ].join("\n");
@@ -466,6 +498,16 @@ function buildWidget() {
     '<span class="bc-ai-btn-text">Спросить ' + NAME_ACC + '</span>';
   $launcher.onclick = togglePanel;
   document.body.appendChild($launcher);
+
+  $nudge = document.createElement("div");
+  $nudge.id = "bc-ai-nudge";
+  $nudge.textContent = "Если нужна помощь — я тут";
+  $nudge.onclick = function () { togglePanel(); };
+  document.body.appendChild($nudge);
+
+  nudgeTimer = setTimeout(function () {
+    if (!panelOpen) { $nudge.classList.add("show"); playNudgeSound(); }
+  }, 30000);
 
   $panel = document.createElement("div");
   $panel.id = "bc-ai-panel";
@@ -546,6 +588,7 @@ function togglePanel() {
     return;
   }
   panelOpen = !panelOpen;
+  if ($nudge) { clearTimeout(nudgeTimer); $nudge.classList.remove("show"); }
   if ($panel) {
     $panel.classList.toggle("open", panelOpen);
     $launcher.classList.toggle("bc-ai-open", panelOpen);
