@@ -427,10 +427,6 @@ function injectCSS() {
     ".bc-ai-bot a{color:var(--xp-accent,#2563eb)}",
     ".bc-ai-bot strong{font-weight:650}",
     ".bc-ai-typing{color:var(--md-default-fg-color--light,#64748b);font-style:italic}",
-    ".bc-ai-retry{display:block;margin:10px auto 0;padding:7px 18px;border:1px solid var(--xp-accent,#2563eb);",
-    "  border-radius:8px;background:transparent;color:var(--xp-accent,#2563eb);font-size:13px;",
-    "  font-weight:600;cursor:pointer;transition:background .15s,color .15s}",
-    ".bc-ai-retry:hover{background:var(--xp-accent,#2563eb);color:#fff}",
     "",
     ".bc-ai-foot{border-top:1px solid var(--xp-card-border,#e2e8f0);padding:12px 14px;",
     "  background:var(--md-default-bg-color,#fff);border-radius:0 0 20px 20px}",
@@ -693,56 +689,53 @@ async function sendMessage() {
     }
   }, 4000);
 
-  try {
-    var resp;
-    var c1 = new AbortController();
-    var c2 = new AbortController();
-    var t = setTimeout(function () { c1.abort(); c2.abort(); }, 45000);
-    var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: payload };
-    resp = await Promise.any([
-      fetch(API_DIRECT, Object.assign({}, opts, { signal: c1.signal }))
-        .then(function (r) { if (!r.ok || !r.body) throw new Error("HTTP " + r.status); c2.abort(); try { localStorage.setItem("bc_api", "direct"); } catch(x){} return r; }),
-      fetch(API_PROXY, Object.assign({}, opts, { signal: c2.signal }))
-        .then(function (r) { if (!r.ok || !r.body) throw new Error("HTTP " + r.status); c1.abort(); try { localStorage.setItem("bc_api", "proxy"); } catch(x){} return r; }),
-    ]);
-    clearTimeout(t);
-    clearInterval(thinkingTimer);
-    var reader = resp.body.getReader();
-    var dec = new TextDecoder();
-    var firstChunk = true;
-    while (true) {
-      var chunk = await reader.read();
-      if (chunk.done) break;
-      if (firstChunk) {
-        out.innerHTML = '<span class="bc-ai-typing">печатает…</span>';
-        firstChunk = false;
+  var maxRetries = 3;
+  for (var attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      var resp;
+      var c1 = new AbortController();
+      var c2 = new AbortController();
+      var t = setTimeout(function () { c1.abort(); c2.abort(); }, 45000);
+      var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: payload };
+      resp = await Promise.any([
+        fetch(API_DIRECT, Object.assign({}, opts, { signal: c1.signal }))
+          .then(function (r) { if (!r.ok || !r.body) throw new Error("HTTP " + r.status); c2.abort(); try { localStorage.setItem("bc_api", "direct"); } catch(x){} return r; }),
+        fetch(API_PROXY, Object.assign({}, opts, { signal: c2.signal }))
+          .then(function (r) { if (!r.ok || !r.body) throw new Error("HTTP " + r.status); c1.abort(); try { localStorage.setItem("bc_api", "proxy"); } catch(x){} return r; }),
+      ]);
+      clearTimeout(t);
+      clearInterval(thinkingTimer);
+      var reader = resp.body.getReader();
+      var dec = new TextDecoder();
+      var firstChunk = true;
+      while (true) {
+        var chunk = await reader.read();
+        if (chunk.done) break;
+        if (firstChunk) {
+          out.innerHTML = '<span class="bc-ai-typing">✏️ печатает…</span>';
+          firstChunk = false;
+        }
+        acc += dec.decode(chunk.value, { stream: true });
+        out.innerHTML = renderMd(acc);
+        $log.scrollTop = $log.scrollHeight;
       }
-      acc += dec.decode(chunk.value, { stream: true });
-      out.innerHTML = renderMd(acc);
-      $log.scrollTop = $log.scrollHeight;
+      if (!acc) throw new Error("пустой ответ");
+      msgs.push({ role: "assistant", content: acc });
+      break;
+    } catch (e) {
+      clearTimeout(t);
+      if (attempt < maxRetries && e.name !== "AbortError") {
+        out.innerHTML = '<span class="bc-ai-typing">повторяю попытку (' + (attempt + 2) + '/' + (maxRetries + 1) + ')…</span>';
+        thinkingIdx = 0;
+        acc = "";
+        continue;
+      }
+      clearInterval(thinkingTimer);
+      out.innerHTML = renderMd("⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в [Telegram @xprintershop](https://t.me/xprintershop).");
+      break;
     }
-    if (!acc) throw new Error("пустой ответ");
-    msgs.push({ role: "assistant", content: acc });
-  } catch (e) {
-    clearInterval(thinkingTimer);
-    var errText;
-    if (e.name === "AbortError") {
-      errText = "⏳ Сервер не ответил вовремя. Возможно, соединение заблокировано вашим провайдером — попробуйте через мобильную сеть или VPN.\n\nИли напишите в [Telegram @xprintershop](https://t.me/xprintershop).";
-    } else {
-      errText = "⚠️ Не удалось получить ответ. Нажмите **↻ Повторить** или напишите в [Telegram @xprintershop](https://t.me/xprintershop).";
-    }
-    out.innerHTML = renderMd(errText);
-    var retryBtn = document.createElement("button");
-    retryBtn.className = "bc-ai-retry";
-    retryBtn.textContent = "↻ Повторить";
-    retryBtn.onclick = function () {
-      out.remove();
-      var last = msgs.pop();
-      if (last && last.role === "user") { $input.value = last.content; }
-      sendMessage();
-    };
-    out.appendChild(retryBtn);
-  } finally {
+  }
+  {
     busy = false;
     $send.disabled = false;
     $input.focus();
