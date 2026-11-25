@@ -279,7 +279,9 @@ var active = false;
 var panelOpen = false;
 var busy = false;
 var msgs = [];
-var $launcher, $panel, $log, $input, $send;
+var hasConversation = false;
+var feedbackGiven = false;
+var $launcher, $panel, $log, $input, $send, $feedback;
 
 // ═══════════════════════ Мониторинг поиска ═══════════════════════
 
@@ -407,6 +409,27 @@ function injectCSS() {
     "#bc-ai-send svg{width:16px;height:16px;fill:currentColor}",
     ".bc-ai-note{font-size:10px;color:var(--md-default-fg-color--lighter,#94a3b8);text-align:center;margin-top:9px}",
     "",
+    ".bc-ai-feedback{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;",
+    "  padding:30px 24px;text-align:center;gap:16px;background:var(--xp-card-bg,#f0f4f9);animation:bc-ai-fadein .3s ease-out}",
+    "[data-md-color-scheme=slate] .bc-ai-feedback{background:var(--md-default-bg-color--light,#0f172a)}",
+    ".bc-ai-feedback-title{font-size:17px;font-weight:650;color:var(--md-default-fg-color)}",
+    ".bc-ai-feedback-sub{font-size:13px;color:var(--md-default-fg-color--light,#64748b)}",
+    ".bc-ai-stars{display:flex;gap:6px;font-size:32px;cursor:pointer;user-select:none}",
+    ".bc-ai-stars span{color:var(--xp-card-border,#c7d2e2);transition:color .15s,transform .15s}",
+    ".bc-ai-stars span.active{color:#facc15}",
+    ".bc-ai-stars span:hover{transform:scale(1.15)}",
+    ".bc-ai-feedback-text{width:100%;max-width:280px;resize:none;height:64px;border:1px solid var(--xp-card-border,#c7d2e2);",
+    "  border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;background:var(--md-default-bg-color,#fff);",
+    "  color:var(--md-default-fg-color);outline:none}",
+    ".bc-ai-feedback-text:focus{border-color:var(--xp-accent,#2563eb)}",
+    ".bc-ai-feedback-send{background:var(--xp-accent-strong,#2563eb);color:#fff;border:none;border-radius:10px;",
+    "  padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer}",
+    ".bc-ai-feedback-send:disabled{opacity:.45;cursor:default}",
+    ".bc-ai-feedback-skip{background:none;border:none;color:var(--md-default-fg-color--light,#64748b);",
+    "  font-size:13px;cursor:pointer;padding:4px}",
+    ".bc-ai-feedback-skip:hover{color:var(--md-default-fg-color)}",
+    ".bc-ai-feedback-done{font-size:15px;color:var(--md-default-fg-color);animation:bc-ai-fadein .3s ease-out}",
+    "",
     "@keyframes bc-ai-fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}",
     "@keyframes bc-ai-pulse{0%,100%{box-shadow:0 6px 24px #245dea55}50%{box-shadow:0 6px 24px #245dea88,0 0 0 10px #245dea28}}",
     "",
@@ -446,6 +469,16 @@ function buildWidget() {
     '  <button class="bc-ai-close" id="bc-ai-close" aria-label="Закрыть">&times;</button>',
     '</div>',
     '<div id="bc-ai-log"></div>',
+    '<div id="bc-ai-feedback" class="bc-ai-feedback" style="display:none">',
+    '  <div class="bc-ai-feedback-title">Оцените помощь</div>',
+    '  <div class="bc-ai-feedback-sub">Ваш отзыв поможет стать лучше</div>',
+    '  <div class="bc-ai-stars" id="bc-ai-stars">',
+    '    <span data-star="1">☆</span><span data-star="2">☆</span><span data-star="3">☆</span><span data-star="4">☆</span><span data-star="5">☆</span>',
+    '  </div>',
+    '  <textarea class="bc-ai-feedback-text" id="bc-ai-fb-text" placeholder="Комментарий (необязательно)"></textarea>',
+    '  <button class="bc-ai-feedback-send" id="bc-ai-fb-send" disabled>Отправить</button>',
+    '  <button class="bc-ai-feedback-skip" id="bc-ai-fb-skip">Пропустить</button>',
+    '</div>',
     '<div class="bc-ai-foot">',
     '  <div class="bc-ai-input-row">',
     '    <textarea id="bc-ai-input" rows="1" placeholder="Опишите проблему…"></textarea>',
@@ -459,6 +492,7 @@ function buildWidget() {
   $log = document.getElementById("bc-ai-log");
   $input = document.getElementById("bc-ai-input");
   $send = document.getElementById("bc-ai-send");
+  $feedback = document.getElementById("bc-ai-feedback");
 
   document.getElementById("bc-ai-close").onclick = togglePanel;
 
@@ -470,20 +504,77 @@ function buildWidget() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   });
   $send.onclick = sendMessage;
+
+  var feedbackRating = 0;
+  var stars = document.getElementById("bc-ai-stars");
+  stars.addEventListener("click", function (e) {
+    var s = e.target.closest("[data-star]");
+    if (!s) return;
+    feedbackRating = parseInt(s.dataset.star);
+    Array.from(stars.children).forEach(function (el, i) {
+      el.textContent = i < feedbackRating ? "★" : "☆";
+      el.classList.toggle("active", i < feedbackRating);
+    });
+    document.getElementById("bc-ai-fb-send").disabled = false;
+  });
+
+  document.getElementById("bc-ai-fb-send").onclick = function () {
+    var comment = document.getElementById("bc-ai-fb-text").value.trim();
+    submitFeedback(feedbackRating, comment);
+  };
+  document.getElementById("bc-ai-fb-skip").onclick = function () {
+    feedbackGiven = true;
+    closePanelForReal();
+  };
 }
 
 // ═══════════════════════ Toggle ═══════════════════════
 
 function togglePanel() {
+  if (panelOpen && hasConversation && !feedbackGiven && !busy) {
+    showFeedback();
+    return;
+  }
   panelOpen = !panelOpen;
   if ($panel) {
     $panel.classList.toggle("open", panelOpen);
     $launcher.classList.toggle("bc-ai-open", panelOpen);
     if (panelOpen) {
+      hideFeedback();
       if (!$log.children.length) addBubble("bot", renderMd(GREETING));
       $input.focus();
     }
   }
+}
+
+function closePanelForReal() {
+  panelOpen = false;
+  $panel.classList.remove("open");
+  $launcher.classList.remove("bc-ai-open");
+  hideFeedback();
+}
+
+function showFeedback() {
+  $log.style.display = "none";
+  $panel.querySelector(".bc-ai-foot").style.display = "none";
+  $feedback.style.display = "";
+}
+
+function hideFeedback() {
+  $feedback.style.display = "none";
+  $log.style.display = "";
+  $panel.querySelector(".bc-ai-foot").style.display = "";
+}
+
+function submitFeedback(rating, comment) {
+  feedbackGiven = true;
+  $feedback.innerHTML = '<div class="bc-ai-feedback-done">Спасибо за отзыв! 🙏</div>';
+  fetch(WORKER_URL + "/feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rating: rating, comment: comment, messages: msgs }),
+  }).catch(function () {});
+  setTimeout(closePanelForReal, 1200);
 }
 
 // ═══════════════════════ Рендер ═══════════════════════
@@ -524,6 +615,7 @@ async function sendMessage() {
   $input.style.height = "auto";
   addBubble("user", text);
   msgs.push({ role: "user", content: text });
+  hasConversation = true;
 
   busy = true;
   $send.disabled = true;
