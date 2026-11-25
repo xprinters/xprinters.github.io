@@ -723,7 +723,7 @@ async function sendMessage() {
     }
   }, 1000);
   function clearFakes() {
-    fakeBubbles.forEach(function (el) { el.remove(); });
+    fakeBubbles.forEach(function (el) { var w = el.parentNode; if (w) w.remove(); else el.remove(); });
     fakeBubbles = [];
   }
 
@@ -764,6 +764,8 @@ async function sendMessage() {
     } catch (e) {
       clearTimeout(t);
       if (attempt < maxRetries && e.name !== "AbortError") {
+        clearInterval(thinkingTimer);
+        clearFakes();
         out.innerHTML = '<span class="bc-ai-typing">повторяю попытку (' + (attempt + 2) + '/' + (maxRetries + 1) + ')…</span>';
         acc = "";
         continue;
