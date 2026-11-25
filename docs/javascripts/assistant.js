@@ -5,8 +5,6 @@
 
 var WORKER_URL = "https://api.4barcode.ru";
 var MODEL = "4";
-var SECRET = "4bai";
-var STORAGE_KEY = "bc_ai";
 var NAME = "Тейла";
 var NAME_ACC = "Тейлу";
 var IMG_AVA = "/images/teyla-avatar.webp";
@@ -332,34 +330,9 @@ function activate() {
   });
 }
 
-function matchSecret(q) {
-  return q.trim().toLowerCase() === SECRET;
-}
-
-function triggerActivation() {
-  sessionStorage.setItem(STORAGE_KEY, "1");
-  history.replaceState(null, "", location.pathname);
-  var box = document.querySelector(".md-search__input");
-  if (box) { box.value = ""; box.blur(); }
-  var toggle = document.querySelector("[data-md-toggle=search]");
-  if (toggle) toggle.checked = false;
-  activate();
-}
-
-function watchSearch() {
+function init() {
   if (active) return;
-  if (sessionStorage.getItem(STORAGE_KEY)) { activate(); return; }
-  if (matchSecret(new URLSearchParams(location.search).get("q") || "")) {
-    triggerActivation();
-    return;
-  }
-  var box = document.querySelector(".md-search__input");
-  if (box && !box.__bcWatch) {
-    box.__bcWatch = true;
-    box.addEventListener("input", function () {
-      if (!active && matchSecret(this.value)) triggerActivation();
-    });
-  }
+  activate();
 }
 
 // ═══════════════════════ Загрузка зависимостей ═══════════════════════
@@ -730,9 +703,9 @@ async function sendMessage() {
 // ═══════════════════════ Инициализация ═══════════════════════
 
 if (typeof document$ !== "undefined") {
-  document$.subscribe(function () { watchSearch(); });
+  document$.subscribe(function () { init(); });
 } else {
-  document.addEventListener("DOMContentLoaded", function () { watchSearch(); });
+  document.addEventListener("DOMContentLoaded", function () { init(); });
 }
 
 })();
