@@ -715,15 +715,19 @@ async function sendMessage() {
 
   try {
     var resp;
-    var urls = [API_DIRECT, API_PROXY];
-    try { var saved = localStorage.getItem("bc_api"); if (saved) urls = saved === "proxy" ? [API_PROXY, API_DIRECT] : [API_DIRECT, API_PROXY]; } catch(x){}
+    var saved = "";
+    try { saved = localStorage.getItem("bc_api") || ""; } catch(x){}
+    var primary = saved === "proxy" ? API_PROXY : API_DIRECT;
+    var fallback = primary === API_PROXY ? API_DIRECT : API_PROXY;
+    var primaryMs = primary === API_PROXY ? 45000 : 8000;
     try {
-      resp = await tryFetch(urls[0], 8000);
-      try { localStorage.setItem("bc_api", urls[0] === API_PROXY ? "proxy" : "direct"); } catch(x){}
+      resp = await tryFetch(primary, primaryMs);
+      try { localStorage.setItem("bc_api", primary === API_PROXY ? "proxy" : "direct"); } catch(x){}
     } catch (e1) {
       out.innerHTML = '<span class="bc-ai-typing">переключаюсь…</span>';
-      resp = await tryFetch(urls[1], 30000);
-      try { localStorage.setItem("bc_api", urls[1] === API_PROXY ? "proxy" : "direct"); } catch(x){}
+      var fallbackMs = fallback === API_PROXY ? 45000 : 15000;
+      resp = await tryFetch(fallback, fallbackMs);
+      try { localStorage.setItem("bc_api", fallback === API_PROXY ? "proxy" : "direct"); } catch(x){}
     }
     var reader = resp.body.getReader();
     var dec = new TextDecoder();
