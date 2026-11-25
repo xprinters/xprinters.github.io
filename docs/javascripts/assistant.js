@@ -332,16 +332,33 @@ function activate() {
   });
 }
 
+function matchSecret(q) {
+  return q.trim().toLowerCase() === SECRET;
+}
+
+function triggerActivation() {
+  sessionStorage.setItem(STORAGE_KEY, "1");
+  history.replaceState(null, "", location.pathname);
+  var box = document.querySelector(".md-search__input");
+  if (box) { box.value = ""; box.blur(); }
+  var toggle = document.querySelector("[data-md-toggle=search]");
+  if (toggle) toggle.checked = false;
+  activate();
+}
+
 function watchSearch() {
   if (active) return;
   if (sessionStorage.getItem(STORAGE_KEY)) { activate(); return; }
-  var q = new URLSearchParams(location.search).get("q") || "";
-  if (q.trim().toLowerCase() === SECRET) {
-    sessionStorage.setItem(STORAGE_KEY, "1");
-    history.replaceState(null, "", location.pathname);
-    var box = document.querySelector(".md-search__input");
-    if (box) box.value = "";
-    activate();
+  if (matchSecret(new URLSearchParams(location.search).get("q") || "")) {
+    triggerActivation();
+    return;
+  }
+  var box = document.querySelector(".md-search__input");
+  if (box && !box.__bcWatch) {
+    box.__bcWatch = true;
+    box.addEventListener("input", function () {
+      if (!active && matchSecret(this.value)) triggerActivation();
+    });
   }
 }
 
