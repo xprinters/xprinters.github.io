@@ -699,6 +699,15 @@ async function sendMessage() {
   var acc = "";
   var payload = JSON.stringify({ messages: msgs, model: MODEL, system: SYSTEM });
 
+  var thinkingSteps = ["думает…", "смотрю руководства…", "формирую ответ…", "почти готово…"];
+  var thinkingIdx = 0;
+  var thinkingTimer = setInterval(function () {
+    thinkingIdx++;
+    if (thinkingIdx < thinkingSteps.length) {
+      out.innerHTML = '<span class="bc-ai-typing">' + thinkingSteps[thinkingIdx] + '</span>';
+    }
+  }, 4000);
+
   async function tryFetch(url, ms) {
     var c = new AbortController();
     var t = setTimeout(function () { c.abort(); }, ms);
@@ -723,9 +732,11 @@ async function sendMessage() {
       resp = await tryFetch(primary, 45000);
     } catch (e1) {
       out.innerHTML = '<span class="bc-ai-typing">переключаюсь…</span>';
+      thinkingIdx = 0;
       resp = await tryFetch(fallback, 45000);
       try { localStorage.setItem("bc_api", fallback === API_PROXY ? "proxy" : "direct"); } catch(x){}
     }
+    clearInterval(thinkingTimer);
     var reader = resp.body.getReader();
     var dec = new TextDecoder();
     var firstChunk = true;
@@ -743,6 +754,7 @@ async function sendMessage() {
     if (!acc) throw new Error("пустой ответ");
     msgs.push({ role: "assistant", content: acc });
   } catch (e) {
+    clearInterval(thinkingTimer);
     var errText = e.name === "AbortError"
       ? "⏳ Сервер не ответил вовремя. Возможно, соединение заблокировано вашим провайдером — попробуйте через мобильную сеть или VPN.\n\nИли напишите в [Telegram @xprintershop](https://t.me/xprintershop)."
       : "⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в " +
