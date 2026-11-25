@@ -349,8 +349,8 @@ function loadScript(src, cb) {
 function loadDeps(cb) {
   var pending = 2;
   function done() { if (--pending === 0) cb(); }
-  loadScript("https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js", done);
-  loadScript("https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js", done);
+  loadScript("/javascripts/vendor/marked.min.js", done);
+  loadScript("/javascripts/vendor/purify.min.js", done);
 }
 
 // ═══════════════════════ CSS ═══════════════════════
@@ -666,11 +666,15 @@ async function sendMessage() {
   var acc = "";
 
   try {
+    var controller = new AbortController();
+    var timeout = setTimeout(function () { controller.abort(); }, 15000);
     var resp = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: msgs, model: MODEL, system: SYSTEM }),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
     var reader = resp.body.getReader();
     var dec = new TextDecoder();
@@ -689,10 +693,11 @@ async function sendMessage() {
     if (!acc) throw new Error("пустой ответ");
     msgs.push({ role: "assistant", content: acc });
   } catch (e) {
-    out.innerHTML = renderMd(
-      "⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в " +
-      "[Telegram @xprintershop](https://t.me/xprintershop).\n\n`" + e.message + "`"
-    );
+    var errText = e.name === "AbortError"
+      ? "⏳ Сервер не ответил вовремя. Возможно, соединение заблокировано вашим провайдером — попробуйте через мобильную сеть или VPN.\n\nИли напишите в [Telegram @xprintershop](https://t.me/xprintershop)."
+      : "⚠️ Не удалось получить ответ. Попробуйте ещё раз или напишите в " +
+        "[Telegram @xprintershop](https://t.me/xprintershop).\n\n`" + e.message + "`";
+    out.innerHTML = renderMd(errText);
   } finally {
     busy = false;
     $send.disabled = false;
