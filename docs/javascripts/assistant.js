@@ -3,7 +3,7 @@
 (function () {
 "use strict";
 
-var WORKER_URL = "https://api.4barcode.ru";
+var WORKER_URL = "https://4barcode-api.netlify.app";
 var MODEL = "4";
 var NAME = "Тейла";
 var NAME_ACC = "Тейлу";
