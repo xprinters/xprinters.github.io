@@ -3,7 +3,7 @@
 (function () {
 "use strict";
 
-var WORKER_URL = "https://barcode-assistant.4barcode.workers.dev";
+var WORKER_URL = "https://api.4barcode.ru";
 var MODEL = "4";
 var NAME = "Тейла";
 var NAME_ACC = "Тейлу";
