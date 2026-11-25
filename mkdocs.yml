@@ -56,7 +56,7 @@ extra_javascript:
   - javascripts/share.js
   - javascripts/bookmark.js
   - javascripts/detect.js
-  - javascripts/assistant.js
+  # - javascripts/assistant.js  # временно отключён, ждём активации DNS Cloudflare
 
 validation:
   links:
