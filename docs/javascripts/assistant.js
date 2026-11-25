@@ -3,7 +3,9 @@
 (function () {
 "use strict";
 
-var WORKER_URL = "https://4barcode-api.netlify.app";
+var API_DIRECT = "https://api.4barcode.ru";
+var API_PROXY  = "https://4barcode-api.netlify.app";
+var WORKER_URL = API_DIRECT;
 var MODEL = "4";
 var NAME = "Тейла";
 var NAME_ACC = "Тейлу";
@@ -612,7 +614,9 @@ function hideFeedback() {
 function submitFeedback(rating, comment) {
   feedbackGiven = true;
   $feedback.innerHTML = '<div class="bc-ai-feedback-done">Спасибо за отзыв! 🙏</div>';
-  fetch(WORKER_URL + "/feedback", {
+  var fbUrl = API_DIRECT + "/feedback";
+  try { if (localStorage.getItem("bc_api") === "proxy") fbUrl = API_PROXY + "/feedback"; } catch(x){}
+  fetch(fbUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ rating: rating, comment: comment, messages: msgs }),
@@ -664,18 +668,34 @@ async function sendMessage() {
   $send.disabled = true;
   var out = addBubble("bot", '<span class="bc-ai-typing">думает…</span>');
   var acc = "";
+  var payload = JSON.stringify({ messages: msgs, model: MODEL, system: SYSTEM });
 
-  try {
-    var controller = new AbortController();
-    var timeout = setTimeout(function () { controller.abort(); }, 15000);
-    var resp = await fetch(WORKER_URL, {
+  async function tryFetch(url, ms) {
+    var c = new AbortController();
+    var t = setTimeout(function () { c.abort(); }, ms);
+    var r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: msgs, model: MODEL, system: SYSTEM }),
-      signal: controller.signal,
+      body: payload,
+      signal: c.signal,
     });
-    clearTimeout(timeout);
-    if (!resp.ok || !resp.body) throw new Error("HTTP " + resp.status);
+    clearTimeout(t);
+    if (!r.ok || !r.body) throw new Error("HTTP " + r.status);
+    return r;
+  }
+
+  try {
+    var resp;
+    var urls = [API_DIRECT, API_PROXY];
+    try { var saved = localStorage.getItem("bc_api"); if (saved) urls = saved === "proxy" ? [API_PROXY, API_DIRECT] : [API_DIRECT, API_PROXY]; } catch(x){}
+    try {
+      resp = await tryFetch(urls[0], 8000);
+      try { localStorage.setItem("bc_api", urls[0] === API_PROXY ? "proxy" : "direct"); } catch(x){}
+    } catch (e1) {
+      out.innerHTML = '<span class="bc-ai-typing">переключаюсь…</span>';
+      resp = await tryFetch(urls[1], 30000);
+      try { localStorage.setItem("bc_api", urls[1] === API_PROXY ? "proxy" : "direct"); } catch(x){}
+    }
     var reader = resp.body.getReader();
     var dec = new TextDecoder();
     var firstChunk = true;
