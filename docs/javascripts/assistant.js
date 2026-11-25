@@ -1,14 +1,10 @@
-/* assistant.js — AI-ассистент для 4barcode.ru
-   Скрытая функция: активируется вводом «4bai» в строку поиска сайта.
-   Загружает зависимости и инжектит виджет только после активации. */
+/* assistant.js — AI-ассистент Тейла для 4barcode.ru */
 
 (function () {
 "use strict";
 
-var SECRET = "4bai";
 var WORKER_URL = "https://barcode-assistant.4barcode.workers.dev";
 var MODEL = "4";
-var STORAGE_KEY = "bc_ai";
 var NAME = "Тейла";
 var NAME_ACC = "Тейлу";
 var IMG_AVA = "/images/teyla-avatar.webp";
@@ -283,37 +279,14 @@ var hasConversation = false;
 var feedbackGiven = false;
 var $launcher, $panel, $log, $input, $send, $feedback;
 
-// ═══════════════════════ Мониторинг поиска ═══════════════════════
-
-function watchSearch() {
-  if (active) return;
-  if (sessionStorage.getItem(STORAGE_KEY)) { activate(); return; }
-  var q = document.querySelector("[data-md-component=search-query]");
-  if (!q || q._bcAI) return;
-  q._bcAI = true;
-  q.addEventListener("input", function () {
-    if (q.value.trim().toLowerCase() === SECRET) {
-      q.value = "";
-      q.blur();
-      setTimeout(function () {
-        var toggle = document.getElementById("__search");
-        if (toggle) { toggle.checked = false; toggle.dispatchEvent(new Event("change")); }
-        sessionStorage.setItem(STORAGE_KEY, "1");
-        activate();
-      }, 60);
-    }
-  });
-}
-
 // ═══════════════════════ Активация ═══════════════════════
 
 function activate() {
-  if (active) { togglePanel(); return; }
+  if (active) return;
   active = true;
   loadDeps(function () {
     injectCSS();
     buildWidget();
-    togglePanel();
   });
 }
 
@@ -660,9 +633,9 @@ async function sendMessage() {
 // ═══════════════════════ Инициализация ═══════════════════════
 
 if (typeof document$ !== "undefined") {
-  document$.subscribe(watchSearch);
+  document$.subscribe(function () { activate(); });
 } else {
-  document.addEventListener("DOMContentLoaded", watchSearch);
+  document.addEventListener("DOMContentLoaded", function () { activate(); });
 }
 
 })();
