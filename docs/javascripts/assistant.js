@@ -332,9 +332,38 @@ function activate() {
   });
 }
 
+function probeApi(cb) {
+  var saved;
+  try { saved = localStorage.getItem("bc_api"); } catch(x){}
+  if (saved) {
+    WORKER_URL = saved === "proxy" ? API_PROXY : API_DIRECT;
+    cb();
+    return;
+  }
+  var done = false;
+  function win(url) {
+    if (done) return;
+    done = true;
+    WORKER_URL = url;
+    try { localStorage.setItem("bc_api", url === API_PROXY ? "proxy" : "direct"); } catch(x){}
+    cb();
+  }
+  var c1 = new AbortController();
+  var c2 = new AbortController();
+  setTimeout(function () { c1.abort(); }, 5000);
+  setTimeout(function () { c2.abort(); }, 5000);
+  fetch(API_DIRECT, { method: "HEAD", mode: "no-cors", signal: c1.signal })
+    .then(function () { win(API_DIRECT); })
+    .catch(function () {});
+  fetch(API_PROXY, { method: "HEAD", mode: "no-cors", signal: c2.signal })
+    .then(function () { win(API_PROXY); })
+    .catch(function () {});
+  setTimeout(function () { if (!done) { done = true; cb(); } }, 6000);
+}
+
 function init() {
   if (active) return;
-  activate();
+  probeApi(function () { activate(); });
 }
 
 // ═══════════════════════ Загрузка зависимостей ═══════════════════════
