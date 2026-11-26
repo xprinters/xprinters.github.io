@@ -367,7 +367,10 @@ function probeApi(cb) {
 }
 
 function init() {
-  if (active) return;
+  if (active) {
+    if (!document.getElementById("bc-ai-css")) injectCSS();
+    return;
+  }
   probeApi(function () { activate(); });
 }
 
